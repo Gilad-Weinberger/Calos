@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../../lib/context/AuthContext";
 
 interface IconConfig {
   name: keyof typeof Ionicons.glyphMap;
@@ -15,6 +16,7 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ title, icons }) => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
 
   return (
     <View
@@ -28,10 +30,18 @@ const TopBar: React.FC<TopBarProps> = ({ title, icons }) => {
       <View className="flex-row items-center space-x-4">
         {/* User profile circle */}
         <TouchableOpacity
-          className="w-8 h-8 rounded-full bg-blue-500 items-center justify-center"
+          className="w-8 h-8 rounded-full bg-blue-500 items-center justify-center overflow-hidden"
           activeOpacity={0.7}
         >
-          <Ionicons name="person" size={16} color="white" />
+          {user?.profile_image_url ? (
+            <Image
+              source={{ uri: user.profile_image_url }}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name="person" size={16} color="white" />
+          )}
         </TouchableOpacity>
 
         {/* Dynamic icons - reversed order */}

@@ -10,10 +10,6 @@ const You = () => {
         title="You"
         icons={[
           {
-            name: "search",
-            onPress: () => console.log("Search pressed"),
-          },
-          {
             name: "settings",
             onPress: () => console.log("Gear pressed"),
           },
