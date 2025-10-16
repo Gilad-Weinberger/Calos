@@ -52,10 +52,10 @@ const TopBar: React.FC<TopBarProps> = ({ title, icons }) => {
             <TouchableOpacity
               key={index}
               onPress={icon.onPress}
-              className="w-8 h-8 items-center justify-center ml-5"
+              className="w-10 h-10 items-center justify-center ml-6"
               activeOpacity={0.7}
             >
-              <Ionicons name={icon.name} size={24} color="#6B7280" />
+              <Ionicons name={icon.name} size={26} color="#000000" />
             </TouchableOpacity>
           ))}
       </View>

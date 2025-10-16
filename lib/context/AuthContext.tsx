@@ -1,5 +1,6 @@
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import * as FileSystem from "expo-file-system/legacy";
+import { useRouter, useSegments } from "expo-router";
 import React, {
   createContext,
   useCallback,
@@ -52,6 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const router = useRouter();
+  const segments = useSegments();
 
   // Fetch user profile from database
   const fetchUserProfile = useCallback(
@@ -218,6 +221,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       subscription.unsubscribe();
     };
   }, [ensureUserProfile]);
+
+  // Handle navigation based on authentication state
+  useEffect(() => {
+    if (initializing) return;
+
+    const inAuthGroup = segments[0] === "auth";
+    const isIndexPage = !segments[0];
+
+    if (!authUser) {
+      // User is not authenticated
+      if (!inAuthGroup && !isIndexPage) {
+        router.replace("/");
+      }
+    } else if (authUser && (!user?.name || !user?.profile_image_url)) {
+      // User is authenticated but hasn't completed profile (missing name or profile image)
+      if (!inAuthGroup || segments[1] !== "onboarding") {
+        router.replace("/auth/onboarding");
+      }
+    } else if (authUser && user?.name && user?.profile_image_url) {
+      // User is authenticated and has completed profile
+      if (inAuthGroup || isIndexPage) {
+        router.replace("/(tabs)/home");
+      }
+    }
+  }, [authUser, user, initializing, segments, router]);
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);

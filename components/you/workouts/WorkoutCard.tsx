@@ -1,0 +1,200 @@
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Image, ScrollView, Text, View } from "react-native";
+import {
+  calculateTotalReps,
+  calculateTotalSets,
+  formatWorkoutDate,
+  WorkoutExercise,
+} from "../../../lib/functions/workoutFunctions";
+
+interface WorkoutCardProps {
+  workout: {
+    workout_id: string;
+    workout_date: string;
+    workout_exercises: Array<{
+      exercise_id: string;
+      sets: number;
+      reps: number[];
+      order_index: number;
+      exercises: {
+        name: string;
+        type: "static" | "dynamic";
+      };
+    }>;
+  };
+  userName: string;
+  userProfileImage: string | null;
+  title?: string;
+  achievements?: {
+    icon: string;
+    message: string;
+  }[];
+}
+
+const WorkoutCard: React.FC<WorkoutCardProps> = ({
+  workout,
+  userName,
+  userProfileImage,
+  title,
+  achievements,
+}) => {
+  // Transform workout exercises to WorkoutExercise format
+  const exercises: WorkoutExercise[] = workout.workout_exercises.map((we) => ({
+    exercise_id: we.exercise_id,
+    exercise_name: we.exercises.name,
+    exercise_type: we.exercises.type,
+    sets: we.sets,
+    reps: we.reps,
+    order_index: we.order_index,
+  }));
+
+  const totalSets = calculateTotalSets(exercises);
+  const totalReps = calculateTotalReps(exercises);
+  const totalExercises = exercises.length;
+  const formattedDate = formatWorkoutDate(workout.workout_date);
+
+  return (
+    <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
+      {/* Header Section */}
+      <View className="flex-row items-center mb-3">
+        <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center overflow-hidden mr-3">
+          {userProfileImage ? (
+            <Image
+              source={{ uri: userProfileImage }}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name="person" size={24} color="white" />
+          )}
+        </View>
+        <View className="flex-1">
+          <Text className="text-base font-semibold text-gray-800">
+            {userName}
+          </Text>
+          <View className="flex-row items-center">
+            <Ionicons name="barbell" size={14} color="#6B7280" />
+            <Text className="text-sm text-gray-600 ml-1">{formattedDate}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Title Section */}
+      <Text className="text-2xl font-bold text-gray-800 mb-4">
+        {title || `Workout Session`}
+      </Text>
+
+      {/* Stats Section */}
+      <View className="flex-row justify-between mb-4">
+        <View className="flex-1">
+          <Text className="text-sm text-gray-500 mb-1">Total Sets</Text>
+          <Text className="text-lg font-semibold text-gray-800">
+            {totalSets}
+          </Text>
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm text-gray-500 mb-1">Total Reps</Text>
+          <Text className="text-lg font-semibold text-gray-800">
+            {totalReps}
+          </Text>
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm text-gray-500 mb-1">Exercises</Text>
+          <Text className="text-lg font-semibold text-gray-800">
+            {totalExercises}
+          </Text>
+        </View>
+        {achievements && achievements.length > 0 && (
+          <View className="flex-1">
+            <Text className="text-sm text-gray-500 mb-1">Achievements</Text>
+            <View className="flex-row items-center">
+              <Ionicons name="trophy" size={18} color="#F59E0B" />
+              <Text className="text-lg font-semibold text-gray-800 ml-1">
+                {achievements.length}
+              </Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Achievement Badge Section */}
+      {achievements && achievements.length > 0 && (
+        <View className="bg-gray-100 rounded-lg p-3 mb-4">
+          <View className="flex-row items-center">
+            <View className="w-10 h-10 bg-orange-100 rounded-full items-center justify-center mr-3">
+              <Ionicons name="trophy" size={20} color="#F97316" />
+            </View>
+            <Text className="flex-1 text-sm text-gray-700 font-medium">
+              {achievements[0].message}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Exercise Carousel Section */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="flex-row"
+        contentContainerStyle={{ paddingRight: 16 }}
+      >
+        {exercises.map((exercise, index) => (
+          <View
+            key={`${exercise.exercise_id}-${index}`}
+            className="bg-gray-50 rounded-xl p-4 mr-2"
+            style={{ width: 140, minHeight: 180 }}
+          >
+            {/* Exercise Type Icon */}
+            <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mb-3">
+              <Ionicons
+                name={exercise.exercise_type === "dynamic" ? "flash" : "pause"}
+                size={20}
+                color="#3B82F6"
+              />
+            </View>
+
+            {/* Exercise Name */}
+            <Text
+              className="text-base font-semibold text-gray-800 mb-2"
+              numberOfLines={2}
+            >
+              {exercise.exercise_name}
+            </Text>
+
+            {/* Exercise Type Badge */}
+            <View className="bg-white rounded-full px-2 py-1 self-start mb-3">
+              <Text className="text-xs text-gray-600 capitalize">
+                {exercise.exercise_type}
+              </Text>
+            </View>
+
+            {/* Sets and Reps */}
+            <View className="flex-1 justify-end">
+              <Text className="text-xs text-gray-500 mb-1">
+                {exercise.sets} {exercise.sets === 1 ? "set" : "sets"}
+              </Text>
+              <Text className="text-sm font-medium text-gray-700">
+                {(() => {
+                  const allSame = exercise.reps.every(
+                    (rep) => rep === exercise.reps[0]
+                  );
+                  const unit =
+                    exercise.exercise_type === "static" ? "seconds" : "reps";
+
+                  if (allSame && exercise.reps.length > 1) {
+                    return `${exercise.sets} × ${exercise.reps[0]} ${unit}`;
+                  } else {
+                    return `${exercise.reps.join(", ")} ${unit}`;
+                  }
+                })()}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
+export default WorkoutCard;

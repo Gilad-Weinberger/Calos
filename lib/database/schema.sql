@@ -235,14 +235,14 @@ BEGIN
         GROUP BY we.exercise_id, e.name, e.type, w.workout_date, w.workout_id, we.reps
     )
     SELECT 
-        exercise_id,
-        name,
-        type,
-        performance_amount as amount,
-        workout_date as achieved_at,
-        workout_id
-    FROM exercise_performances
-    ORDER BY performance_amount DESC, workout_date DESC
+        ep.exercise_id,
+        ep.name,
+        ep.type,
+        ep.performance_amount as amount,
+        ep.workout_date as achieved_at,
+        ep.workout_id
+    FROM exercise_performances ep
+    ORDER BY ep.performance_amount DESC, ep.workout_date DESC
     LIMIT 1;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -276,28 +276,28 @@ BEGIN
     ),
     ranked_performances AS (
         SELECT 
-            exercise_id,
-            name,
-            type,
-            workout_date,
-            workout_id,
-            performance_amount,
+            ind.exercise_id,
+            ind.name,
+            ind.type,
+            ind.workout_date,
+            ind.workout_id,
+            ind.performance_amount,
             ROW_NUMBER() OVER (
-                ORDER BY performance_amount DESC, workout_date DESC
+                ORDER BY ind.performance_amount DESC, ind.workout_date DESC
             ) as rank_pos
-        FROM individual_sets
+        FROM individual_sets ind
     )
     SELECT 
-        exercise_id,
-        name,
-        type,
-        performance_amount as amount,
-        workout_date as achieved_at,
-        workout_id,
-        rank_pos as rank_position
-    FROM ranked_performances
-    WHERE rank_pos <= p_limit
-    ORDER BY rank_pos;
+        rp.exercise_id,
+        rp.name,
+        rp.type,
+        rp.performance_amount as amount,
+        rp.workout_date as achieved_at,
+        rp.workout_id,
+        rp.rank_pos as rank_position
+    FROM ranked_performances rp
+    WHERE rp.rank_pos <= p_limit
+    ORDER BY rp.rank_pos;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -330,28 +330,28 @@ BEGIN
     ),
     ranked_performances AS (
         SELECT 
-            exercise_id,
-            name,
-            type,
-            workout_date,
-            workout_id,
-            performance_amount,
+            ind.exercise_id,
+            ind.name,
+            ind.type,
+            ind.workout_date,
+            ind.workout_id,
+            ind.performance_amount,
             DENSE_RANK() OVER (
-                ORDER BY performance_amount DESC
+                ORDER BY ind.performance_amount DESC
             ) as podium_pos
-        FROM individual_sets
+        FROM individual_sets ind
     )
     SELECT 
-        exercise_id,
-        name,
-        type,
-        performance_amount as amount,
-        workout_date as achieved_at,
-        workout_id,
-        podium_pos::INTEGER as podium_position
-    FROM ranked_performances
-    WHERE podium_pos <= 3
-    ORDER BY podium_pos, workout_date DESC;
+        rp.exercise_id,
+        rp.name,
+        rp.type,
+        rp.performance_amount as amount,
+        rp.workout_date as achieved_at,
+        rp.workout_id,
+        rp.podium_pos::INTEGER as podium_position
+    FROM ranked_performances rp
+    WHERE rp.podium_pos <= 3
+    ORDER BY rp.podium_pos, rp.workout_date DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
