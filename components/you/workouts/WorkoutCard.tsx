@@ -1,18 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
-import { Image, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import {
   calculateTotalReps,
   calculateTotalSets,
   formatWorkoutDate,
+  getBestAchievement,
   WorkoutExercise,
 } from "../../../lib/functions/workoutFunctions";
+import AchievementIcon from "../../ui/AchievementIcon";
 
 interface WorkoutCardProps {
   workout: {
     workout_id: string;
     workout_date: string;
-    workout_exercises: Array<{
+    workout_exercises: {
       exercise_id: string;
       sets: number;
       reps: number[];
@@ -21,7 +24,7 @@ interface WorkoutCardProps {
         name: string;
         type: "static" | "dynamic";
       };
-    }>;
+    }[];
   };
   userName: string;
   userProfileImage: string | null;
@@ -53,6 +56,14 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
   const totalReps = calculateTotalReps(exercises);
   const totalExercises = exercises.length;
   const formattedDate = formatWorkoutDate(workout.workout_date);
+  const bestAchievement = getBestAchievement(achievements || []);
+
+  const handleCongratsPress = () => {
+    router.push({
+      pathname: "/workout-achievements/[id]",
+      params: { id: workout.workout_id },
+    });
+  };
 
   return (
     <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
@@ -118,18 +129,31 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
         )}
       </View>
 
-      {/* Achievement Badge Section */}
-      {achievements && achievements.length > 0 && (
-        <View className="bg-gray-100 rounded-lg p-3 mb-4">
+      {/* Congrats Section */}
+      {bestAchievement && (
+        <Pressable
+          onPress={handleCongratsPress}
+          className="bg-[#f2f2f0] rounded-lg p-4 mb-4 border border-orange-200"
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.8 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+          })}
+        >
           <View className="flex-row items-center">
-            <View className="w-10 h-10 bg-orange-100 rounded-full items-center justify-center mr-3">
-              <Ionicons name="trophy" size={20} color="#F97316" />
+            <View className="w-12 h-12 bg-white rounded-full items-center justify-center mr-4 shadow-sm">
+              <AchievementIcon
+                type={bestAchievement.icon as "trophy" | "medal"}
+                rank={bestAchievement.rank}
+                size={24}
+              />
             </View>
-            <Text className="flex-1 text-sm text-gray-700 font-medium">
-              {achievements[0].message}
-            </Text>
+            <View className="flex-1">
+              <Text className="text-sm text-orange-700 font-medium">
+                {bestAchievement.message}
+              </Text>
+            </View>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {/* Exercise Carousel Section */}

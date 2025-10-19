@@ -8,7 +8,7 @@ import Workouts from "../../components/you/Workouts";
 
 const You = () => {
   const [activeTab, setActiveTab] = useState<"Progress" | "Workouts">(
-    "Progress"
+    "Workouts"
   );
 
   const renderContent = () => {

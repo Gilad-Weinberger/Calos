@@ -61,7 +61,8 @@ const Workouts: React.FC = () => {
           try {
             const achievements = await getWorkoutAchievements(
               user.user_id,
-              workout.workout_id
+              workout.workout_id,
+              "individual" // Compare each set individually against historical data
             );
             achievementsMap[workout.workout_id] = achievements;
           } catch (err) {

@@ -182,14 +182,44 @@ export const formatWorkoutDate = (date: string): string => {
 export interface Achievement {
   icon: string;
   message: string;
+  rank?: number; // 1 for gold/PR, 2 for silver, 3 for bronze
 }
 
 /**
- * Get achievements for a specific workout
+ * Get the best achievement from a list of achievements
+ * Priority: Trophy (rank 1) > Medal (rank 2-3)
+ */
+export const getBestAchievement = (
+  achievements: Achievement[]
+): Achievement | null => {
+  if (!achievements || achievements.length === 0) {
+    return null;
+  }
+
+  // Find trophy achievements first (personal records)
+  const trophyAchievement = achievements.find(
+    (achievement) => achievement.icon === "trophy"
+  );
+
+  if (trophyAchievement) {
+    return trophyAchievement;
+  }
+
+  // If no trophy, return the first medal achievement
+  const medalAchievement = achievements.find(
+    (achievement) => achievement.icon === "medal"
+  );
+
+  return medalAchievement || achievements[0];
+};
+
+/**
+ * Get achievements for a specific workout based on historical data up to and including this workout
  */
 export const getWorkoutAchievements = async (
   userId: string,
-  workoutId: string
+  workoutId: string,
+  compareMode: "individual" | "best" = "best"
 ): Promise<Achievement[]> => {
   try {
     const achievements: Achievement[] = [];
@@ -218,75 +248,103 @@ export const getWorkoutAchievements = async (
       return achievements;
     }
 
-    // Check for personal records in each exercise
+    // Check for personal records and ranking achievements in each exercise
     for (const exercise of workoutExercises) {
-      const { data: personalRecord, error: prError } = await supabase.rpc(
-        "get_user_personal_record",
-        {
-          p_user_id: userId,
-          p_exercise_id: exercise.exercise_id,
-        }
-      );
+      const exerciseData = Array.isArray(exercise.exercises)
+        ? exercise.exercises[0]
+        : exercise.exercises;
+      const unit = exerciseData?.type === "static" ? "seconds" : "reps";
 
-      if (prError) {
-        console.error("Error fetching personal record:", prError);
-        continue;
-      }
-
-      if (personalRecord && personalRecord.length > 0) {
-        const record = personalRecord[0];
-        const currentWorkoutMax = Math.max(...exercise.reps);
-
-        // Check if this workout set a new personal record
-        if (record.workout_id === workoutId) {
-          const exerciseData = Array.isArray(exercise.exercises)
-            ? exercise.exercises[0]
-            : exercise.exercises;
-          const unit = exerciseData?.type === "static" ? "seconds" : "reps";
-          achievements.push({
-            icon: "trophy",
-            message: `New personal record! ${currentWorkoutMax} ${unit} in ${exerciseData?.name || "exercise"}`,
-          });
-        }
-      }
-    }
-
-    // Check for ranking achievements (top 3 performances)
-    for (const exercise of workoutExercises) {
+      // Get historical rankings up to this workout
       const { data: rankings, error: rankingsError } = await supabase.rpc(
-        "get_user_exercise_rankings",
+        "get_user_exercise_rankings_until_workout",
         {
           p_user_id: userId,
           p_exercise_id: exercise.exercise_id,
+          p_workout_id: workoutId,
           p_limit: 5,
         }
       );
 
       if (rankingsError) {
-        console.error("Error fetching rankings:", rankingsError);
+        console.error("Error fetching historical rankings:", rankingsError);
         continue;
       }
 
       if (rankings && rankings.length > 0) {
-        // Check if any of the current workout's sets are in top 3
-        for (const rep of exercise.reps) {
+        // Determine which sets to check based on compareMode
+        const setsToCheck =
+          compareMode === "best" ? [Math.max(...exercise.reps)] : exercise.reps;
+
+        // Check each set for achievements
+        for (const rep of setsToCheck) {
           const ranking = rankings.find(
             (r: any) => r.amount === rep && r.workout_id === workoutId
           );
-          if (ranking && ranking.rank_position <= 3) {
-            const exerciseData = Array.isArray(exercise.exercises)
-              ? exercise.exercises[0]
-              : exercise.exercises;
-            const unit = exerciseData?.type === "static" ? "seconds" : "reps";
-            const position =
-              ranking.rank_position === 1
-                ? "1st"
-                : ranking.rank_position === 2
-                  ? "2nd"
-                  : "3rd";
+
+          if (ranking) {
+            // Check if it's a PR (1st place)
+            if (ranking.rank_position === 1) {
+              achievements.push({
+                icon: "trophy",
+                message: `Congrats for the new PR! ${rep} ${unit} in ${exerciseData?.name || "exercise"}!`,
+                rank: 1,
+              });
+            }
+            // Check if it's in top 3 rankings
+            else if (ranking.rank_position <= 3) {
+              const position = ranking.rank_position === 2 ? "2nd" : "3rd";
+              achievements.push({
+                icon: "medal",
+                message: `Congrats! That's the ${position} best performance: ${rep} ${unit} in ${exerciseData?.name || "exercise"}`,
+                rank: ranking.rank_position,
+              });
+            }
+          }
+        }
+      }
+
+      // Check for total reps achievements
+      const totalReps = exercise.reps.reduce(
+        (sum: number, rep: number) => sum + rep,
+        0
+      );
+
+      const { data: totalRepsRankings, error: totalRepsError } =
+        await supabase.rpc(
+          "get_user_exercise_total_reps_rankings_until_workout",
+          {
+            p_user_id: userId,
+            p_exercise_id: exercise.exercise_id,
+            p_workout_id: workoutId,
+            p_limit: 5,
+          }
+        );
+
+      if (totalRepsError) {
+        console.error("Error fetching total reps rankings:", totalRepsError);
+      } else if (totalRepsRankings && totalRepsRankings.length > 0) {
+        // Find if current workout's total is in rankings
+        const totalRanking = totalRepsRankings.find(
+          (r: any) => r.amount === totalReps && r.workout_id === workoutId
+        );
+
+        if (totalRanking) {
+          // Check if it's a personal record (1st place)
+          if (totalRanking.rank_position === 1) {
+            achievements.push({
+              icon: "trophy",
+              message: `New total reps record! ${totalReps} ${unit} total in ${exerciseData?.name || "exercise"}`,
+              rank: 1,
+            });
+          }
+          // Check if it's in top 3 total reps rankings
+          else if (totalRanking.rank_position <= 3) {
+            const position = totalRanking.rank_position === 2 ? "2nd" : "3rd";
             achievements.push({
               icon: "medal",
-              message: `${position} best performance! ${rep} ${unit} in ${exerciseData?.name || "exercise"}`,
+              message: `${position} best total! ${totalReps} ${unit} in ${exerciseData?.name || "exercise"}`,
+              rank: totalRanking.rank_position,
             });
           }
         }
