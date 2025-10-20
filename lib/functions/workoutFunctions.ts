@@ -65,6 +65,7 @@ export interface WorkoutExercise {
   sets: number;
   reps: number[];
   order_index: number;
+  superset_group?: string;
   video_urls?: string[];
   analysis_metadata?: Record<string, any>;
 }
@@ -140,6 +141,7 @@ export const saveCompleteWorkout = async (
       sets: exercise.sets,
       reps: exercise.reps,
       order_index: index + 1,
+      superset_group: exercise.superset_group || null,
       video_urls: exercise.video_urls || null,
       analysis_metadata: exercise.analysis_metadata || null,
     }));

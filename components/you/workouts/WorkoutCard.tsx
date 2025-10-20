@@ -22,6 +22,7 @@ import {
   getBestAchievement,
   WorkoutExercise,
 } from "../../../lib/functions/workoutFunctions";
+import { groupExercisesBySuperset } from "../../../lib/utils/superset";
 import { formatDuration } from "../../../lib/utils/timer";
 import AchievementIcon from "../../ui/AchievementIcon";
 import VideoPlayerModal from "../../ui/VideoPlayerModal";
@@ -39,6 +40,7 @@ interface WorkoutCardProps {
       sets: number;
       reps: number[];
       order_index: number;
+      superset_group?: string;
       video_urls?: string[];
       exercises: {
         name: string;
@@ -85,6 +87,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
     sets: we.sets,
     reps: we.reps,
     order_index: we.order_index,
+    superset_group: we.superset_group,
   }));
 
   const totalSets = calculateTotalSets(exercises);
@@ -411,64 +414,122 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
           className="flex-row"
           contentContainerStyle={{ paddingRight: 16 }}
         >
-          {exercises.map((exercise, index) => (
-            <View
-              key={`${exercise.exercise_id}-${index}`}
-              className="bg-gray-50 rounded-xl p-4 mr-2"
-              style={{ width: 140, minHeight: 180 }}
-            >
-              {/* Exercise Type Icon */}
-              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mb-3">
-                <Ionicons
-                  name={
-                    exercise.exercise_type === "dynamic" ? "flash" : "pause"
-                  }
-                  size={20}
-                  color="#3B82F6"
-                />
-              </View>
+          {groupExercisesBySuperset(exercises).map((group, groupIndex) => {
+            if (group.isSuperset) {
+              return (
+                <View
+                  key={`superset-${groupIndex}`}
+                  className="bg-blue-50 rounded-xl p-4 mr-2 border-2 border-blue-200"
+                  style={{ width: 160, minHeight: 180 }}
+                >
+                  {/* Superset Badge */}
+                  <View className="bg-blue-600 rounded-full px-2 py-1 self-start mb-2">
+                    <Text className="text-xs font-bold text-white">
+                      SUPERSET
+                    </Text>
+                  </View>
 
-              {/* Exercise Name */}
-              <Text
-                className="text-base font-semibold text-gray-800 mb-2"
-                numberOfLines={2}
-              >
-                {exercise.exercise_name}
-              </Text>
-
-              {/* Exercise Type Badge */}
-              <View className="bg-white rounded-full px-2 py-1 self-start mb-3">
-                <Text className="text-xs text-gray-600 capitalize">
-                  {exercise.exercise_type}
-                </Text>
-              </View>
-
-              {/* Sets and Reps */}
-              <View className="flex-1 justify-end">
-                <Text className="text-xs text-gray-500 mb-1">
-                  {exercise.sets} {exercise.sets === 1 ? "set" : "sets"}
-                </Text>
-                <Text className="text-sm font-medium text-gray-700">
-                  {(() => {
-                    const allSame = exercise.reps.every(
-                      (rep) => rep === exercise.reps[0]
+                  {/* Exercises in Superset */}
+                  {group.exercises.map((exercise, exIndex) => {
+                    // Cast to WorkoutExercise since we're in workout history
+                    const workoutEx = exercise as WorkoutExercise;
+                    return (
+                      <View key={exIndex} className="mb-2">
+                        <Text
+                          className="text-sm font-semibold text-gray-800"
+                          numberOfLines={1}
+                        >
+                          {workoutEx.exercise_name}
+                        </Text>
+                        <Text className="text-xs text-gray-600">
+                          {workoutEx.sets}×
+                          {(() => {
+                            const allSame = workoutEx.reps.every(
+                              (rep: number) => rep === workoutEx.reps[0]
+                            );
+                            const unit =
+                              workoutEx.exercise_type === "static" ? "s" : "";
+                            if (allSame) {
+                              return `${workoutEx.reps[0]}${unit}`;
+                            }
+                            return workoutEx.reps.join("-") + unit;
+                          })()}
+                        </Text>
+                      </View>
                     );
-                    const unit =
-                      exercise.exercise_type === "static" ? "seconds" : "reps";
+                  })}
+                  <Text className="text-xs text-blue-600 mt-1 italic">
+                    No rest between
+                  </Text>
+                </View>
+              );
+            } else {
+              // Cast to WorkoutExercise since we're in workout history
+              const workoutEx: WorkoutExercise = group
+                .exercises[0] as WorkoutExercise;
+              return (
+                <View
+                  key={`${workoutEx.exercise_id}-${groupIndex}`}
+                  className="bg-gray-50 rounded-xl p-4 mr-2"
+                  style={{ width: 140, minHeight: 180 }}
+                >
+                  {/* Exercise Type Icon */}
+                  <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mb-3">
+                    <Ionicons
+                      name={
+                        workoutEx.exercise_type === "dynamic"
+                          ? "flash"
+                          : "pause"
+                      }
+                      size={20}
+                      color="#3B82F6"
+                    />
+                  </View>
 
-                    if (allSame && exercise.reps.length > 1) {
-                      return `${exercise.sets} × ${exercise.reps[0]} ${unit}`;
-                    } else {
-                      return `${exercise.reps.join(", ")} ${unit}`;
-                    }
-                  })()}
-                </Text>
-              </View>
-            </View>
-          ))}
+                  {/* Exercise Name */}
+                  <Text
+                    className="text-base font-semibold text-gray-800 mb-2"
+                    numberOfLines={2}
+                  >
+                    {workoutEx.exercise_name}
+                  </Text>
+
+                  {/* Exercise Type Badge */}
+                  <View className="bg-white rounded-full px-2 py-1 self-start mb-3">
+                    <Text className="text-xs text-gray-600 capitalize">
+                      {workoutEx.exercise_type}
+                    </Text>
+                  </View>
+
+                  {/* Sets and Reps */}
+                  <View className="flex-1 justify-end">
+                    <Text className="text-xs text-gray-500 mb-1">
+                      {workoutEx.sets} {workoutEx.sets === 1 ? "set" : "sets"}
+                    </Text>
+                    <Text className="text-sm font-medium text-gray-700">
+                      {(() => {
+                        const allSame = workoutEx.reps.every(
+                          (rep: number) => rep === workoutEx.reps[0]
+                        );
+                        const unit =
+                          workoutEx.exercise_type === "static"
+                            ? "seconds"
+                            : "reps";
+
+                        if (allSame && workoutEx.reps.length > 1) {
+                          return `${workoutEx.sets} × ${workoutEx.reps[0]} ${unit}`;
+                        } else {
+                          return `${workoutEx.reps.join(", ")} ${unit}`;
+                        }
+                      })()}
+                    </Text>
+                  </View>
+                </View>
+              );
+            }
+          })}
         </ScrollView>
       )}
-
       {/* Video Player Modal */}
       {selectedVideo && (
         <VideoPlayerModal

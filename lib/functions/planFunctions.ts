@@ -48,6 +48,7 @@ export interface ExerciseDefinition {
   sets: number;
   reps: number; // Target reps per set
   rest_seconds: number;
+  superset_group?: string; // Identifier for grouping exercises into supersets
 }
 
 /**

@@ -67,6 +67,7 @@ CREATE TABLE workout_exercises (
     reps INTEGER[] NOT NULL, -- array of integers for reps per set
     order_index INTEGER NOT NULL, -- order of exercise in workout
     rest_seconds INTEGER, -- rest time in seconds until next exercise
+    superset_group TEXT DEFAULT NULL, -- identifier for grouping exercises into supersets
     video_urls TEXT[] DEFAULT '{}', -- array of video URLs from storage
     analysis_metadata JSONB DEFAULT '{}', -- Gemini AI analysis metadata
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -96,6 +97,8 @@ CREATE INDEX idx_workouts_plan_scheduled ON workouts(plan_id, scheduled_date);
 CREATE INDEX idx_workout_exercises_workout ON workout_exercises(workout_id);
 CREATE INDEX idx_workout_exercises_exercise ON workout_exercises(exercise_id);
 CREATE INDEX idx_workout_exercises_workout_order ON workout_exercises(workout_id, order_index);
+CREATE INDEX idx_workout_exercises_superset ON workout_exercises(workout_id, superset_group) 
+    WHERE superset_group IS NOT NULL;
 
 -- Create trigger function for updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()

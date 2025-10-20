@@ -8,6 +8,7 @@ import {
   formatWeekDay,
   getLateworkoutMessage,
 } from "../../lib/utils/schedule";
+import { groupExercisesBySuperset } from "../../lib/utils/superset";
 
 interface TodaysWorkoutProps {
   plan: Plan;
@@ -125,38 +126,85 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
             Today's Exercises
           </Text>
 
-          {workout.exercises.map((exercise, index) => (
-            <View
-              key={index}
-              className="border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:mb-0 last:pb-0"
-            >
-              <Text className="text-base font-medium text-gray-900 mb-1">
-                {exercise.exercise_name}
-              </Text>
-              <View className="flex-row items-center flex-wrap">
-                <View className="flex-row items-center mr-4 mb-1">
-                  <Ionicons name="list" size={14} color="#6b7280" />
-                  <Text className="text-sm text-gray-600 ml-1">
-                    {exercise.sets} sets
-                  </Text>
-                </View>
-                <View className="flex-row items-center mr-4 mb-1">
-                  <Ionicons name="fitness" size={14} color="#6b7280" />
-                  <Text className="text-sm text-gray-600 ml-1">
-                    {exercise.reps} reps
-                  </Text>
-                </View>
-                {exercise.rest_seconds > 0 && (
-                  <View className="flex-row items-center mb-1">
-                    <Ionicons name="time" size={14} color="#6b7280" />
-                    <Text className="text-sm text-gray-600 ml-1">
-                      {exercise.rest_seconds}s rest
+          {groupExercisesBySuperset(workout.exercises).map(
+            (group, groupIndex) => {
+              if (group.isSuperset) {
+                return (
+                  <View
+                    key={`superset-${groupIndex}`}
+                    className="border-l-4 border-blue-500 pl-3 bg-blue-50 rounded-r-lg mb-3 py-2"
+                  >
+                    <Text className="text-xs font-bold text-blue-600 mb-2">
+                      SUPERSET
+                    </Text>
+                    {group.exercises.map((exercise, exIndex) => (
+                      <View key={exIndex} className="mb-2">
+                        <Text className="text-base font-medium text-gray-900 mb-1">
+                          {exercise.exercise_name}
+                        </Text>
+                        <View className="flex-row items-center flex-wrap">
+                          <View className="flex-row items-center mr-4 mb-1">
+                            <Ionicons name="list" size={14} color="#6b7280" />
+                            <Text className="text-sm text-gray-600 ml-1">
+                              {exercise.sets} sets
+                            </Text>
+                          </View>
+                          <View className="flex-row items-center mr-4 mb-1">
+                            <Ionicons
+                              name="fitness"
+                              size={14}
+                              color="#6b7280"
+                            />
+                            <Text className="text-sm text-gray-600 ml-1">
+                              {exercise.reps} reps
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+                    <Text className="text-xs text-blue-600 mt-1 italic">
+                      No rest between exercises •{" "}
+                      {group.exercises[0]?.rest_seconds}s rest after superset
                     </Text>
                   </View>
-                )}
-              </View>
-            </View>
-          ))}
+                );
+              } else {
+                const exercise = group.exercises[0];
+                return (
+                  <View
+                    key={`exercise-${groupIndex}`}
+                    className="border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:mb-0 last:pb-0"
+                  >
+                    <Text className="text-base font-medium text-gray-900 mb-1">
+                      {exercise.exercise_name}
+                    </Text>
+                    <View className="flex-row items-center flex-wrap">
+                      <View className="flex-row items-center mr-4 mb-1">
+                        <Ionicons name="list" size={14} color="#6b7280" />
+                        <Text className="text-sm text-gray-600 ml-1">
+                          {exercise.sets} sets
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center mr-4 mb-1">
+                        <Ionicons name="fitness" size={14} color="#6b7280" />
+                        <Text className="text-sm text-gray-600 ml-1">
+                          {exercise.reps} reps
+                        </Text>
+                      </View>
+                      {exercise.rest_seconds > 0 && (
+                        <View className="flex-row items-center mb-1">
+                          <Ionicons name="time" size={14} color="#6b7280" />
+                          <Text className="text-sm text-gray-600 ml-1">
+                            {exercise.rest_seconds}s rest
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              }
+            }
+          )}
         </View>
 
         {/* Start Workout Button */}

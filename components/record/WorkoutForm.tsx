@@ -37,6 +37,8 @@ const WorkoutForm: React.FC = () => {
   const [analysisResults, setAnalysisResults] = useState<VideoAnalysisResult[]>(
     []
   );
+  const [selectedForSuperset, setSelectedForSuperset] = useState<number[]>([]);
+  const [nextSupersetId, setNextSupersetId] = useState(1);
 
   // Generate default workout title
   const generateWorkoutTitle = useCallback(() => {
@@ -98,6 +100,47 @@ const WorkoutForm: React.FC = () => {
       order_index: i + 1,
     }));
     setExercises(reorderedExercises);
+    // Remove from superset selection if selected
+    setSelectedForSuperset((prev) => prev.filter((i) => i !== index));
+  };
+
+  const toggleExerciseSelection = (index: number) => {
+    setSelectedForSuperset((prev) => {
+      if (prev.includes(index)) {
+        return prev.filter((i) => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
+  };
+
+  const createSuperset = () => {
+    if (selectedForSuperset.length < 2) {
+      Alert.alert(
+        "Select Exercises",
+        "Please select at least 2 exercises to create a superset"
+      );
+      return;
+    }
+
+    const supersetId = nextSupersetId.toString();
+    const newExercises = exercises.map((exercise, index) => {
+      if (selectedForSuperset.includes(index)) {
+        return { ...exercise, superset_group: supersetId };
+      }
+      return exercise;
+    });
+
+    setExercises(newExercises);
+    setSelectedForSuperset([]);
+    setNextSupersetId(nextSupersetId + 1);
+    Alert.alert("Success", "Superset created!");
+  };
+
+  const removeFromSuperset = (index: number) => {
+    const newExercises = [...exercises];
+    newExercises[index] = { ...newExercises[index], superset_group: undefined };
+    setExercises(newExercises);
   };
 
   const validateForm = () => {
@@ -345,19 +388,89 @@ const WorkoutForm: React.FC = () => {
             {/* Exercise List */}
             {exercises.length > 0 && (
               <View className="mb-6">
-                <Text className="text-sm font-medium text-gray-700 mb-3">
-                  Exercises ({exercises.length})
-                </Text>
+                <View className="flex-row justify-between items-center mb-3">
+                  <Text className="text-sm font-medium text-gray-700">
+                    Exercises ({exercises.length})
+                  </Text>
+                  {selectedForSuperset.length > 0 && (
+                    <TouchableOpacity
+                      onPress={createSuperset}
+                      className="bg-blue-600 rounded-lg px-3 py-2"
+                    >
+                      <Text className="text-white text-xs font-semibold">
+                        Create Superset ({selectedForSuperset.length})
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
                 {exercises.map((exercise, index) => (
-                  <ExerciseSetInput
-                    key={`${exercise.exercise_id}-${index}`}
-                    exercise={exercise}
-                    onUpdate={(updatedExercise) =>
-                      handleExerciseUpdate(index, updatedExercise)
-                    }
-                    onRemove={() => handleExerciseRemove(index)}
-                  />
+                  <View key={`${exercise.exercise_id}-${index}`}>
+                    {/* Superset Indicator */}
+                    {exercise.superset_group && (
+                      <View className="bg-blue-50 border-l-4 border-blue-500 px-3 py-1 mb-1">
+                        <View className="flex-row justify-between items-center">
+                          <Text className="text-xs font-bold text-blue-600">
+                            SUPERSET {exercise.superset_group}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => removeFromSuperset(index)}
+                          >
+                            <Text className="text-xs text-blue-600 underline">
+                              Remove from superset
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
+                    <View className="flex-row items-center">
+                      {/* Selection Checkbox */}
+                      {!exercise.superset_group && (
+                        <TouchableOpacity
+                          onPress={() => toggleExerciseSelection(index)}
+                          className="mr-2"
+                        >
+                          <View
+                            className={`w-6 h-6 border-2 rounded items-center justify-center ${
+                              selectedForSuperset.includes(index)
+                                ? "bg-blue-600 border-blue-600"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {selectedForSuperset.includes(index) && (
+                              <Ionicons
+                                name="checkmark"
+                                size={16}
+                                color="white"
+                              />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      )}
+
+                      <View className="flex-1">
+                        <ExerciseSetInput
+                          exercise={exercise}
+                          onUpdate={(updatedExercise) =>
+                            handleExerciseUpdate(index, updatedExercise)
+                          }
+                          onRemove={() => handleExerciseRemove(index)}
+                        />
+                      </View>
+                    </View>
+                  </View>
                 ))}
+
+                {/* Instructions */}
+                {exercises.length >= 2 && selectedForSuperset.length === 0 && (
+                  <View className="bg-gray-100 rounded-lg p-3 mt-2">
+                    <Text className="text-xs text-gray-600">
+                      💡 Tip: Select 2 or more exercises using the checkboxes to
+                      create a superset (exercises performed back-to-back
+                      without rest)
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
 

@@ -24,7 +24,7 @@ serve(async (req) => {
     // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash"
+      model: "gemini-2.5-flash",
     });
 
     // Parse request body
@@ -89,7 +89,8 @@ serve(async (req) => {
           "exercise_name": "Exercise name (e.g., 'Push-ups', 'Pull-ups')",
           "sets": number of sets,
           "reps": target reps per set (if there is a range, use the higher number),
-          "rest_seconds": rest time in seconds between sets (default to 60 if not specified)
+          "rest_seconds": rest time in seconds between sets (default to 60 if not specified),
+          "superset_group": "optional identifier for superset grouping (e.g., '1', '2', etc.)"
         }
       ]
     },
@@ -110,7 +111,16 @@ IMPORTANT RULES:
 5. If sets, reps, or rest times are ranges (e.g., "3-4 sets"), use the higher number
 6. If rest time is in minutes, convert to seconds (e.g., "2 min" -> 120)
 7. Schedule should start from Monday (index 0) to Sunday (index 6)
-8. If the PDF doesn't specify a clear schedule, create a reasonable one based on the workouts provided`;
+8. If the PDF doesn't specify a clear schedule, create a reasonable one based on the workouts provided
+
+SUPERSET DETECTION:
+9. Look for exercises grouped as "supersets", "superseries", "SS", or similar terms in ANY language
+10. Exercises in a superset should be assigned the same superset_group identifier (use "1", "2", "3", etc.)
+11. Supersets typically have 2 exercises but can have more (default to 2, but detect more if specified)
+12. Exercises in the same superset MUST have the same number of sets, but CAN have different rep amounts
+13. Example: Superset with 3 sets of 8 pull-ups + 3 sets of 10 push-ups is valid
+14. Only assign superset_group if exercises are explicitly marked as supersets in the PDF
+15. Regular exercises (not in supersets) should NOT have a superset_group field`;
 
     // Add user-provided AI notes if present
     if (aiNotes && aiNotes.trim()) {
@@ -217,12 +227,19 @@ function validateAndTransformPlanData(data: any): any {
         );
       }
 
-      return {
+      const exercise: any = {
         exercise_name: ex.exercise_name,
         sets: Number(ex.sets) || 3,
         reps: Number(ex.reps) || 10,
         rest_seconds: Number(ex.rest_seconds) || 60,
       };
+
+      // Include superset_group if present
+      if (ex.superset_group) {
+        exercise.superset_group = String(ex.superset_group);
+      }
+
+      return exercise;
     });
 
     validatedWorkouts[letter.toUpperCase()] = {

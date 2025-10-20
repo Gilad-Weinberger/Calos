@@ -198,46 +198,98 @@ const PlanManagement = () => {
             <Text className="text-lg font-bold text-gray-900 mb-3">
               Schedule
             </Text>
-            {activePlan.schedule.map((week, weekIndex) => (
-              <View key={weekIndex} className="mb-4">
-                <Text className="text-base font-semibold text-gray-800 mb-2">
-                  Week {weekIndex + 1}
-                </Text>
-                <View className="flex-row flex-wrap">
-                  {week.map((day, dayIndex) => {
-                    const dayNames = [
-                      "Mon",
-                      "Tue",
-                      "Wed",
-                      "Thu",
-                      "Fri",
-                      "Sat",
-                      "Sun",
-                    ];
-                    const isRest = day.toLowerCase() === "rest";
-                    return (
-                      <View
-                        key={dayIndex}
-                        className={`rounded-lg px-3 py-2 mr-2 mb-2 ${
-                          isRest ? "bg-gray-200" : "bg-blue-100"
-                        }`}
-                      >
-                        <Text className="text-xs text-gray-600 mb-1">
-                          {dayNames[dayIndex]}
-                        </Text>
-                        <Text
-                          className={`text-sm font-semibold ${
-                            isRest ? "text-gray-600" : "text-blue-700"
+            {activePlan.schedule.map((week, weekIndex) => {
+              // Calculate which day of week the plan started (0=Sunday, 1=Monday, etc.)
+              const startDate = new Date(activePlan.start_date);
+              const startDayOfWeek = startDate.getDay();
+
+              // Day names starting with Sunday
+              const dayNames = [
+                "Sun",
+                "Mon",
+                "Tue",
+                "Wed",
+                "Thu",
+                "Fri",
+                "Sat",
+              ];
+
+              return (
+                <View key={weekIndex} className="mb-4">
+                  <Text className="text-base font-semibold text-gray-800 mb-2">
+                    Week {weekIndex + 1}
+                  </Text>
+                  <View className="flex-row flex-wrap">
+                    {dayNames.map((dayName, dayOfWeekIndex) => {
+                      // Calculate which day this is in the plan (0-based from start)
+                      const dayInPlan =
+                        weekIndex * 7 + dayOfWeekIndex - startDayOfWeek;
+
+                      // If before plan start, show empty/disabled
+                      if (dayInPlan < 0) {
+                        return (
+                          <View
+                            key={dayOfWeekIndex}
+                            className="rounded-lg px-3 py-2 mr-2 mb-2 bg-gray-100 opacity-50"
+                          >
+                            <Text className="text-xs text-gray-400 mb-1">
+                              {dayName}
+                            </Text>
+                            <Text className="text-sm font-semibold text-gray-400">
+                              -
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      // Get the workout for this day from the schedule
+                      const weekInSchedule = Math.floor(dayInPlan / 7);
+                      const dayInWeek = dayInPlan % 7;
+                      const workout =
+                        activePlan.schedule[weekInSchedule]?.[dayInWeek];
+
+                      // If no workout found (beyond plan duration), show empty
+                      if (!workout) {
+                        return (
+                          <View
+                            key={dayOfWeekIndex}
+                            className="rounded-lg px-3 py-2 mr-2 mb-2 bg-gray-100 opacity-50"
+                          >
+                            <Text className="text-xs text-gray-400 mb-1">
+                              {dayName}
+                            </Text>
+                            <Text className="text-sm font-semibold text-gray-400">
+                              -
+                            </Text>
+                          </View>
+                        );
+                      }
+
+                      const isRest = workout.toLowerCase() === "rest";
+                      return (
+                        <View
+                          key={dayOfWeekIndex}
+                          className={`rounded-lg px-3 py-2 mr-2 mb-2 ${
+                            isRest ? "bg-gray-200" : "bg-blue-100"
                           }`}
                         >
-                          {day}
-                        </Text>
-                      </View>
-                    );
-                  })}
+                          <Text className="text-xs text-gray-600 mb-1">
+                            {dayName}
+                          </Text>
+                          <Text
+                            className={`text-sm font-semibold ${
+                              isRest ? "text-gray-600" : "text-blue-700"
+                            }`}
+                          >
+                            {workout}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
 
           {/* Actions */}

@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +18,7 @@ import { getActivePlan, Plan } from "../../lib/functions/planFunctions";
 
 const Record = () => {
   const { user } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -139,6 +141,27 @@ const Record = () => {
                 </Text>
                 <Text className="text-sm text-gray-600">
                   Add a custom workout with video or manual entry
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Edit Current Plan */}
+            <TouchableOpacity
+              onPress={() => {
+                router.push("/plan-management");
+                setMenuVisible(false);
+              }}
+              className="flex-row items-center py-4 border-b border-gray-200"
+            >
+              <View className="w-10 h-10 rounded-full bg-orange-100 items-center justify-center mr-3">
+                <Ionicons name="settings" size={20} color="#f97316" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-base font-semibold text-gray-900">
+                  Edit Current Plan
+                </Text>
+                <Text className="text-sm text-gray-600">
+                  View and manage your active workout plan
                 </Text>
               </View>
             </TouchableOpacity>

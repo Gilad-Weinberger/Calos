@@ -23,6 +23,12 @@ import {
   saveCompleteWorkout,
   WorkoutExercise,
 } from "../lib/functions/workoutFunctions";
+import {
+  getExercisePositionInSuperset,
+  getNextExerciseInSuperset,
+  getSupersetExercises,
+  isInSuperset,
+} from "../lib/utils/superset";
 import { useCountdownTimer, useStopwatch } from "../lib/utils/timer";
 
 const WorkoutSession = () => {
@@ -110,6 +116,18 @@ const WorkoutSession = () => {
   const isLastSet = currentSetIndex === totalSets - 1;
   const isLastExercise = currentExerciseIndex === totalExercises - 1;
 
+  // Superset helpers
+  const inSuperset = currentExercise ? isInSuperset(currentExercise) : false;
+  const supersetInfo = currentExercise
+    ? getExercisePositionInSuperset(currentExercise, exercises)
+    : null;
+  const nextExerciseInSuperset = currentExercise
+    ? getNextExerciseInSuperset(currentExercise, exercises)
+    : null;
+  const supersetExercises = currentExercise
+    ? getSupersetExercises(currentExercise, exercises)
+    : [];
+
   const handleSetComplete = () => {
     const reps = parseInt(currentRepInput) || 0;
 
@@ -123,17 +141,40 @@ const WorkoutSession = () => {
     newCompletedReps[currentExerciseIndex][currentSetIndex] = reps;
     setCompletedReps(newCompletedReps);
 
-    if (isLastSet) {
-      // Move to next exercise or finish
+    // Check if in superset
+    if (inSuperset && nextExerciseInSuperset) {
+      // Move to next exercise in superset WITHOUT rest
+      const nextExerciseIndex = exercises.findIndex(
+        (ex) => ex.exercise_name === nextExerciseInSuperset.exercise_name
+      );
+      if (nextExerciseIndex !== -1) {
+        setCurrentExerciseIndex(nextExerciseIndex);
+        setCurrentRepInput(nextExerciseInSuperset.reps.toString());
+      }
+    } else if (isLastSet) {
+      // If last set of exercise (or last in superset), move to next exercise or finish
       if (isLastExercise) {
         handleFinishWorkout();
       } else {
         moveToNextExercise();
       }
     } else {
-      // Move to next set and start rest timer
-      setCurrentSetIndex(currentSetIndex + 1);
-      setCurrentRepInput(currentExercise.reps.toString());
+      // Not in superset or last exercise in superset - start rest and move to next set
+      if (inSuperset) {
+        // Return to first exercise of superset for next set
+        const firstExerciseIndex = exercises.findIndex(
+          (ex) => ex.superset_group === currentExercise.superset_group
+        );
+        if (firstExerciseIndex !== -1) {
+          setCurrentExerciseIndex(firstExerciseIndex);
+          setCurrentSetIndex(currentSetIndex + 1);
+          setCurrentRepInput(exercises[firstExerciseIndex].reps.toString());
+        }
+      } else {
+        // Regular exercise - move to next set
+        setCurrentSetIndex(currentSetIndex + 1);
+        setCurrentRepInput(currentExercise.reps.toString());
+      }
       setIsResting(true);
       startRestTimer(currentExercise.rest_seconds);
     }
@@ -186,6 +227,7 @@ const WorkoutSession = () => {
           sets: ex.sets,
           reps: completedReps[index],
           order_index: index + 1,
+          superset_group: ex.superset_group,
         };
       });
 
@@ -330,6 +372,40 @@ const WorkoutSession = () => {
               <View className="flex-1">
                 {/* Exercise Info */}
                 <View className="mb-8">
+                  {/* Superset Badge */}
+                  {inSuperset && (
+                    <View className="bg-blue-100 px-3 py-2 rounded-lg mb-3 self-start">
+                      <Text className="text-sm font-bold text-blue-700">
+                        SUPERSET ({supersetInfo?.index! + 1} of{" "}
+                        {supersetInfo?.total})
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Superset Exercises Overview */}
+                  {inSuperset && supersetExercises.length > 0 && (
+                    <View className="bg-blue-50 rounded-lg p-3 mb-4 border-l-4 border-blue-500">
+                      <Text className="text-xs font-semibold text-blue-600 mb-2">
+                        Superset Exercises:
+                      </Text>
+                      {supersetExercises.map((ex, idx) => (
+                        <Text
+                          key={idx}
+                          className={`text-sm ${
+                            ex.exercise_name === currentExercise.exercise_name
+                              ? "font-bold text-blue-900"
+                              : "text-blue-700"
+                          }`}
+                        >
+                          {idx + 1}. {ex.exercise_name} ({ex.sets}×{ex.reps})
+                        </Text>
+                      ))}
+                      <Text className="text-xs text-blue-600 mt-2 italic">
+                        No rest between exercises
+                      </Text>
+                    </View>
+                  )}
+
                   <Text className="text-sm text-gray-600 mb-2">
                     Exercise {currentExerciseIndex + 1} of {totalExercises}
                   </Text>
@@ -388,9 +464,11 @@ const WorkoutSession = () => {
                   <Text className="text-white font-bold text-xl text-center">
                     {isLastSet && isLastExercise
                       ? "Finish Workout"
-                      : isLastSet
-                        ? "Next Exercise"
-                        : "Done - Rest"}
+                      : inSuperset && nextExerciseInSuperset
+                        ? "Next Exercise (No Rest)"
+                        : isLastSet
+                          ? "Next Exercise"
+                          : "Done - Rest"}
                   </Text>
                 </TouchableOpacity>
               </View>
