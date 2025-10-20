@@ -8,6 +8,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { posthog } from "../utils/posthog";
 import { supabase } from "../utils/supabase";
 
 interface User {
@@ -234,7 +235,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!inAuthGroup && !isIndexPage) {
         router.replace("/");
       }
-    } else if (authUser && (!user?.name || !user?.profile_image_url)) {
+    } else if (authUser && user === null) {
+      // User is authenticated but profile is still loading
+      // Wait for profile to load before making navigation decisions
+      return;
+    } else if (authUser && user && (!user.name || !user.profile_image_url)) {
       // User is authenticated but hasn't completed profile (missing name or profile image)
       if (!inAuthGroup || segments[1] !== "onboarding") {
         router.replace("/auth/onboarding");
@@ -262,6 +267,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (error) {
         console.error(`[AuthContext] Signup error for ${email}:`, error);
         return { error };
+      }
+
+      // Identify user first, then capture signup event
+      if (data.user?.id) {
+        posthog.identify(data.user.id, {
+          email: email,
+          signup_date: new Date().toISOString(),
+        });
+
+        posthog.capture("signup", {
+          email: email,
+          user_id: data.user.id,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       console.log(

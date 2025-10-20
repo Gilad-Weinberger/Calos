@@ -1,10 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useAuth } from "../../../lib/context/AuthContext";
 import {
   calculateTotalReps,
   calculateTotalSets,
+  deleteWorkout,
   formatWorkoutDate,
   getBestAchievement,
   WorkoutExercise,
@@ -20,6 +31,7 @@ interface WorkoutCardProps {
       sets: number;
       reps: number[];
       order_index: number;
+      video_urls?: string[];
       exercises: {
         name: string;
         type: "static" | "dynamic";
@@ -33,6 +45,7 @@ interface WorkoutCardProps {
     icon: string;
     message: string;
   }[];
+  onWorkoutDeleted?: () => void;
 }
 
 const WorkoutCard: React.FC<WorkoutCardProps> = ({
@@ -41,7 +54,10 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
   userProfileImage,
   title,
   achievements,
+  onWorkoutDeleted,
 }) => {
+  const { user } = useAuth();
+  const [menuVisible, setMenuVisible] = useState(false);
   // Transform workout exercises to WorkoutExercise format
   const exercises: WorkoutExercise[] = workout.workout_exercises.map((we) => ({
     exercise_id: we.exercise_id,
@@ -64,6 +80,57 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
       params: { id: workout.workout_id },
     });
   };
+
+  const handleEditPress = () => {
+    setMenuVisible(false);
+    router.push({
+      pathname: "/workout-edit/[id]",
+      params: { id: workout.workout_id },
+    });
+  };
+
+  const handleDeletePress = () => {
+    setMenuVisible(false);
+    Alert.alert(
+      "Delete Workout",
+      "Are you sure you want to delete this workout? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (!user) return;
+              await deleteWorkout(workout.workout_id, user.user_id);
+              Alert.alert("Success", "Workout deleted successfully");
+              if (onWorkoutDeleted) {
+                onWorkoutDeleted();
+              }
+            } catch (error) {
+              console.error("Error deleting workout:", error);
+              Alert.alert(
+                "Error",
+                "Failed to delete workout. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Check if workout has videos
+  const hasVideos = workout.workout_exercises.some(
+    (ex) => ex.video_urls && ex.video_urls.length > 0
+  );
+  const videoCount = workout.workout_exercises.reduce(
+    (count, ex) => count + (ex.video_urls?.length || 0),
+    0
+  );
 
   return (
     <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
@@ -89,12 +156,68 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
             <Text className="text-sm text-gray-600 ml-1">{formattedDate}</Text>
           </View>
         </View>
+
+        {/* Menu Button */}
+        <TouchableOpacity
+          onPress={() => setMenuVisible(true)}
+          className="p-2"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
+      {/* Menu Modal */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50"
+          onPress={() => setMenuVisible(false)}
+        >
+          <View className="flex-1 justify-center items-center p-4">
+            <View className="bg-white rounded-2xl w-64 overflow-hidden">
+              <TouchableOpacity
+                onPress={handleEditPress}
+                className="flex-row items-center p-4 border-b border-gray-200"
+              >
+                <Ionicons name="create-outline" size={24} color="#3B82F6" />
+                <Text className="text-base font-medium text-gray-900 ml-3">
+                  Edit Workout
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleDeletePress}
+                className="flex-row items-center p-4"
+              >
+                <Ionicons name="trash-outline" size={24} color="#EF4444" />
+                <Text className="text-base font-medium text-red-600 ml-3">
+                  Delete Workout
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
       {/* Title Section */}
-      <Text className="text-2xl font-bold text-gray-800 mb-4">
-        {title || `Workout Session`}
-      </Text>
+      <View className="flex-row items-center justify-between mb-4">
+        <Text className="text-2xl font-bold text-gray-800 flex-1">
+          {title || `Workout Session`}
+        </Text>
+        {hasVideos && (
+          <View className="bg-purple-100 rounded-full px-3 py-1 flex-row items-center">
+            <Ionicons name="videocam" size={14} color="#9333EA" />
+            <Text className="text-xs font-medium text-purple-700 ml-1">
+              {videoCount}
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Stats Section */}
       <View className="flex-row justify-between mb-4">

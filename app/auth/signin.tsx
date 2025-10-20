@@ -16,6 +16,7 @@ import { useAuth } from "../../lib/context/AuthContext";
 const SignInScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
 
@@ -101,15 +102,24 @@ const SignInScreen = () => {
             <Text className="text-base font-semibold text-gray-700 mb-2">
               Password
             </Text>
-            <TextInput
-              className="border border-gray-300 rounded-xl p-4 text-base bg-gray-50"
-              placeholder="Enter your password"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View className="relative">
+              <TextInput
+                className="border border-gray-300 rounded-xl p-4 pr-12 text-base bg-gray-50"
+                placeholder="Enter your password"
+                placeholderTextColor="#9CA3AF"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-4"
+                style={{ padding: 0 }}
+              >
+                <Text className="text-xl">{showPassword ? "👁️" : "👁️‍🗨️"}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity

@@ -1,9 +1,11 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { PostHogProvider } from "posthog-react-native";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 import { AuthProvider, useAuth } from "../lib/context/AuthContext";
+import { posthog } from "../lib/utils/posthog";
 
 function RootLayoutNav() {
   const { initializing } = useAuth();
@@ -28,11 +30,13 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" backgroundColor="#FFFFFF" />
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <PostHogProvider client={posthog}>
+      <SafeAreaProvider>
+        <StatusBar style="dark" backgroundColor="#FFFFFF" />
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </PostHogProvider>
   );
 }

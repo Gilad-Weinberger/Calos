@@ -1,4 +1,6 @@
+import { posthog } from "../utils/posthog";
 import { supabase } from "../utils/supabase";
+import { deleteWorkoutVideos } from "./videoFunctions";
 
 export interface Exercise {
   exercise_id: string;
@@ -92,6 +94,29 @@ export const saveCompleteWorkout = async (
         .eq("workout_id", workout.workout_id);
       throw exercisesError;
     }
+
+    // Calculate workout statistics
+    const totalSets = workoutData.exercises.reduce(
+      (sum, ex) => sum + ex.sets,
+      0
+    );
+    const totalReps = workoutData.exercises.reduce((sum, ex) => {
+      return sum + ex.reps.reduce((repSum, rep) => repSum + rep, 0);
+    }, 0);
+    const exerciseTypes = workoutData.exercises.map((ex) => ex.exercise_type);
+    const uniqueExerciseTypes = [...new Set(exerciseTypes)];
+
+    // Track workout creation in PostHog
+    posthog.capture("workout_created", {
+      workout_id: workout.workout_id,
+      user_id: userId,
+      exercise_count: workoutData.exercises.length,
+      total_sets: totalSets,
+      total_reps: totalReps,
+      exercise_types: uniqueExerciseTypes,
+      exercises: workoutData.exercises.map((ex) => ex.exercise_name),
+      timestamp: new Date().toISOString(),
+    });
 
     return { workout_id: workout.workout_id };
   } catch (error) {
@@ -355,5 +380,61 @@ export const getWorkoutAchievements = async (
   } catch (error) {
     console.error("Error in getWorkoutAchievements:", error);
     return [];
+  }
+};
+
+/**
+ * Delete a workout and all associated data including videos
+ */
+export const deleteWorkout = async (
+  workoutId: string,
+  userId: string
+): Promise<void> => {
+  try {
+    // First, get all video URLs from workout exercises
+    const { data: exercises, error: fetchError } = await supabase
+      .from("workout_exercises")
+      .select("video_urls")
+      .eq("workout_id", workoutId);
+
+    if (fetchError) {
+      console.error("Error fetching workout exercises:", fetchError);
+      throw fetchError;
+    }
+
+    // Collect all video URLs
+    const allVideoUrls: string[] = [];
+    if (exercises) {
+      exercises.forEach((exercise) => {
+        if (exercise.video_urls && Array.isArray(exercise.video_urls)) {
+          allVideoUrls.push(...exercise.video_urls);
+        }
+      });
+    }
+
+    // Delete the workout (cascade will delete workout_exercises)
+    const { error: deleteError } = await supabase
+      .from("workouts")
+      .delete()
+      .eq("workout_id", workoutId)
+      .eq("user_id", userId);
+
+    if (deleteError) {
+      console.error("Error deleting workout:", deleteError);
+      throw deleteError;
+    }
+
+    // Delete associated videos from storage
+    if (allVideoUrls.length > 0) {
+      try {
+        await deleteWorkoutVideos(allVideoUrls);
+      } catch (videoError) {
+        console.error("Error deleting workout videos:", videoError);
+        // Don't throw here - workout is already deleted, just log the error
+      }
+    }
+  } catch (error) {
+    console.error("Error in deleteWorkout:", error);
+    throw error;
   }
 };

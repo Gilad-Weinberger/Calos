@@ -12,11 +12,11 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "../../lib/context/AuthContext";
-
 const SignUpScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
 
@@ -67,12 +67,8 @@ const SignUpScreen = () => {
           error.message || "An error occurred during sign up"
         );
       } else {
-        Alert.alert("Success", "Account created successfully!", [
-          {
-            text: "OK",
-            onPress: () => router.push("/auth/onboarding"),
-          },
-        ]);
+        // Navigation will be handled by the auth state change in AuthContext
+        // The root layout will redirect based on user profile completion
       }
     } catch {
       Alert.alert("Error", "An unexpected error occurred");
@@ -120,15 +116,24 @@ const SignUpScreen = () => {
             <Text className="text-base font-semibold text-gray-700 mb-2">
               Password
             </Text>
-            <TextInput
-              className="border border-gray-300 rounded-xl p-4 text-base bg-gray-50"
-              placeholder="Create a password"
-              placeholderTextColor="#9CA3AF"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
+            <View className="relative">
+              <TextInput
+                className="border border-gray-300 rounded-xl p-4 pr-12 text-base bg-gray-50"
+                placeholder="Create a password"
+                placeholderTextColor="#9CA3AF"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-4"
+                style={{ padding: 0 }}
+              >
+                <Text className="text-xl">{showPassword ? "👁️" : "👁️‍🗨️"}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View>

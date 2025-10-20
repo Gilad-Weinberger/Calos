@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -11,19 +12,31 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../lib/context/AuthContext";
 import {
+  analyzeWorkoutVideos,
+  VideoAnalysisResult,
+} from "../../lib/functions/videoFunctions";
+import {
   Exercise,
   saveCompleteWorkout,
   WorkoutExercise,
 } from "../../lib/functions/workoutFunctions";
+import AnalysisResults from "./AnalysisResults";
 import ExerciseSelector from "./ExerciseSelector";
 import ExerciseSetInput from "./ExerciseSetInput";
+import VideoUploadMode from "./VideoUploadMode";
+
+type WorkoutMode = "manual" | "video" | "analyzing" | "results";
 
 const WorkoutForm: React.FC = () => {
   const { user } = useAuth();
   const router = useRouter();
+  const [mode, setMode] = useState<WorkoutMode>("manual");
   const [workoutTitle, setWorkoutTitle] = useState("");
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<VideoAnalysisResult[]>(
+    []
+  );
 
   // Generate default workout title
   const generateWorkoutTitle = useCallback(() => {
@@ -123,6 +136,35 @@ const WorkoutForm: React.FC = () => {
     return true;
   };
 
+  const handleVideosUploaded = async (videoUrls: string[]) => {
+    try {
+      setMode("analyzing");
+
+      // Call the analysis Edge Function
+      const results = await analyzeWorkoutVideos(videoUrls);
+
+      setAnalysisResults(results);
+      setMode("results");
+    } catch (error) {
+      console.error("Error analyzing videos:", error);
+      Alert.alert(
+        "Analysis Error",
+        "Failed to analyze videos. Please try again.",
+        [
+          {
+            text: "OK",
+            onPress: () => setMode("video"),
+          },
+        ]
+      );
+    }
+  };
+
+  const handleAnalysisConfirm = (analyzedExercises: WorkoutExercise[]) => {
+    setExercises(analyzedExercises);
+    setMode("manual");
+  };
+
   const handleSaveWorkout = async () => {
     if (!user) {
       Alert.alert("Authentication Error", "Please sign in to save workouts");
@@ -150,6 +192,8 @@ const WorkoutForm: React.FC = () => {
             // Reset form
             setWorkoutTitle(generateWorkoutTitle());
             setExercises([]);
+            setMode("manual");
+            setAnalysisResults([]);
             // Navigate to you page
             router.push("/(tabs)/you");
           },
@@ -167,6 +211,36 @@ const WorkoutForm: React.FC = () => {
 
   const selectedExerciseIds = exercises.map((ex) => ex.exercise_id);
 
+  // Show video upload mode
+  if (mode === "video") {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50">
+        {user && (
+          <VideoUploadMode
+            userId={user.user_id}
+            onVideosUploaded={handleVideosUploaded}
+            onCancel={() => setMode("manual")}
+          />
+        )}
+      </SafeAreaView>
+    );
+  }
+
+  // Show analysis results
+  if (mode === "analyzing" || mode === "results") {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <AnalysisResults
+          results={analysisResults}
+          onConfirm={handleAnalysisConfirm}
+          onRetry={() => setMode("video")}
+          isAnalyzing={mode === "analyzing"}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // Manual entry mode
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -177,9 +251,64 @@ const WorkoutForm: React.FC = () => {
               Create Workout
             </Text>
             <Text className="text-base text-gray-600">
-              Select exercises and set your targets
+              Choose how you want to record your workout
             </Text>
           </View>
+
+          {/* Mode Selection */}
+          {exercises.length === 0 && (
+            <View className="mb-6">
+              <View className="flex-row space-x-3">
+                <TouchableOpacity
+                  onPress={() => setMode("manual")}
+                  className={`flex-1 rounded-lg p-4 border-2 ${
+                    mode === "manual"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300 bg-white"
+                  }`}
+                >
+                  <View className="items-center">
+                    <Ionicons
+                      name="create-outline"
+                      size={32}
+                      color={mode === "manual" ? "#2563eb" : "#6b7280"}
+                    />
+                    <Text
+                      className={`text-base font-semibold mt-2 ${
+                        mode === "manual" ? "text-blue-600" : "text-gray-700"
+                      }`}
+                    >
+                      Manual Entry
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setMode("video")}
+                  className={`flex-1 rounded-lg p-4 border-2 ${
+                    mode === "video"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300 bg-white"
+                  }`}
+                >
+                  <View className="items-center">
+                    <Ionicons
+                      name="videocam-outline"
+                      size={32}
+                      color={mode === "video" ? "#2563eb" : "#6b7280"}
+                    />
+                    <Text
+                      className={`text-base font-semibold mt-2 ${
+                        mode === "video" ? "text-blue-600" : "text-gray-700"
+                      }`}
+                    >
+                      Video Upload
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {/* Workout Title */}
           <View className="mb-6">

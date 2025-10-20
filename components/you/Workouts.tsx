@@ -153,6 +153,7 @@ const Workouts: React.FC = () => {
             userName={user?.name || "User"}
             userProfileImage={user?.profile_image_url || null}
             achievements={workoutAchievements[item.workout_id] || []}
+            onWorkoutDeleted={() => fetchWorkouts(true)}
           />
         )}
         contentContainerStyle={{ padding: 16 }}

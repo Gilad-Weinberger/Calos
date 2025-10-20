@@ -46,6 +46,8 @@ CREATE TABLE workout_exercises (
     reps INTEGER[] NOT NULL, -- array of integers for reps per set
     order_index INTEGER NOT NULL, -- order of exercise in workout
     rest_seconds INTEGER, -- rest time in seconds until next exercise
+    video_urls TEXT[] DEFAULT '{}', -- array of video URLs from storage
+    analysis_metadata JSONB DEFAULT '{}', -- Gemini AI analysis metadata
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -542,3 +544,33 @@ CREATE POLICY "Users can delete their own profile images" ON storage.objects
 
 CREATE POLICY "Profile images are publicly viewable" ON storage.objects
     FOR SELECT USING (bucket_id = 'profile-images');
+
+-- Create storage bucket for workout videos
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('workout-videos', 'workout-videos', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create storage policies for workout-videos bucket
+CREATE POLICY "Users can upload their own workout videos" ON storage.objects
+    FOR INSERT WITH CHECK (
+        bucket_id = 'workout-videos' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY "Users can update their own workout videos" ON storage.objects
+    FOR UPDATE USING (
+        bucket_id = 'workout-videos' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY "Users can delete their own workout videos" ON storage.objects
+    FOR DELETE USING (
+        bucket_id = 'workout-videos' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY "Users can view their own workout videos" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'workout-videos' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
