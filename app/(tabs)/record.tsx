@@ -24,7 +24,7 @@ const Record = () => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [showManualWorkout, setShowManualWorkout] = useState(false);
 
-  const loadActivePlan = async () => {
+  const loadActivePlan = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -40,13 +40,13 @@ const Record = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   // Reload plan when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadActivePlan();
-    }, [user])
+    }, [loadActivePlan])
   );
 
   const handlePlanCreated = () => {
