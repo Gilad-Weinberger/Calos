@@ -18,6 +18,14 @@ interface WorkoutData {
   workout_id: string;
   workout_date: string;
   created_at: string;
+  start_time?: string;
+  end_time?: string;
+  plan_id?: string;
+  plan_workout_letter?: string;
+  scheduled_date?: string;
+  plans?: {
+    name: string;
+  };
   workout_exercises: {
     exercise_id: string;
     sets: number;
@@ -215,6 +223,7 @@ const Workouts: React.FC = () => {
             workout={item}
             userName={user?.name || "User"}
             userProfileImage={user?.profile_image_url || null}
+            planName={item.plans?.name || undefined}
             achievements={workoutAchievements[item.workout_id] || []}
             onWorkoutDeleted={() => fetchWorkouts(true)}
           />

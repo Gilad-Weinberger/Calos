@@ -28,16 +28,37 @@ CREATE TABLE exercises (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Workouts table
-CREATE TABLE workouts (
-    workout_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+-- 3. Plans table (for workout plans)
+CREATE TABLE plans (
+    plan_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    workout_date TIMESTAMPTZ NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT false NOT NULL,
+    plan_type TEXT NOT NULL CHECK (plan_type IN ('repeat', 'once')),
+    num_weeks INTEGER DEFAULT 2 NOT NULL CHECK (num_weeks > 0),
+    workouts JSONB NOT NULL,
+    schedule JSONB NOT NULL,
+    start_date TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Workout exercises table (junction table for workout exercises)
+-- 4. Workouts table
+CREATE TABLE workouts (
+    workout_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    workout_date TIMESTAMPTZ NOT NULL,
+    plan_id UUID REFERENCES plans(plan_id) ON DELETE SET NULL,
+    plan_workout_letter TEXT,
+    scheduled_date TIMESTAMPTZ,
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. Workout exercises table (junction table for workout exercises)
 CREATE TABLE workout_exercises (
     workout_exercise_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     workout_id UUID NOT NULL REFERENCES workouts(workout_id) ON DELETE CASCADE,
@@ -56,10 +77,20 @@ CREATE TABLE workout_exercises (
 -- Users table indexes
 CREATE INDEX idx_users_email ON users(email);
 
+-- Plans table indexes
+CREATE INDEX idx_plans_user_id ON plans(user_id);
+CREATE INDEX idx_plans_user_active ON plans(user_id, is_active);
+CREATE INDEX idx_plans_start_date ON plans(start_date);
+CREATE UNIQUE INDEX idx_plans_user_active_unique 
+    ON plans(user_id, is_active) 
+    WHERE is_active = true;
 
 -- Workouts table indexes
 CREATE INDEX idx_workouts_user ON workouts(user_id);
 CREATE INDEX idx_workouts_date ON workouts(workout_date);
+CREATE INDEX idx_workouts_plan ON workouts(plan_id);
+CREATE INDEX idx_workouts_scheduled_date ON workouts(scheduled_date);
+CREATE INDEX idx_workouts_plan_scheduled ON workouts(plan_id, scheduled_date);
 
 -- Workout exercises table indexes
 CREATE INDEX idx_workout_exercises_workout ON workout_exercises(workout_id);
@@ -81,6 +112,11 @@ CREATE TRIGGER trigger_users_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER trigger_plans_updated_at
+    BEFORE UPDATE ON plans
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER trigger_workouts_updated_at
     BEFORE UPDATE ON workouts
     FOR EACH ROW
@@ -89,6 +125,7 @@ CREATE TRIGGER trigger_workouts_updated_at
 -- Enable Row Level Security (RLS)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workout_exercises ENABLE ROW LEVEL SECURITY;
 
@@ -111,6 +148,18 @@ CREATE POLICY "Exercises are publicly readable" ON exercises
 CREATE POLICY "Only service role can modify exercises" ON exercises
     FOR ALL USING (auth.role() = 'service_role');
 
+-- Plans table policies
+CREATE POLICY "Users can read their own plans" ON plans
+    FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can create their own plans" ON plans
+    FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own plans" ON plans
+    FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY "Users can delete their own plans" ON plans
+    FOR DELETE USING (user_id = auth.uid());
 
 -- Workouts table policies
 CREATE POLICY "Users can read their own workouts" ON workouts
@@ -572,5 +621,35 @@ CREATE POLICY "Users can delete their own workout videos" ON storage.objects
 CREATE POLICY "Users can view their own workout videos" ON storage.objects
     FOR SELECT USING (
         bucket_id = 'workout-videos' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+-- Create storage bucket for workout plan PDFs
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('workout-plans', 'workout-plans', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Create storage policies for workout-plans bucket
+CREATE POLICY "Users can upload their own workout plans" ON storage.objects
+    FOR INSERT WITH CHECK (
+        bucket_id = 'workout-plans' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY "Users can update their own workout plans" ON storage.objects
+    FOR UPDATE USING (
+        bucket_id = 'workout-plans' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY "Users can delete their own workout plans" ON storage.objects
+    FOR DELETE USING (
+        bucket_id = 'workout-plans' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+CREATE POLICY "Users can view their own workout plans" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'workout-plans' 
         AND auth.uid()::text = (storage.foldername(name))[1]
     );

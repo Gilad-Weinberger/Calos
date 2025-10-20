@@ -72,6 +72,11 @@ export interface WorkoutExercise {
 export interface WorkoutData {
   title: string;
   exercises: WorkoutExercise[];
+  plan_id?: string;
+  plan_workout_letter?: string;
+  scheduled_date?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 /**
@@ -110,6 +115,11 @@ export const saveCompleteWorkout = async (
       .insert({
         user_id: userId,
         workout_date: new Date().toISOString(),
+        plan_id: workoutData.plan_id || null,
+        plan_workout_letter: workoutData.plan_workout_letter || null,
+        scheduled_date: workoutData.scheduled_date || null,
+        start_time: workoutData.start_time || null,
+        end_time: workoutData.end_time || null,
       })
       .select("workout_id")
       .single();
@@ -194,6 +204,14 @@ export const getUserRecentWorkouts = async (
         workout_id,
         workout_date,
         created_at,
+        start_time,
+        end_time,
+        plan_id,
+        plan_workout_letter,
+        scheduled_date,
+        plans (
+          name
+        ),
         workout_exercises (
           exercise_id,
           sets,
@@ -509,4 +527,25 @@ export const deleteWorkout = async (
     console.error("Error in deleteWorkout:", error);
     throw error;
   }
+};
+
+/**
+ * Calculate workout duration in seconds
+ * @param startTime - Workout start time
+ * @param endTime - Workout end time
+ * @returns Duration in seconds, or null if times are not set
+ */
+export const calculateWorkoutDuration = (
+  startTime: string | null,
+  endTime: string | null
+): number | null => {
+  if (!startTime || !endTime) {
+    return null;
+  }
+
+  const start = new Date(startTime).getTime();
+  const end = new Date(endTime).getTime();
+  const durationMs = end - start;
+
+  return Math.floor(durationMs / 1000);
 };

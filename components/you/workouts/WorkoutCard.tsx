@@ -16,11 +16,13 @@ import { useAuth } from "../../../lib/context/AuthContext";
 import {
   calculateTotalReps,
   calculateTotalSets,
+  calculateWorkoutDuration,
   deleteWorkout,
   formatWorkoutDate,
   getBestAchievement,
   WorkoutExercise,
 } from "../../../lib/functions/workoutFunctions";
+import { formatDuration } from "../../../lib/utils/timer";
 import AchievementIcon from "../../ui/AchievementIcon";
 import VideoPlayerModal from "../../ui/VideoPlayerModal";
 
@@ -28,6 +30,10 @@ interface WorkoutCardProps {
   workout: {
     workout_id: string;
     workout_date: string;
+    start_time?: string;
+    end_time?: string;
+    plan_id?: string;
+    plan_workout_letter?: string;
     workout_exercises: {
       exercise_id: string;
       sets: number;
@@ -43,6 +49,7 @@ interface WorkoutCardProps {
   userName: string;
   userProfileImage: string | null;
   title?: string;
+  planName?: string;
   achievements?: {
     icon: string;
     message: string;
@@ -55,6 +62,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
   userName,
   userProfileImage,
   title,
+  planName,
   achievements,
   onWorkoutDeleted,
 }) => {
@@ -84,6 +92,13 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
   const totalExercises = exercises.length;
   const formattedDate = formatWorkoutDate(workout.workout_date);
   const bestAchievement = getBestAchievement(achievements || []);
+
+  // Calculate workout duration if available
+  const durationSeconds = calculateWorkoutDuration(
+    workout.start_time || null,
+    workout.end_time || null
+  );
+  const durationText = durationSeconds ? formatDuration(durationSeconds) : null;
 
   const handleCongratsPress = () => {
     router.push({
@@ -287,6 +302,14 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
             {totalExercises}
           </Text>
         </View>
+        {durationText && (
+          <View className="flex-1">
+            <Text className="text-sm text-gray-500 mb-1">Duration</Text>
+            <Text className="text-lg font-semibold text-gray-800">
+              {durationText}
+            </Text>
+          </View>
+        )}
         {achievements && achievements.length > 0 && (
           <View className="flex-1">
             <Text className="text-sm text-gray-500 mb-1">Achievements</Text>
@@ -299,6 +322,16 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
           </View>
         )}
       </View>
+
+      {/* Plan Badge */}
+      {planName && workout.plan_workout_letter && (
+        <View className="mb-4 bg-blue-50 rounded-lg px-3 py-2 flex-row items-center">
+          <Ionicons name="document-text" size={16} color="#2563eb" />
+          <Text className="text-sm font-medium text-blue-700 ml-2">
+            {planName} - Workout {workout.plan_workout_letter}
+          </Text>
+        </View>
+      )}
 
       {/* Congrats Section */}
       {bestAchievement && (
