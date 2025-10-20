@@ -245,11 +245,24 @@ export const deleteWorkoutVideos = async (
       return;
     }
 
-    // Extract file paths from URLs
+    // Extract file paths from URLs, handling both regular and signed URLs
     const filePaths = videoUrls
       .map((url) => {
-        const parts = url.split("/workout-videos/");
-        return parts.length === 2 ? parts[1] : null;
+        try {
+          // Remove query parameters if present (for signed URLs)
+          const cleanUrl = url.split("?")[0];
+
+          // Extract the path after /workout-videos/
+          const parts = cleanUrl.split("/workout-videos/");
+          if (parts.length === 2) {
+            return parts[1];
+          }
+
+          return null;
+        } catch (err) {
+          console.error(`Error processing URL ${url}:`, err);
+          return null;
+        }
       })
       .filter((path): path is string => path !== null);
 
@@ -263,7 +276,7 @@ export const deleteWorkoutVideos = async (
       .remove(filePaths);
 
     if (error) {
-      console.error("Error deleting videos:", error);
+      console.error("Error deleting videos from storage:", error);
       throw error;
     }
   } catch (error) {

@@ -36,25 +36,61 @@ const Workouts: React.FC = () => {
   const [workouts, setWorkouts] = useState<WorkoutData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [workoutAchievements, setWorkoutAchievements] = useState<
     Record<string, Achievement[]>
   >({});
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
 
+  const BATCH_SIZE = 5;
+
+  // Intentionally exclude hasMore, isLoadingMore, offset from dependencies to prevent infinite loop
+  // These values are read from state but don't need to recreate the function
   const fetchWorkouts = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, loadMore = false) => {
       if (!user?.user_id) return;
+      if (loadMore && (!hasMore || isLoadingMore)) return;
 
       try {
         if (isRefresh) {
           setIsRefreshing(true);
+          setOffset(0);
+          setHasMore(true);
+        } else if (loadMore) {
+          setIsLoadingMore(true);
         } else {
           setIsLoading(true);
         }
         setError(null);
 
-        const data = await getUserRecentWorkouts(user.user_id, 20);
-        setWorkouts(data as unknown as WorkoutData[]);
+        const currentOffset = isRefresh ? 0 : loadMore ? offset : 0;
+        const data = await getUserRecentWorkouts(
+          user.user_id,
+          BATCH_SIZE,
+          currentOffset
+        );
+
+        // Check if we received fewer items than requested (end of list)
+        if (data.length < BATCH_SIZE) {
+          setHasMore(false);
+        }
+
+        // Update workouts list
+        if (isRefresh) {
+          setWorkouts(data as unknown as WorkoutData[]);
+          setOffset(BATCH_SIZE);
+        } else if (loadMore) {
+          setWorkouts((prev) => [
+            ...prev,
+            ...(data as unknown as WorkoutData[]),
+          ]);
+          setOffset((prev) => prev + BATCH_SIZE);
+        } else {
+          setWorkouts(data as unknown as WorkoutData[]);
+          setOffset(BATCH_SIZE);
+        }
 
         // Fetch achievements for each workout
         const achievementsMap: Record<string, Achievement[]> = {};
@@ -74,24 +110,50 @@ const Workouts: React.FC = () => {
             achievementsMap[workout.workout_id] = [];
           }
         }
-        setWorkoutAchievements(achievementsMap);
+
+        // Merge achievements with existing ones
+        setWorkoutAchievements((prev) => ({
+          ...(isRefresh ? {} : prev),
+          ...achievementsMap,
+        }));
       } catch (err) {
         console.error("Error fetching workouts:", err);
         setError("Failed to load workouts. Please try again.");
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
+        setIsLoadingMore(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user?.user_id]
   );
 
+  // Only fetch on mount or when user changes to prevent infinite loop
+  // fetchWorkouts is intentionally excluded from dependencies
   useEffect(() => {
     fetchWorkouts();
-  }, [fetchWorkouts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.user_id]);
 
   const handleRefresh = () => {
     fetchWorkouts(true);
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !isLoadingMore && !isLoading) {
+      fetchWorkouts(false, true);
+    }
+  };
+
+  const renderFooter = () => {
+    if (!isLoadingMore) return null;
+
+    return (
+      <View className="py-4">
+        <ActivityIndicator size="small" color="#3B82F6" />
+      </View>
+    );
   };
 
   if (isLoading) {
@@ -159,6 +221,9 @@ const Workouts: React.FC = () => {
         )}
         contentContainerStyle={{ padding: 16 }}
         showsVerticalScrollIndicator={false}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

@@ -183,7 +183,8 @@ export const saveCompleteWorkout = async (
  */
 export const getUserRecentWorkouts = async (
   userId: string,
-  limit: number = 5
+  limit: number = 5,
+  offset: number = 0
 ) => {
   try {
     const { data, error } = await supabase
@@ -208,7 +209,7 @@ export const getUserRecentWorkouts = async (
       )
       .eq("user_id", userId)
       .order("workout_date", { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error("Error fetching recent workouts:", error);
@@ -468,7 +469,9 @@ export const deleteWorkout = async (
 
     if (fetchError) {
       console.error("Error fetching workout exercises:", fetchError);
-      throw fetchError;
+      throw new Error(
+        `Failed to fetch workout exercises: ${fetchError.message}`
+      );
     }
 
     // Collect all video URLs
@@ -490,7 +493,7 @@ export const deleteWorkout = async (
 
     if (deleteError) {
       console.error("Error deleting workout:", deleteError);
-      throw deleteError;
+      throw new Error(`Failed to delete workout: ${deleteError.message}`);
     }
 
     // Delete associated videos from storage

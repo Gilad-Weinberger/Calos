@@ -61,6 +61,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
   const { user } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
   const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<{
     url: string;
     exerciseName: string;
@@ -101,6 +102,21 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
 
   const handleDeletePress = () => {
     setMenuVisible(false);
+
+    // Check if user is available before showing confirmation
+    if (!user?.user_id) {
+      Alert.alert(
+        "Error",
+        "You must be logged in to delete a workout. Please sign in and try again."
+      );
+      return;
+    }
+
+    // Prevent multiple deletions at once
+    if (isDeleting) {
+      return;
+    }
+
     Alert.alert(
       "Delete Workout",
       "Are you sure you want to delete this workout? This action cannot be undone.",
@@ -113,8 +129,8 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+            setIsDeleting(true);
             try {
-              if (!user) return;
               await deleteWorkout(workout.workout_id, user.user_id);
               Alert.alert("Success", "Workout deleted successfully");
               if (onWorkoutDeleted) {
@@ -122,10 +138,13 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
               }
             } catch (error) {
               console.error("Error deleting workout:", error);
-              Alert.alert(
-                "Error",
-                "Failed to delete workout. Please try again."
-              );
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete workout. Please try again.";
+              Alert.alert("Error", errorMessage);
+            } finally {
+              setIsDeleting(false);
             }
           },
         },
@@ -220,10 +239,12 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
               <TouchableOpacity
                 onPress={handleDeletePress}
                 className="flex-row items-center p-4"
+                disabled={isDeleting}
+                style={{ opacity: isDeleting ? 0.5 : 1 }}
               >
                 <Ionicons name="trash-outline" size={24} color="#EF4444" />
                 <Text className="text-base font-medium text-red-600 ml-3">
-                  Delete Workout
+                  {isDeleting ? "Deleting..." : "Delete Workout"}
                 </Text>
               </TouchableOpacity>
             </View>

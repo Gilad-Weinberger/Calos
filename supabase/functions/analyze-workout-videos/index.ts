@@ -261,13 +261,43 @@ Analyze this workout video and provide a JSON response with the following struct
   "confidence": number between 0-1
 }
 
+CRITICAL RULE - STATIC vs DYNAMIC:
+- STATIC = Holding a single position without movement (measure in SECONDS). The person stays in one position.
+- DYNAMIC = Repeated movements through a range of motion (count REPS). The person moves up and down or back and forth.
+
+** WATCH THE ENTIRE VIDEO: If you see ANY repetitive movement (going up/down, in/out), it is DYNAMIC, NOT static! **
+
+⚠️ IMPORTANT - SETUP vs ACTUAL EXERCISE:
+Many exercises start AFTER an initial setup/transition period. Do NOT count setup movements:
+- L-sit: Raising legs into L position = SETUP (ignore). Holding L position = ACTUAL EXERCISE (count seconds)
+- Front Lever: Pulling body up into horizontal = SETUP (ignore). Holding horizontal = ACTUAL EXERCISE (count seconds)  
+- Plank: Getting down into plank position = SETUP (ignore). Holding plank = ACTUAL EXERCISE (count seconds)
+- Handstand: Kicking up into position = SETUP (ignore). Holding inverted = ACTUAL EXERCISE (count seconds)
+- For STATIC: Start counting seconds ONLY when person is stable in the final position
+- For DYNAMIC: Count ONLY complete repetitions (ignore initial positioning)
+
 CRITICAL: Identify the SPECIFIC exercise variation AND progression level, not just the base movement. Consider:
 
-HANDSTAND VARIATIONS & PROGRESSIONS (identify carefully):
-- VARIATIONS: "Back to Wall Handstand" vs "Chest to Wall Handstand" - which way facing wall
-- PROGRESSIONS: "Bent Arm Handstand" → "Freestanding Handstand" (easier to harder)
-- "Wall Handstand Push-ups (Back to Wall)" vs "Wall Handstand Push-ups (Facing Wall)" - Check which way they face the wall
-- "Handstand Push-ups" vs "Pike Push-ups" - Handstands are inverted, pike has feet on ground with hips high
+HANDSTAND VARIATIONS & PROGRESSIONS (CRITICAL - distinguish static holds from push-ups):
+==================================================================================
+⚠️ MOST IMPORTANT: Check if person is MOVING or HOLDING STILL!
+
+STATIC HANDSTANDS (just holding position - NO up/down movement):
+- "Back to Wall Handstand" - holding inverted position with back to wall, NO bending arms
+- "Chest to Wall Handstand" - holding inverted position facing wall, NO bending arms  
+- "Freestanding Handstand" - holding handstand without wall, NO bending arms
+- If seeing NO arm bending/no movement = STATIC, measure hold time in SECONDS
+
+DYNAMIC HANDSTAND PUSH-UPS (bending arms up and down - REPETITIVE movement):
+- "Back to Wall Handstand Push-ups" - doing push-ups in handstand with back to wall
+- "Chest to Wall Handstand Push-ups" - doing push-ups in handstand facing wall
+- "Freestanding Handstand Push-ups" - push-ups in handstand without wall support
+- "Handstand Push-ups" - general term if wall position unclear
+- If seeing arms BENDING and EXTENDING repeatedly = DYNAMIC, count REPS
+
+OTHER HANDSTAND EXERCISES:
+- "Pike Push-ups" - NOT inverted, hips high with feet on ground (looks like inverted V)
+- "Elevated Pike Push-ups" - pike push-ups with feet elevated on box/chair
 
 PUSH-UP VARIATIONS & PROGRESSIONS (identify hand position, body angle, and arm position):
 - "Incline Push-ups" - hands elevated (easier)
@@ -301,19 +331,25 @@ SQUAT VARIATIONS & PROGRESSIONS:
 - "Shrimp Squats" - single leg with rear leg bent behind (alternative single-leg progression)
 
 CORE EXERCISES - VARIATIONS & PROGRESSIONS (distinguish static holds from dynamic):
+- STATIC (NO movement - hold position): "Plank", "L-sit", "V-sit" - person holds still, measure SECONDS
+- DYNAMIC (repetitive movement): "Knee Raises", "Leg Raises", "Sit-ups", "Crunches" - person moves repeatedly, count REPS
 - PROGRESSIONS (Static): "Plank" → "Extended Plank" or "Tuck L-sit" → "L-sit" → "V-sit"
 - PROGRESSIONS (Dynamic): "Knee Raises" → "Hanging Knee Raises" → "Hanging Leg Raises" → "Toes to Bar" → "Dragon Flags"
-- VARIATIONS: "Plank" vs "Forearm Plank" vs "Side Plank" (different positions)
-- "L-sit" variations: on floor vs parallettes vs hanging
+- VARIATIONS: "Plank" vs "Forearm Plank" vs "Side Plank" (different positions, all STATIC)
+- "L-sit" variations: on floor vs parallettes vs hanging (all STATIC holds)
 
-STATIC HOLDS - VARIATIONS & PROGRESSIONS (measure time in seconds):
+STATIC HOLDS - VARIATIONS & PROGRESSIONS (NO movement - measure time in SECONDS):
+⚠️ These exercises have NO repetitive movement - person just holds position!
+⚠️ IGNORE setup movements (getting into position) - count ONLY the stable hold time!
+
 - PROGRESSIONS: "Dead Hang" → "Plank" → "L-sit" → "Handstand" → "Front Lever" → "Planche" (difficulty order)
-- Any "Plank" variation - measure hold time
-- "L-sit" variations - measure hold time
-- "Handstand" variations - measure hold time
-- "Front Lever" or "Back Lever" - measure hold time
-- "Human Flag" - measure hold time
-- "Wall Sits" - measure hold time
+- "Dead Hang" - hanging from bar without moving, measure SECONDS (ignore jump up to bar)
+- Any "Plank" variation - holding plank position without moving, measure SECONDS (ignore getting down into plank)
+- "L-sit" variations - holding L position without moving, measure SECONDS (ignore raising legs to get into L)
+- "Handstand" variations (NO push-ups) - holding inverted position, measure SECONDS (ignore kick-up into handstand)
+- "Front Lever" or "Back Lever" - holding horizontal on bar, measure SECONDS (ignore pull-up into lever position)
+- "Human Flag" - holding horizontal on vertical pole, measure SECONDS (ignore climbing into position)
+- "Wall Sits" - holding squat against wall, measure SECONDS (ignore sliding down into position)
 
 ROW VARIATIONS & PROGRESSIONS:
 - PROGRESSIONS: "Incline Rows" → "Horizontal Rows" → "Archer Rows" → "One-Arm Rows" (easier to harder)
@@ -328,11 +364,22 @@ ADVANCED STATIC SKILLS - VARIATIONS & PROGRESSIONS:
 - "Human Flag" - body horizontal on vertical pole
 
 IMPORTANT TIPS:
-- For DYNAMIC exercises: Count each complete repetition carefully (full range of motion)
-- For STATIC exercises: Measure the total hold time in seconds
+- WATCH THE ENTIRE VIDEO: Many exercises start AFTER an initial setup/transition period
+- For STATIC exercises: Start counting ONLY when stable in final position (ignore setup movements like raising legs, pulling into position, kicking up, etc.)
+- For DYNAMIC exercises: Count ONLY complete repetitions (ignore initial positioning)
+- WATCH CAREFULLY: Is the person MOVING repeatedly or HOLDING STILL (after setup)?
+- For DYNAMIC exercises: Count each complete repetition carefully (full range of motion). Example: arms bending and extending = reps
+- For STATIC exercises: Measure the total hold time in seconds AFTER getting into position. Example: holding position without movement = seconds
 - Always identify both the BASE MOVEMENT and the SPECIFIC VARIATION/PROGRESSION
 - Example: Don't say "push-ups" if you see "archer push-ups" or "diamond push-ups"
 - Example: Don't say "handstand" if you see "back to wall handstand" vs "freestanding handstand"
+
+⚠️ COMMON MISTAKES TO AVOID:
+- "Back to Wall Handstand Push-ups" (DYNAMIC - arms bending) ≠ "Back to Wall Handstand" (STATIC - just holding)
+- "Plank" (STATIC - holding position) ≠ "Push-ups" (DYNAMIC - moving up and down)
+- "L-sit" (STATIC - holding L) ≠ "Leg Raises" (DYNAMIC - legs moving up and down)
+- "Dead Hang" (STATIC - just hanging) ≠ "Pull-ups" (DYNAMIC - pulling up and down)
+- DON'T count setup movements: If person raises legs into L-sit then holds = measure the HOLD time only, not the leg raise
 
 Return ONLY valid JSON. Use the most specific exercise name that matches what you see.`;
 
