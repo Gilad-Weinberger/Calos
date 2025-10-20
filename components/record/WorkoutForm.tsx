@@ -241,143 +241,157 @@ const WorkoutForm: React.FC = () => {
   }
 
   // Manual entry mode
-  return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="p-4">
-          {/* Header */}
-          <View className="mb-6">
-            <Text className="text-2xl font-bold text-gray-900 mb-2">
-              Create Workout
-            </Text>
-            <Text className="text-base text-gray-600">
-              Choose how you want to record your workout
-            </Text>
-          </View>
+  if (mode === "manual") {
+    // Store current mode to prevent type narrowing
+    const currentMode = mode as WorkoutMode;
 
-          {/* Mode Selection */}
-          {exercises.length === 0 && (
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="p-4">
+            {/* Header */}
             <View className="mb-6">
-              <View className="flex-row space-x-3">
-                <TouchableOpacity
-                  onPress={() => setMode("manual")}
-                  className={`flex-1 rounded-lg p-4 border-2 ${
-                    mode === "manual"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300 bg-white"
-                  }`}
-                >
-                  <View className="items-center">
-                    <Ionicons
-                      name="create-outline"
-                      size={32}
-                      color={mode === "manual" ? "#2563eb" : "#6b7280"}
-                    />
-                    <Text
-                      className={`text-base font-semibold mt-2 ${
-                        mode === "manual" ? "text-blue-600" : "text-gray-700"
-                      }`}
-                    >
-                      Manual Entry
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setMode("video")}
-                  className={`flex-1 rounded-lg p-4 border-2 ${
-                    mode === "video"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300 bg-white"
-                  }`}
-                >
-                  <View className="items-center">
-                    <Ionicons
-                      name="videocam-outline"
-                      size={32}
-                      color={mode === "video" ? "#2563eb" : "#6b7280"}
-                    />
-                    <Text
-                      className={`text-base font-semibold mt-2 ${
-                        mode === "video" ? "text-blue-600" : "text-gray-700"
-                      }`}
-                    >
-                      Video Upload
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Workout Title */}
-          <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
-              Workout Title
-            </Text>
-            <TextInput
-              value={workoutTitle}
-              onChangeText={setWorkoutTitle}
-              placeholder="Enter workout title..."
-              className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
-            />
-          </View>
-
-          {/* Exercise Selector */}
-          <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
-              Add Exercise
-            </Text>
-            <ExerciseSelector
-              onExerciseSelect={handleExerciseSelect}
-              selectedExerciseIds={selectedExerciseIds}
-            />
-          </View>
-
-          {/* Exercise List */}
-          {exercises.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-3">
-                Exercises ({exercises.length})
+              <Text className="text-2xl font-bold text-gray-900 mb-2">
+                Create Workout
               </Text>
-              {exercises.map((exercise, index) => (
-                <ExerciseSetInput
-                  key={`${exercise.exercise_id}-${index}`}
-                  exercise={exercise}
-                  onUpdate={(updatedExercise) =>
-                    handleExerciseUpdate(index, updatedExercise)
-                  }
-                  onRemove={() => handleExerciseRemove(index)}
-                />
-              ))}
+              <Text className="text-base text-gray-600">
+                Choose how you want to record your workout
+              </Text>
             </View>
-          )}
 
-          {/* Save Button */}
-          <TouchableOpacity
-            onPress={handleSaveWorkout}
-            disabled={isSaving || exercises.length === 0}
-            className={`rounded-lg py-4 px-6 ${
-              isSaving || exercises.length === 0 ? "bg-gray-300" : "bg-blue-600"
-            }`}
-          >
-            <Text
-              className={`text-center font-semibold text-base ${
+            {/* Mode Selection */}
+            {exercises.length === 0 && (
+              <View className="mb-6">
+                <View className="flex-row space-x-3">
+                  <TouchableOpacity
+                    onPress={() => setMode("manual")}
+                    className={`flex-1 rounded-lg p-4 border-2 ${
+                      currentMode === "manual"
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300 bg-white"
+                    }`}
+                  >
+                    <View className="items-center">
+                      <Ionicons
+                        name="create-outline"
+                        size={32}
+                        color={currentMode === "manual" ? "#2563eb" : "#6b7280"}
+                      />
+                      <Text
+                        className={`text-base font-semibold mt-2 ${
+                          currentMode === "manual"
+                            ? "text-blue-600"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        Manual Entry
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => setMode("video")}
+                    className={`flex-1 rounded-lg p-4 border-2 ${
+                      currentMode === "video"
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300 bg-white"
+                    }`}
+                  >
+                    <View className="items-center">
+                      <Ionicons
+                        name="videocam-outline"
+                        size={32}
+                        color={currentMode === "video" ? "#2563eb" : "#6b7280"}
+                      />
+                      <Text
+                        className={`text-base font-semibold mt-2 ${
+                          currentMode === "video"
+                            ? "text-blue-600"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        Video Upload
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Workout Title */}
+            <View className="mb-6">
+              <Text className="text-sm font-medium text-gray-700 mb-2">
+                Workout Title
+              </Text>
+              <TextInput
+                value={workoutTitle}
+                onChangeText={setWorkoutTitle}
+                placeholder="Enter workout title..."
+                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-base"
+              />
+            </View>
+
+            {/* Exercise Selector */}
+            <View className="mb-6">
+              <Text className="text-sm font-medium text-gray-700 mb-2">
+                Add Exercise
+              </Text>
+              <ExerciseSelector
+                onExerciseSelect={handleExerciseSelect}
+                selectedExerciseIds={selectedExerciseIds}
+              />
+            </View>
+
+            {/* Exercise List */}
+            {exercises.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-sm font-medium text-gray-700 mb-3">
+                  Exercises ({exercises.length})
+                </Text>
+                {exercises.map((exercise, index) => (
+                  <ExerciseSetInput
+                    key={`${exercise.exercise_id}-${index}`}
+                    exercise={exercise}
+                    onUpdate={(updatedExercise) =>
+                      handleExerciseUpdate(index, updatedExercise)
+                    }
+                    onRemove={() => handleExerciseRemove(index)}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* Save Button */}
+            <TouchableOpacity
+              onPress={handleSaveWorkout}
+              disabled={isSaving || exercises.length === 0}
+              className={`rounded-lg py-4 px-6 ${
                 isSaving || exercises.length === 0
-                  ? "text-gray-500"
-                  : "text-white"
+                  ? "bg-gray-300"
+                  : "bg-blue-600"
               }`}
             >
-              {isSaving ? "Saving..." : "Save Workout"}
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className={`text-center font-semibold text-base ${
+                  isSaving || exercises.length === 0
+                    ? "text-gray-500"
+                    : "text-white"
+                }`}
+              >
+                {isSaving ? "Saving..." : "Save Workout"}
+              </Text>
+            </TouchableOpacity>
 
-          {/* Bottom Spacing */}
-          <View className="h-8" />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+            {/* Bottom Spacing */}
+            <View className="h-8" />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Fallback (should never reach here)
+  return null;
 };
 
 export default WorkoutForm;

@@ -2,6 +2,55 @@ import { posthog } from "../utils/posthog";
 import { supabase } from "../utils/supabase";
 import { deleteWorkoutVideos } from "./videoFunctions";
 
+/**
+ * Convert a storage URL to a signed URL for secure access to private videos
+ * @param videoUrl - The storage URL to convert
+ * @returns A signed URL valid for 1 hour
+ */
+export const convertToSignedUrl = async (videoUrl: string): Promise<string> => {
+  try {
+    // Extract file path from URL
+    const urlParts = videoUrl.split("/workout-videos/");
+    if (urlParts.length !== 2) {
+      // If URL format is unexpected, return as-is
+      return videoUrl;
+    }
+
+    const filePath = urlParts[1];
+
+    // Get signed URL (valid for 1 hour)
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from("workout-videos")
+      .createSignedUrl(filePath, 3600);
+
+    if (!signedError && signedData?.signedUrl) {
+      return signedData.signedUrl;
+    } else {
+      console.error("Error creating signed URL for:", videoUrl, signedError);
+      // Return original URL as fallback
+      return videoUrl;
+    }
+  } catch (err) {
+    console.error("Error processing video URL:", videoUrl, err);
+    // Return original URL as fallback
+    return videoUrl;
+  }
+};
+
+/**
+ * Convert an array of storage URLs to signed URLs
+ * @param videoUrls - Array of storage URLs
+ * @returns Array of signed URLs
+ */
+export const convertToSignedUrls = async (
+  videoUrls: string[]
+): Promise<string[]> => {
+  const signedUrls = await Promise.all(
+    videoUrls.map((url) => convertToSignedUrl(url))
+  );
+  return signedUrls;
+};
+
 export interface Exercise {
   exercise_id: string;
   name: string;
@@ -16,6 +65,8 @@ export interface WorkoutExercise {
   sets: number;
   reps: number[];
   order_index: number;
+  video_urls?: string[];
+  analysis_metadata?: Record<string, any>;
 }
 
 export interface WorkoutData {
@@ -79,6 +130,8 @@ export const saveCompleteWorkout = async (
       sets: exercise.sets,
       reps: exercise.reps,
       order_index: index + 1,
+      video_urls: exercise.video_urls || null,
+      analysis_metadata: exercise.analysis_metadata || null,
     }));
 
     const { error: exercisesError } = await supabase
@@ -145,6 +198,7 @@ export const getUserRecentWorkouts = async (
           sets,
           reps,
           order_index,
+          video_urls,
           exercises (
             name,
             type
@@ -159,6 +213,21 @@ export const getUserRecentWorkouts = async (
     if (error) {
       console.error("Error fetching recent workouts:", error);
       throw error;
+    }
+
+    // Convert video URLs to signed URLs for secure access
+    if (data) {
+      for (const workout of data) {
+        if (workout.workout_exercises) {
+          for (const exercise of workout.workout_exercises) {
+            if (exercise.video_urls && exercise.video_urls.length > 0) {
+              exercise.video_urls = await convertToSignedUrls(
+                exercise.video_urls
+              );
+            }
+          }
+        }
+      }
     }
 
     return data || [];

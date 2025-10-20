@@ -248,17 +248,93 @@ serve(async (req) => {
         console.log("Base64 conversion complete");
 
         // Create the prompt for analysis
-        const prompt = `Analyze this workout video and provide a JSON response with the following structure:
+        const prompt = `You are an expert calisthenics coach analyzing workout videos. Carefully identify the EXACT exercise being performed, including its specific VARIATION and PROGRESSION level.
+
+VARIATIONS = Different ways to perform the same base movement (e.g., wide grip vs close grip, overhand vs underhand)
+PROGRESSIONS = Easier to harder versions of movements (e.g., incline → standard → decline → one-arm)
+
+Analyze this workout video and provide a JSON response with the following structure:
 {
-  "exercise_name": "name of the exercise (e.g., Push-ups, Plank, Squats)",
+  "exercise_name": "exact name of the exercise variation/progression",
   "exercise_type": "dynamic" or "static",
   "reps_or_duration": number (reps for dynamic exercises, seconds for static exercises),
   "confidence": number between 0-1
 }
 
-For dynamic exercises (push-ups, squats, pull-ups, etc.), count the number of repetitions performed.
-For static exercises (plank, wall sit, etc.), measure the duration in seconds.
-Be as accurate as possible. Only respond with valid JSON.`;
+CRITICAL: Identify the SPECIFIC exercise variation AND progression level, not just the base movement. Consider:
+
+HANDSTAND VARIATIONS & PROGRESSIONS (identify carefully):
+- VARIATIONS: "Back to Wall Handstand" vs "Chest to Wall Handstand" - which way facing wall
+- PROGRESSIONS: "Bent Arm Handstand" → "Freestanding Handstand" (easier to harder)
+- "Wall Handstand Push-ups (Back to Wall)" vs "Wall Handstand Push-ups (Facing Wall)" - Check which way they face the wall
+- "Handstand Push-ups" vs "Pike Push-ups" - Handstands are inverted, pike has feet on ground with hips high
+
+PUSH-UP VARIATIONS & PROGRESSIONS (identify hand position, body angle, and arm position):
+- "Incline Push-ups" - hands elevated (easier)
+- "Standard Push-ups" or "Push-ups" - standard position
+- "Wide Push-ups" - hands wider than shoulders
+- "Diamond Push-ups" - hands forming diamond
+- "Decline Push-ups" - feet elevated (harder)
+- "Pike Push-ups" - hips high, targeting shoulders
+- "Elevated Pike Push-ups" - pike with feet elevated
+- PROGRESSIONS: "Incline" → "Standard" → "Decline" → "Archer" → "One-Arm" (easier to harder)
+- VARIATIONS: "Wide" vs "Diamond" vs "Archer" vs "Typewriter" (different styles)
+- "Pseudo Planche Push-ups" - hands by hips, leaning forward (advanced progression)
+- "One-Arm Push-ups" - only one arm pushing (hardest progression)
+
+PULL-UP VARIATIONS & PROGRESSIONS (check grip, width, and technique):
+- PROGRESSIONS: "Assisted" → "Pull-ups" → "Archer" → "One-Arm" (easier to harder)
+- VARIATIONS - Grip: "Pull-ups" (overhand) vs "Chin-ups" (underhand) vs "Commando" (parallel)
+- VARIATIONS - Width: "Wide Grip" vs "Close Grip" vs standard
+- "L-sit Pull-ups" - legs held in L position (harder variation)
+- "One-Arm Pull-ups" - pulling with one arm (hardest progression)
+- "Muscle-up" vs "Strict Muscle-up" vs "Slow Muscle-up" - transition over bar (advanced)
+
+DIP VARIATIONS & PROGRESSIONS:
+- PROGRESSIONS: "Bench Dips" → "Assisted" → "Parallel Bar Dips" → "Ring Dips" (easier to harder)
+- VARIATIONS: "Parallel Bar" vs "Ring Dips" (stability difference) vs "Korean Dips" (hand position)
+- "Weighted Dips" - with added weight (advanced progression)
+
+SQUAT VARIATIONS & PROGRESSIONS:
+- PROGRESSIONS: "Bodyweight Squats" → "Bulgarian Split" → "Pistol Squats" (easier to harder)
+- VARIATIONS: "Jump Squats" (explosive) vs "Sissy Squats" (knee-forward) vs "Cossack Squats" (lateral)
+- "Shrimp Squats" - single leg with rear leg bent behind (alternative single-leg progression)
+
+CORE EXERCISES - VARIATIONS & PROGRESSIONS (distinguish static holds from dynamic):
+- PROGRESSIONS (Static): "Plank" → "Extended Plank" or "Tuck L-sit" → "L-sit" → "V-sit"
+- PROGRESSIONS (Dynamic): "Knee Raises" → "Hanging Knee Raises" → "Hanging Leg Raises" → "Toes to Bar" → "Dragon Flags"
+- VARIATIONS: "Plank" vs "Forearm Plank" vs "Side Plank" (different positions)
+- "L-sit" variations: on floor vs parallettes vs hanging
+
+STATIC HOLDS - VARIATIONS & PROGRESSIONS (measure time in seconds):
+- PROGRESSIONS: "Dead Hang" → "Plank" → "L-sit" → "Handstand" → "Front Lever" → "Planche" (difficulty order)
+- Any "Plank" variation - measure hold time
+- "L-sit" variations - measure hold time
+- "Handstand" variations - measure hold time
+- "Front Lever" or "Back Lever" - measure hold time
+- "Human Flag" - measure hold time
+- "Wall Sits" - measure hold time
+
+ROW VARIATIONS & PROGRESSIONS:
+- PROGRESSIONS: "Incline Rows" → "Horizontal Rows" → "Archer Rows" → "One-Arm Rows" (easier to harder)
+- VARIATIONS: "Wide Grip" vs "Close Grip" vs standard grip width
+- "Australian Pull-ups" - alternative name for horizontal rows
+
+ADVANCED STATIC SKILLS - VARIATIONS & PROGRESSIONS:
+- PLANCHE PROGRESSIONS: "Frog Stand" → "Planche Lean" → "Tuck Planche" → "Advanced Tuck" → "Straddle Planche" → "Full Planche"
+- FRONT LEVER PROGRESSIONS: "Tuck Front Lever" → "Advanced Tuck" → "One-Leg" → "Straddle Front Lever" → "Full Front Lever"
+- Identify LEG POSITION: Tuck (knees to chest) vs Straddle (legs wide apart) vs Full (legs together straight)
+- "Back Lever" - lever on back side of bar
+- "Human Flag" - body horizontal on vertical pole
+
+IMPORTANT TIPS:
+- For DYNAMIC exercises: Count each complete repetition carefully (full range of motion)
+- For STATIC exercises: Measure the total hold time in seconds
+- Always identify both the BASE MOVEMENT and the SPECIFIC VARIATION/PROGRESSION
+- Example: Don't say "push-ups" if you see "archer push-ups" or "diamond push-ups"
+- Example: Don't say "handstand" if you see "back to wall handstand" vs "freestanding handstand"
+
+Return ONLY valid JSON. Use the most specific exercise name that matches what you see.`;
 
         // Generate content with video using inline data (official Gemini API format)
         console.log(

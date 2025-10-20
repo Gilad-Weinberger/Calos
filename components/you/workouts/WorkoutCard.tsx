@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { ResizeMode, Video } from "expo-av";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -21,6 +22,7 @@ import {
   WorkoutExercise,
 } from "../../../lib/functions/workoutFunctions";
 import AchievementIcon from "../../ui/AchievementIcon";
+import VideoPlayerModal from "../../ui/VideoPlayerModal";
 
 interface WorkoutCardProps {
   workout: {
@@ -58,6 +60,14 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
 }) => {
   const { user } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<{
+    url: string;
+    exerciseName: string;
+    exerciseType: "static" | "dynamic";
+    sets: number;
+    reps: number[];
+  } | null>(null);
   // Transform workout exercises to WorkoutExercise format
   const exercises: WorkoutExercise[] = workout.workout_exercises.map((we) => ({
     exercise_id: we.exercise_id,
@@ -123,7 +133,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
     );
   };
 
-  // Check if workout has videos
+  // Check if workout has videos and collect them with exercise context
   const hasVideos = workout.workout_exercises.some(
     (ex) => ex.video_urls && ex.video_urls.length > 0
   );
@@ -131,6 +141,23 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
     (count, ex) => count + (ex.video_urls?.length || 0),
     0
   );
+
+  // Flatten all videos with their exercise context
+  const videosWithContext = workout.workout_exercises.flatMap((ex) => {
+    if (!ex.video_urls || ex.video_urls.length === 0) return [];
+    return ex.video_urls.map((url) => ({
+      url,
+      exerciseName: ex.exercises.name,
+      exerciseType: ex.exercises.type,
+      sets: ex.sets,
+      reps: ex.reps,
+    }));
+  });
+
+  const handleVideoPress = (video: (typeof videosWithContext)[0]) => {
+    setSelectedVideo(video);
+    setVideoModalVisible(true);
+  };
 
   return (
     <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
@@ -279,67 +306,130 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
         </Pressable>
       )}
 
-      {/* Exercise Carousel Section */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="flex-row"
-        contentContainerStyle={{ paddingRight: 16 }}
-      >
-        {exercises.map((exercise, index) => (
-          <View
-            key={`${exercise.exercise_id}-${index}`}
-            className="bg-gray-50 rounded-xl p-4 mr-2"
-            style={{ width: 140, minHeight: 180 }}
-          >
-            {/* Exercise Type Icon */}
-            <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mb-3">
-              <Ionicons
-                name={exercise.exercise_type === "dynamic" ? "flash" : "pause"}
-                size={20}
-                color="#3B82F6"
-              />
-            </View>
-
-            {/* Exercise Name */}
-            <Text
-              className="text-base font-semibold text-gray-800 mb-2"
-              numberOfLines={2}
+      {/* Video Carousel or Exercise Carousel Section */}
+      {hasVideos ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-row"
+          contentContainerStyle={{ paddingRight: 16 }}
+        >
+          {videosWithContext.map((video, index) => (
+            <TouchableOpacity
+              key={`${video.url}-${index}`}
+              onPress={() => handleVideoPress(video)}
+              activeOpacity={0.8}
+              className="mr-3 rounded-xl overflow-hidden"
+              style={{ width: 160, height: 240 }}
             >
-              {exercise.exercise_name}
-            </Text>
-
-            {/* Exercise Type Badge */}
-            <View className="bg-white rounded-full px-2 py-1 self-start mb-3">
-              <Text className="text-xs text-gray-600 capitalize">
-                {exercise.exercise_type}
-              </Text>
-            </View>
-
-            {/* Sets and Reps */}
-            <View className="flex-1 justify-end">
-              <Text className="text-xs text-gray-500 mb-1">
-                {exercise.sets} {exercise.sets === 1 ? "set" : "sets"}
-              </Text>
-              <Text className="text-sm font-medium text-gray-700">
-                {(() => {
-                  const allSame = exercise.reps.every(
-                    (rep) => rep === exercise.reps[0]
-                  );
-                  const unit =
-                    exercise.exercise_type === "static" ? "seconds" : "reps";
-
-                  if (allSame && exercise.reps.length > 1) {
-                    return `${exercise.sets} × ${exercise.reps[0]} ${unit}`;
-                  } else {
-                    return `${exercise.reps.join(", ")} ${unit}`;
+              <View className="w-full h-full">
+                <Video
+                  source={{ uri: video.url }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode={ResizeMode.COVER}
+                  shouldPlay={false}
+                  isLooping={false}
+                  isMuted
+                />
+                {/* Dark overlay with exercise name */}
+                <View className="absolute bottom-0 left-0 right-0 bg-black/70 p-3">
+                  <Text
+                    className="text-white text-sm font-semibold"
+                    numberOfLines={2}
+                  >
+                    {video.exerciseName}
+                  </Text>
+                </View>
+                {/* Play icon overlay */}
+                <View className="absolute inset-0 items-center justify-center">
+                  <View className="bg-black/40 rounded-full p-3">
+                    <Ionicons name="play" size={32} color="white" />
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-row"
+          contentContainerStyle={{ paddingRight: 16 }}
+        >
+          {exercises.map((exercise, index) => (
+            <View
+              key={`${exercise.exercise_id}-${index}`}
+              className="bg-gray-50 rounded-xl p-4 mr-2"
+              style={{ width: 140, minHeight: 180 }}
+            >
+              {/* Exercise Type Icon */}
+              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mb-3">
+                <Ionicons
+                  name={
+                    exercise.exercise_type === "dynamic" ? "flash" : "pause"
                   }
-                })()}
+                  size={20}
+                  color="#3B82F6"
+                />
+              </View>
+
+              {/* Exercise Name */}
+              <Text
+                className="text-base font-semibold text-gray-800 mb-2"
+                numberOfLines={2}
+              >
+                {exercise.exercise_name}
               </Text>
+
+              {/* Exercise Type Badge */}
+              <View className="bg-white rounded-full px-2 py-1 self-start mb-3">
+                <Text className="text-xs text-gray-600 capitalize">
+                  {exercise.exercise_type}
+                </Text>
+              </View>
+
+              {/* Sets and Reps */}
+              <View className="flex-1 justify-end">
+                <Text className="text-xs text-gray-500 mb-1">
+                  {exercise.sets} {exercise.sets === 1 ? "set" : "sets"}
+                </Text>
+                <Text className="text-sm font-medium text-gray-700">
+                  {(() => {
+                    const allSame = exercise.reps.every(
+                      (rep) => rep === exercise.reps[0]
+                    );
+                    const unit =
+                      exercise.exercise_type === "static" ? "seconds" : "reps";
+
+                    if (allSame && exercise.reps.length > 1) {
+                      return `${exercise.sets} × ${exercise.reps[0]} ${unit}`;
+                    } else {
+                      return `${exercise.reps.join(", ")} ${unit}`;
+                    }
+                  })()}
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* Video Player Modal */}
+      {selectedVideo && (
+        <VideoPlayerModal
+          visible={videoModalVisible}
+          onClose={() => {
+            setVideoModalVisible(false);
+            setSelectedVideo(null);
+          }}
+          videoUrl={selectedVideo.url}
+          exerciseName={selectedVideo.exerciseName}
+          exerciseType={selectedVideo.exerciseType}
+          sets={selectedVideo.sets}
+          reps={selectedVideo.reps}
+        />
+      )}
     </View>
   );
 };

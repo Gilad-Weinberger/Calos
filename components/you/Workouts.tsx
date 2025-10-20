@@ -23,6 +23,7 @@ interface WorkoutData {
     sets: number;
     reps: number[];
     order_index: number;
+    video_urls?: string[];
     exercises: {
       name: string;
       type: "static" | "dynamic";

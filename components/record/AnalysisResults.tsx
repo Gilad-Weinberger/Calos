@@ -29,27 +29,15 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
         sets: result.sets,
         reps: result.reps,
         order_index: index + 1,
+        video_urls: result.video_urls,
+        analysis_metadata: {
+          confidence: result.confidence,
+          analyzed_at: new Date().toISOString(),
+        },
       })
     );
     setExercises(workoutExercises);
   }, [results]);
-
-  const handleExerciseUpdate = (
-    index: number,
-    field: "sets" | "reps",
-    value: any
-  ) => {
-    setExercises((prev) =>
-      prev.map((ex, i) =>
-        i === index
-          ? {
-              ...ex,
-              [field]: value,
-            }
-          : ex
-      )
-    );
-  };
 
   const handleRemoveExercise = (index: number) => {
     setExercises((prev) =>
@@ -99,8 +87,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
             No Exercises Detected
           </Text>
           <Text className="text-base text-gray-600 text-center mb-6">
-            We couldn't detect any exercises in your videos. Please try again
-            with clearer videos.
+            We couldn&apos;t detect any exercises in your videos. Please try
+            again with clearer videos.
           </Text>
           <TouchableOpacity
             onPress={onRetry}
