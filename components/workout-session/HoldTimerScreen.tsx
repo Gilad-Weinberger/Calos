@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { CountdownCircleTimer } from "react-native-countdown-circle-timer";
 import { ExerciseDefinition } from "../../lib/functions/planFunctions";
+import { useCountdownAudio } from "../../lib/hooks/useCountdownAudio";
 
 interface HoldTimerScreenProps {
   holdDuration: number;
@@ -20,6 +21,8 @@ const HoldTimerScreen: React.FC<HoldTimerScreenProps> = ({
   isTimerRunning,
   onComplete,
 }) => {
+  const { playCountdownAudio, resetAudioFlag } = useCountdownAudio();
+  const audioTriggeredRef = useRef(false);
   return (
     <View className="flex-1 items-center justify-center">
       <CountdownCircleTimer
@@ -30,19 +33,30 @@ const HoldTimerScreen: React.FC<HoldTimerScreenProps> = ({
         size={200}
         strokeWidth={12}
         onComplete={() => {
+          // Reset audio flag for next timer cycle
+          audioTriggeredRef.current = false;
+          resetAudioFlag();
           // Auto-complete when timer reaches 0
           onComplete();
           return { shouldRepeat: false, delay: 0 };
         }}
       >
-        {({ remainingTime }) => (
-          <View className="items-center">
-            <Text className="text-5xl font-bold text-gray-900">
-              {remainingTime}
-            </Text>
-            <Text className="text-sm text-gray-600 mt-1">seconds left</Text>
-          </View>
-        )}
+        {({ remainingTime }) => {
+          // Play countdown audio when reaching 3 seconds
+          if (remainingTime === 4 && !audioTriggeredRef.current) {
+            audioTriggeredRef.current = true;
+            playCountdownAudio();
+          }
+
+          return (
+            <View className="items-center">
+              <Text className="text-5xl font-bold text-gray-900">
+                {remainingTime}
+              </Text>
+              <Text className="text-sm text-gray-600 mt-1">seconds left</Text>
+            </View>
+          );
+        }}
       </CountdownCircleTimer>
 
       <Text className="text-2xl font-bold text-gray-900 mb-2 mt-6">

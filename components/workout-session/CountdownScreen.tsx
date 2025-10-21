@@ -17,9 +17,7 @@ const CountdownScreen: React.FC<CountdownScreenProps> = ({
           {countdownValue}
         </Text>
       </View>
-      <Text className="text-2xl font-bold text-gray-900 mb-2">
-        Get Ready!
-      </Text>
+      <Text className="text-2xl font-bold text-gray-900 mb-2">Get Ready!</Text>
       <Text className="text-base text-gray-600 text-center">
         Hold for {duration}s
       </Text>

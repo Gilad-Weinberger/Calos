@@ -291,24 +291,8 @@ export const useWorkoutSession = () => {
         startRestTimer();
       }
     } else {
-      // Not in superset or last exercise in superset - start rest and move to next set
-      if (inSuperset) {
-        // Return to first exercise of superset for next set
-        const firstExerciseIndex = exercises.findIndex(
-          (ex) => ex.superset_group === currentExercise.superset_group
-        );
-        if (firstExerciseIndex !== -1) {
-          setCurrentExerciseIndex(firstExerciseIndex);
-          setCurrentSetIndex(currentSetIndex + 1);
-          setCurrentRepInput(
-            (exercises[firstExerciseIndex]?.reps || 0).toString()
-          );
-        }
-      } else {
-        // Regular exercise - move to next set
-        setCurrentSetIndex(currentSetIndex + 1);
-        setCurrentRepInput((currentExercise.reps || 0).toString());
-      }
+      // Not in superset or last exercise in superset - start rest
+      // Don't increment set index yet - wait until rest is completed
       setIsResting(true);
       setRestDuration(currentExercise.rest_seconds);
       resetRestTimer(currentExercise.rest_seconds);
@@ -344,6 +328,25 @@ export const useWorkoutSession = () => {
       }
       // If we're in a superset but not the last exercise of the superset,
       // the rest timer should not have been shown in the first place
+    } else if (!isLastSet) {
+      // Regular rest between sets - move to next set
+      if (inSuperset) {
+        // Return to first exercise of superset for next set
+        const firstExerciseIndex = exercises.findIndex(
+          (ex) => ex.superset_group === currentExercise.superset_group
+        );
+        if (firstExerciseIndex !== -1) {
+          setCurrentExerciseIndex(firstExerciseIndex);
+          setCurrentSetIndex(currentSetIndex + 1);
+          setCurrentRepInput(
+            (exercises[firstExerciseIndex]?.reps || 0).toString()
+          );
+        }
+      } else {
+        // Regular exercise - move to next set
+        setCurrentSetIndex(currentSetIndex + 1);
+        setCurrentRepInput((currentExercise.reps || 0).toString());
+      }
     }
   };
 
@@ -456,17 +459,44 @@ export const useWorkoutSession = () => {
         moveToNextExercise();
       }, 3000);
     } else {
-      // Regular rest between sets
+      // Regular rest between sets - move to next set
       setShowReadyPrompt(true);
 
-      // Auto-advance after 3 seconds
+      // Auto-advance after 3 seconds and move to next set
       setTimeout(() => {
         setShowReadyPrompt(false);
         setIsResting(false);
-        // Reset timer will be called when starting next rest
+
+        // Move to next set
+        if (inSuperset) {
+          // Return to first exercise of superset for next set
+          const firstExerciseIndex = exercises.findIndex(
+            (ex) => ex.superset_group === currentExercise.superset_group
+          );
+          if (firstExerciseIndex !== -1) {
+            setCurrentExerciseIndex(firstExerciseIndex);
+            setCurrentSetIndex(currentSetIndex + 1);
+            setCurrentRepInput(
+              (exercises[firstExerciseIndex]?.reps || 0).toString()
+            );
+          }
+        } else {
+          // Regular exercise - move to next set
+          setCurrentSetIndex(currentSetIndex + 1);
+          setCurrentRepInput((currentExercise.reps || 0).toString());
+        }
       }, 3000);
     }
-  }, [isLastSet, isLastExercise, handleFinishWorkout, moveToNextExercise]);
+  }, [
+    isLastSet,
+    isLastExercise,
+    handleFinishWorkout,
+    moveToNextExercise,
+    inSuperset,
+    exercises,
+    currentExercise,
+    currentSetIndex,
+  ]);
 
   // Rest countdown timer
   const {
