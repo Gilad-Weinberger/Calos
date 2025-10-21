@@ -68,6 +68,9 @@ export interface WorkoutExercise {
   superset_group?: string;
   video_urls?: string[];
   analysis_metadata?: Record<string, any>;
+  duration?: number; // For static exercises
+  unilateral_type?: string; // For unilateral exercises
+  alternating?: boolean; // For alternating unilateral exercises
 }
 
 export interface WorkoutData {

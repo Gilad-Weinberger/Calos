@@ -88,9 +88,12 @@ serve(async (req) => {
         {
           "exercise_name": "Exercise name (e.g., 'Push-ups', 'Pull-ups')",
           "sets": number of sets,
-          "reps": target reps per set (if there is a range, use the higher number),
+          "reps": target reps per set (ONLY for dynamic exercises - omit this field if static),
+          "duration": duration in seconds per set (ONLY for static exercises - omit this field if dynamic),
           "rest_seconds": rest time in seconds between sets (default to 60 if not specified),
-          "superset_group": "optional identifier for superset grouping (e.g., '1', '2', etc.)"
+          "superset_group": "optional identifier for superset grouping (e.g., '1', '2', etc.)",
+          "unilateral_type": "optional type for unilateral exercises ('single_arm', 'single_leg', etc.)",
+          "alternating": "optional boolean: true if alternating per set, false if grouped by side"
         }
       ]
     },
@@ -113,14 +116,32 @@ IMPORTANT RULES:
 7. Schedule should start from Sunday (index 0) to Saturday (index 6)
 8. If the PDF doesn't specify a clear schedule, create a reasonable one based on the workouts provided
 
+EXERCISE TYPE DETECTION:
+9. STATIC vs DYNAMIC: Determine if each exercise is static (timed/isometric) or dynamic (rep-based)
+   - Static exercises: planks, wall sits, wall holds, isometric holds, time-based exercises
+   - Dynamic exercises: push-ups, pull-ups, squats, lunges, any rep-based movement
+   - For static exercises: include ONLY "duration" field (in seconds), DO NOT include "reps" field
+   - For dynamic exercises: include ONLY "reps" field, DO NOT include "duration" field
+   - CRITICAL: Each exercise must have exactly ONE of these fields - never both, never neither
+
+UNILATERAL EXERCISE DETECTION:
+10. UNILATERAL EXERCISES: Detect single-side movements (one arm, one leg, etc.)
+    - Look for keywords: "archer", "one arm", "one-arm", "single arm", "single leg", "pistol", "bulgarian", "lateral", "side"
+    - Look for per-side notation: "3 reps each side", "10 reps per hand", "5 reps each leg"
+    - Set unilateral_type: "single_arm", "single_leg", "single_side", etc.
+    - ALTERNATING PATTERN: Determine if exercises alternate per set or group all sets per side
+      - If alternating per set: "alternating": true (e.g., "3 sets of 5 reps each arm")
+      - If grouped by side: "alternating": false (e.g., "3 sets right arm, 3 sets left arm")
+      - Default to "alternating": true if unilateral but pattern unclear
+
 SUPERSET DETECTION:
-9. Look for exercises grouped as "supersets", "superseries", "SS", or similar terms in ANY language
-10. Exercises in a superset should be assigned the same superset_group identifier (use "1", "2", "3", etc.)
-11. Supersets typically have 2 exercises but can have more (default to 2, but detect more if specified)
-12. Exercises in the same superset MUST have the same number of sets, but CAN have different rep amounts
-13. Example: Superset with 3 sets of 8 pull-ups + 3 sets of 10 push-ups is valid
-14. Only assign superset_group if exercises are explicitly marked as supersets in the PDF
-15. Regular exercises (not in supersets) should NOT have a superset_group field`;
+11. Look for exercises grouped as "supersets", "superseries", "SS", or similar terms in ANY language
+12. Exercises in a superset should be assigned the same superset_group identifier (use "1", "2", "3", etc.)
+13. Supersets typically have 2 exercises but can have more (default to 2, but detect more if specified)
+14. Exercises in the same superset MUST have the same number of sets, but CAN have different rep amounts
+15. Example: Superset with 3 sets of 8 pull-ups + 3 sets of 10 push-ups is valid
+16. Only assign superset_group if exercises are explicitly marked as supersets in the PDF
+17. Regular exercises (not in supersets) should NOT have a superset_group field`;
 
     // Add user-provided AI notes if present
     if (aiNotes && aiNotes.trim()) {
@@ -156,7 +177,11 @@ SUPERSET DETECTION:
     }
 
     // Validate and transform the response
-    const validatedData = validateAndTransformPlanData(parsedData);
+    const validatedData = await validateAndTransformPlanData(
+      parsedData,
+      supabase,
+      genAI
+    );
 
     return new Response(JSON.stringify(validatedData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -176,9 +201,99 @@ SUPERSET DETECTION:
 });
 
 /**
+ * Match exercise by name or create new exercise in database
+ */
+async function matchOrCreateExercise(
+  exerciseName: string,
+  supabase: any,
+  genAI: any
+): Promise<{ exercise_id: string; type: "static" | "dynamic" }> {
+  try {
+    // First, try to find existing exercise by name (case-insensitive partial match)
+    const { data: existingExercises, error: searchError } = await supabase
+      .from("exercises")
+      .select("exercise_id, name, type")
+      .ilike("name", `%${exerciseName.toLowerCase()}%`);
+
+    if (searchError) {
+      console.error("Error searching for exercise:", searchError);
+      throw searchError;
+    }
+
+    // If found, return the first match
+    if (existingExercises && existingExercises.length > 0) {
+      const match = existingExercises[0];
+      console.log(`Found existing exercise: ${match.name} (${match.type})`);
+      return {
+        exercise_id: match.exercise_id,
+        type: match.type as "static" | "dynamic",
+      };
+    }
+
+    // If not found, use AI to determine exercise type and create it
+    console.log(`Creating new exercise: ${exerciseName}`);
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const typePrompt = `Determine if this exercise is static (timed/isometric) or dynamic (rep-based):
+
+Exercise: "${exerciseName}"
+
+Rules:
+- Static exercises: planks, wall sits, wall holds, isometric holds, time-based exercises
+- Dynamic exercises: push-ups, pull-ups, squats, lunges, any rep-based movement
+
+Respond with only "static" or "dynamic".`;
+
+    const result = await model.generateContent(typePrompt);
+    const response = await result.response;
+    let exerciseType = response.text().trim().toLowerCase();
+
+    if (exerciseType !== "static" && exerciseType !== "dynamic") {
+      console.warn(
+        `Unexpected exercise type: ${exerciseType}, defaulting to dynamic`
+      );
+      exerciseType = "dynamic";
+    }
+
+    // Create new exercise in database
+    const { data: newExercise, error: createError } = await supabase
+      .from("exercises")
+      .insert({
+        name: exerciseName,
+        description: `Auto-generated exercise: ${exerciseName}`,
+        type: exerciseType,
+      })
+      .select("exercise_id, type")
+      .single();
+
+    if (createError) {
+      console.error("Error creating exercise:", createError);
+      throw createError;
+    }
+
+    console.log(`Created new exercise: ${exerciseName} (${exerciseType})`);
+    return {
+      exercise_id: newExercise.exercise_id,
+      type: newExercise.type as "static" | "dynamic",
+    };
+  } catch (error) {
+    console.error("Error in matchOrCreateExercise:", error);
+    // Fallback: return a default dynamic exercise
+    return {
+      exercise_id: "00000000-0000-0000-0000-000000000000", // Placeholder UUID
+      type: "dynamic",
+    };
+  }
+}
+
+/**
  * Validate and transform plan data to ensure it matches our schema
  */
-function validateAndTransformPlanData(data: any): any {
+async function validateAndTransformPlanData(
+  data: any,
+  supabase: any,
+  genAI: any
+): Promise<any> {
   if (!data.name || typeof data.name !== "string") {
     throw new Error("Plan name is required");
   }
@@ -220,27 +335,55 @@ function validateAndTransformPlanData(data: any): any {
     }
 
     // Validate exercises
-    const validatedExercises = w.exercises.map((ex: any, index: number) => {
-      if (!ex.exercise_name || typeof ex.exercise_name !== "string") {
-        throw new Error(
-          `Exercise ${index + 1} in workout ${letter} must have a name`
+    const validatedExercises = await Promise.all(
+      w.exercises.map(async (ex: any, index: number) => {
+        if (!ex.exercise_name || typeof ex.exercise_name !== "string") {
+          throw new Error(
+            `Exercise ${index + 1} in workout ${letter} must have a name`
+          );
+        }
+
+        // Match or create exercise in database
+        const exerciseMatch = await matchOrCreateExercise(
+          ex.exercise_name,
+          supabase,
+          genAI
         );
-      }
 
-      const exercise: any = {
-        exercise_name: ex.exercise_name,
-        sets: Number(ex.sets) || 3,
-        reps: Number(ex.reps) || 10,
-        rest_seconds: Number(ex.rest_seconds) || 60,
-      };
+        const exercise: any = {
+          exercise_id: exerciseMatch.exercise_id,
+          exercise_name: ex.exercise_name,
+          sets: Number(ex.sets) || 3,
+          rest_seconds: Number(ex.rest_seconds) || 60,
+        };
 
-      // Include superset_group if present
-      if (ex.superset_group) {
-        exercise.superset_group = String(ex.superset_group);
-      }
+        // Handle reps vs duration based on exercise type
+        if (exerciseMatch.type === "static") {
+          // Static exercise: use duration, not reps
+          exercise.duration = Number(ex.duration) || 30; // Default 30 seconds
+          exercise.reps = null;
+        } else {
+          // Dynamic exercise: use reps, not duration
+          exercise.reps = Number(ex.reps) || 10;
+          exercise.duration = null;
+        }
 
-      return exercise;
-    });
+        // Include superset_group if present
+        if (ex.superset_group) {
+          exercise.superset_group = String(ex.superset_group);
+        }
+
+        // Include unilateral fields if present
+        if (ex.unilateral_type) {
+          exercise.unilateral_type = String(ex.unilateral_type);
+        }
+        if (ex.alternating !== undefined) {
+          exercise.alternating = Boolean(ex.alternating);
+        }
+
+        return exercise;
+      })
+    );
 
     validatedWorkouts[letter.toUpperCase()] = {
       name: w.name,

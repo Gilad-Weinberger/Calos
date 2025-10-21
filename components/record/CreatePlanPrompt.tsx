@@ -27,6 +27,7 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState("");
   const [aiNotes, setAiNotes] = useState("");
 
   const handleSelectPDF = async () => {
@@ -48,29 +49,58 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
         return;
       }
 
-      // Upload PDF
+      // Step 1: Upload PDF
       setIsUploading(true);
-      setUploadProgress(30);
+      setCurrentStep("Uploading PDF to secure storage...");
+      setUploadProgress(10);
 
       const pdfUrl = await uploadPlanPdf(user.user_id, file.uri, file.name);
 
-      setUploadProgress(60);
+      setUploadProgress(20);
+      setCurrentStep("PDF uploaded successfully!");
+
+      // Small delay to show the step
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       setIsUploading(false);
 
-      // Analyze PDF
+      // Step 2: Analyze PDF
       setIsAnalyzing(true);
+      setCurrentStep("Reading PDF content...");
+      setUploadProgress(30);
+
+      // Simulate reading step
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setCurrentStep("Detecting exercises and workout structure...");
+      setUploadProgress(50);
+
+      // Simulate exercise detection step
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setCurrentStep("Analyzing static vs dynamic exercises...");
       setUploadProgress(70);
+
+      // Simulate exercise type analysis
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setCurrentStep("Identifying unilateral exercises and patterns...");
+      setUploadProgress(85);
+
+      // Simulate unilateral analysis
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setCurrentStep("Creating exercise database entries...");
+      setUploadProgress(90);
 
       const analysisResult = await analyzePlanPdf(
         pdfUrl,
         aiNotes.trim() || undefined
       );
 
-      setUploadProgress(90);
+      setCurrentStep("Finalizing workout plan...");
+      setUploadProgress(95);
 
-      // Create plan
+      // Step 3: Create plan
       await createPlanFromAnalysis(user.user_id, analysisResult);
 
+      setCurrentStep("Plan created successfully!");
       setUploadProgress(100);
       setIsAnalyzing(false);
 
@@ -91,6 +121,7 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
       setIsUploading(false);
       setIsAnalyzing(false);
       setUploadProgress(0);
+      setCurrentStep("");
 
       Alert.alert(
         "Error",
@@ -143,18 +174,26 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
 
       {/* Upload Button or Loading State */}
       {isLoading ? (
-        <View className="items-center">
+        <View className="items-center w-full">
           <ActivityIndicator size="large" color="#2563eb" />
-          <Text className="text-base text-gray-600 mt-4">
-            {isUploading && "Uploading your plan..."}
-            {isAnalyzing && "Analyzing your workout plan..."}
+
+          {/* Current Step */}
+          <Text className="text-lg font-semibold text-gray-900 mt-4 text-center">
+            {currentStep}
           </Text>
+
+          {/* Progress Bar */}
           {uploadProgress > 0 && (
-            <View className="w-64 h-2 bg-gray-200 rounded-full mt-3 overflow-hidden">
-              <View
-                className="h-full bg-blue-600"
-                style={{ width: `${uploadProgress}%` }}
-              />
+            <View className="w-full px-4 mt-4">
+              <View className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                <View
+                  className="h-full bg-blue-600 transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </View>
+              <Text className="text-sm text-gray-600 mt-2 text-center">
+                {uploadProgress}% Complete
+              </Text>
             </View>
           )}
         </View>
@@ -175,7 +214,9 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
         <Text className="text-sm text-gray-600 text-center">
           <Text className="font-semibold">Tip:</Text> Your PDF should include
           workout names, exercises, sets, reps, and a weekly schedule for best
-          results.
+          results. Our AI can now detect static exercises (planks, wall sits)
+          and unilateral exercises (archer push-ups, one-arm movements)
+          automatically!
         </Text>
       </View>
     </View>

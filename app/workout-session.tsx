@@ -48,6 +48,14 @@ const WorkoutSession = () => {
   const [currentRepInput, setCurrentRepInput] = useState("");
   const [isResting, setIsResting] = useState(false);
   const [startTime] = useState(new Date().toISOString());
+
+  // Static exercise state
+  const [isStaticExercise, setIsStaticExercise] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(3);
+  const [isHolding, setIsHolding] = useState(false);
+  const [holdStartTime, setHoldStartTime] = useState<Date | null>(null);
+  const [holdDuration, setHoldDuration] = useState(0);
   const [workoutName, setWorkoutName] = useState("");
 
   // Stopwatch for workout duration
@@ -68,6 +76,21 @@ const WorkoutSession = () => {
   useEffect(() => {
     loadWorkoutData();
   }, []);
+
+  // Update static exercise state when current exercise changes
+  useEffect(() => {
+    if (exercises.length > 0 && currentExerciseIndex < exercises.length) {
+      const currentExercise = exercises[currentExerciseIndex];
+      const isStatic = !!currentExercise.duration;
+      setIsStaticExercise(isStatic);
+
+      if (isStatic) {
+        setCurrentRepInput(currentExercise.duration?.toString() || "0");
+      } else {
+        setCurrentRepInput(currentExercise.reps?.toString() || "0");
+      }
+    }
+  }, [currentExerciseIndex, exercises]);
 
   const loadWorkoutData = async () => {
     try {
@@ -93,14 +116,27 @@ const WorkoutSession = () => {
       setWorkoutName(workout.name);
       setExercises(workout.exercises);
 
-      // Initialize completed reps array
-      const repsArray = workout.exercises.map((ex) =>
-        Array(ex.sets).fill(ex.reps)
-      );
+      // Initialize completed reps array - handle both static and dynamic exercises
+      const repsArray = workout.exercises.map((ex) => {
+        if (ex.duration) {
+          // Static exercise: initialize with duration values
+          return Array(ex.sets).fill(ex.duration);
+        } else {
+          // Dynamic exercise: initialize with rep values
+          return Array(ex.sets).fill(ex.reps || 0);
+        }
+      });
       setCompletedReps(repsArray);
 
-      // Set initial rep input
-      setCurrentRepInput(workout.exercises[0]?.reps.toString() || "");
+      // Set initial rep input based on exercise type
+      const firstExercise = workout.exercises[0];
+      if (firstExercise?.duration) {
+        setCurrentRepInput(firstExercise.duration.toString());
+        setIsStaticExercise(true);
+      } else {
+        setCurrentRepInput((firstExercise?.reps || 0).toString());
+        setIsStaticExercise(false);
+      }
 
       setIsLoading(false);
     } catch (error) {
@@ -128,7 +164,106 @@ const WorkoutSession = () => {
     ? getSupersetExercises(currentExercise, exercises)
     : [];
 
+  // Static exercise functions
+  const handleStaticExerciseStart = () => {
+    setShowCountdown(true);
+    setCountdownValue(3);
+
+    // Start countdown
+    const countdownInterval = setInterval(() => {
+      setCountdownValue((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setShowCountdown(false);
+          startHold();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const startHold = () => {
+    setIsHolding(true);
+    setHoldStartTime(new Date());
+    setHoldDuration(0);
+
+    // Update hold duration every 100ms
+    const holdInterval = setInterval(() => {
+      if (holdStartTime) {
+        const elapsed = Math.floor(
+          (new Date().getTime() - holdStartTime.getTime()) / 1000
+        );
+        setHoldDuration(elapsed);
+      }
+    }, 100);
+
+    // Store interval reference for cleanup
+    (window as any).holdInterval = holdInterval;
+  };
+
+  const handleStaticSetComplete = () => {
+    if (!isHolding) return;
+
+    // Clear the hold interval
+    if ((window as any).holdInterval) {
+      clearInterval((window as any).holdInterval);
+    }
+
+    const actualDuration = holdDuration;
+    const targetDuration = currentExercise?.duration || 0;
+
+    // Save completed duration
+    const newCompletedReps = [...completedReps];
+    newCompletedReps[currentExerciseIndex][currentSetIndex] = actualDuration;
+    setCompletedReps(newCompletedReps);
+
+    // Reset hold state
+    setIsHolding(false);
+    setHoldStartTime(null);
+    setHoldDuration(0);
+
+    // Move to next set or exercise (same logic as dynamic exercises)
+    if (inSuperset && nextExerciseInSuperset) {
+      const nextExerciseIndex = exercises.findIndex(
+        (ex) => ex.exercise_name === nextExerciseInSuperset.exercise_name
+      );
+      if (nextExerciseIndex !== -1) {
+        setCurrentExerciseIndex(nextExerciseIndex);
+        setCurrentRepInput(
+          (
+            nextExerciseInSuperset.duration ||
+            nextExerciseInSuperset.reps ||
+            0
+          ).toString()
+        );
+      }
+    } else if (isLastSet) {
+      if (isLastExercise) {
+        handleFinishWorkout();
+      } else {
+        moveToNextExercise();
+      }
+    } else {
+      if (inSuperset) {
+        // In superset but last exercise in superset - start rest
+        setCurrentSetIndex(currentSetIndex + 1);
+        setIsResting(true);
+      } else {
+        // Regular exercise - start rest and move to next set
+        setCurrentSetIndex(currentSetIndex + 1);
+        setIsResting(true);
+      }
+    }
+  };
+
   const handleSetComplete = () => {
+    // Handle static exercises differently
+    if (isStaticExercise) {
+      handleStaticExerciseStart();
+      return;
+    }
+
     const reps = parseInt(currentRepInput) || 0;
 
     if (reps < 1) {
@@ -367,6 +502,62 @@ const WorkoutSession = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
+            ) : showCountdown ? (
+              /* Countdown Screen for Static Exercises */
+              <View className="flex-1 items-center justify-center">
+                <View className="w-40 h-40 rounded-full bg-blue-100 items-center justify-center mb-8">
+                  <Text className="text-8xl font-bold text-blue-600">
+                    {countdownValue}
+                  </Text>
+                </View>
+                <Text className="text-2xl font-bold text-gray-900 mb-2">
+                  Get Ready!
+                </Text>
+                <Text className="text-base text-gray-600 text-center">
+                  Hold for {currentExercise.duration}s
+                </Text>
+              </View>
+            ) : isHolding ? (
+              /* Hold Timer Screen for Static Exercises */
+              <View className="flex-1 items-center justify-center">
+                <View className="w-40 h-40 rounded-full bg-green-100 items-center justify-center mb-8">
+                  <Text className="text-6xl font-bold text-green-600">
+                    {holdDuration}
+                  </Text>
+                  <Text className="text-sm text-green-600 mt-1">seconds</Text>
+                </View>
+
+                <Text className="text-2xl font-bold text-gray-900 mb-2">
+                  {currentExercise.exercise_name}
+                </Text>
+                <Text className="text-lg text-gray-700 mb-4">
+                  Set {currentSetIndex + 1} of {totalSets}
+                </Text>
+
+                <View className="bg-gray-100 rounded-lg p-4 mb-8">
+                  <Text className="text-center text-gray-600">
+                    Target: {currentExercise.duration}s | Current:{" "}
+                    {holdDuration}s
+                  </Text>
+                  <View className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <View
+                      className="bg-green-500 h-2 rounded-full"
+                      style={{
+                        width: `${Math.min((holdDuration / (currentExercise.duration || 1)) * 100, 100)}%`,
+                      }}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleStaticSetComplete}
+                  className="bg-green-600 rounded-lg py-5 px-8 shadow-lg"
+                >
+                  <Text className="text-white font-bold text-xl text-center">
+                    Complete Set
+                  </Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               /* Exercise Set Screen */
               <View className="flex-1">
@@ -397,7 +588,8 @@ const WorkoutSession = () => {
                               : "text-blue-700"
                           }`}
                         >
-                          {idx + 1}. {ex.exercise_name} ({ex.sets}×{ex.reps})
+                          {idx + 1}. {ex.exercise_name} ({ex.sets}×
+                          {ex.duration ? `${ex.duration}s` : ex.reps})
                         </Text>
                       ))}
                       <Text className="text-xs text-blue-600 mt-2 italic">
@@ -434,27 +626,45 @@ const WorkoutSession = () => {
                   </Text>
                 </View>
 
-                {/* Reps Input */}
-                <View className="mb-8">
-                  <Text className="text-base text-gray-700 mb-3">
-                    How many reps did you complete?
-                  </Text>
-
-                  <View className="bg-gray-50 rounded-lg p-6 border-2 border-gray-200">
-                    <TextInput
-                      value={currentRepInput}
-                      onChangeText={setCurrentRepInput}
-                      keyboardType="numeric"
-                      placeholder={currentExercise.reps.toString()}
-                      className="text-6xl font-bold text-center text-gray-900"
-                      maxLength={3}
-                      autoFocus
-                    />
-                    <Text className="text-center text-gray-600 mt-2">
-                      reps (target: {currentExercise.reps})
+                {isStaticExercise ? (
+                  /* Static Exercise UI */
+                  <View className="mb-8">
+                    <Text className="text-base text-gray-700 mb-3">
+                      Hold for {currentExercise.duration} seconds
                     </Text>
+
+                    <View className="bg-gray-50 rounded-lg p-6 border-2 border-gray-200">
+                      <Text className="text-6xl font-bold text-center text-gray-900">
+                        {currentExercise.duration}
+                      </Text>
+                      <Text className="text-center text-gray-600 mt-2">
+                        seconds
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                ) : (
+                  /* Dynamic Exercise UI */
+                  <View className="mb-8">
+                    <Text className="text-base text-gray-700 mb-3">
+                      How many reps did you complete?
+                    </Text>
+
+                    <View className="bg-gray-50 rounded-lg p-6 border-2 border-gray-200">
+                      <TextInput
+                        value={currentRepInput}
+                        onChangeText={setCurrentRepInput}
+                        keyboardType="numeric"
+                        placeholder={currentExercise.reps?.toString() || "0"}
+                        className="text-6xl font-bold text-center text-gray-900"
+                        maxLength={3}
+                        autoFocus
+                      />
+                      <Text className="text-center text-gray-600 mt-2">
+                        reps (target: {currentExercise.reps})
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
                 {/* Done Button */}
                 <TouchableOpacity
@@ -462,13 +672,15 @@ const WorkoutSession = () => {
                   className="bg-blue-600 rounded-lg py-5 px-6 shadow-lg"
                 >
                   <Text className="text-white font-bold text-xl text-center">
-                    {isLastSet && isLastExercise
-                      ? "Finish Workout"
-                      : inSuperset && nextExerciseInSuperset
-                        ? "Next Exercise (No Rest)"
-                        : isLastSet
-                          ? "Next Exercise"
-                          : "Done - Rest"}
+                    {isStaticExercise
+                      ? "Start Hold"
+                      : isLastSet && isLastExercise
+                        ? "Finish Workout"
+                        : inSuperset && nextExerciseInSuperset
+                          ? "Next Exercise (No Rest)"
+                          : isLastSet
+                            ? "Next Exercise"
+                            : "Done - Rest"}
                   </Text>
                 </TouchableOpacity>
               </View>

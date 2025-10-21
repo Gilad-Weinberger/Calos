@@ -43,12 +43,15 @@ export interface WorkoutDefinition {
  * Exercise definition within a workout
  */
 export interface ExerciseDefinition {
-  exercise_id?: string; // Optional: may not be present in PDF analysis
+  exercise_id: string; // Now required (was optional)
   exercise_name: string;
   sets: number;
-  reps: number; // Target reps per set
+  reps?: number; // Now optional (only for dynamic exercises)
+  duration?: number; // New field (only for static exercises, in seconds)
   rest_seconds: number;
   superset_group?: string; // Identifier for grouping exercises into supersets
+  unilateral_type?: string; // New field for unilateral exercises (e.g., "single_arm", "single_leg")
+  alternating?: boolean; // New field: true if alternating per set, false if grouped by side
 }
 
 /**
