@@ -18,6 +18,16 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
   const router = useRouter();
   const todaysWorkout = getTodaysWorkout(plan);
 
+  // Format rest time in mm:ss format
+  const formatRestTime = (seconds: number): string => {
+    if (seconds === 0) return "0s";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return minutes > 0
+      ? `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+      : `${seconds}s`;
+  };
+
   if (!todaysWorkout) {
     return (
       <View className="flex-1 items-center justify-center p-6">
@@ -84,134 +94,169 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      showsVerticalScrollIndicator={false}
-    >
-      <View className="p-4">
-        {/* Header */}
-        <View className="mb-6">
-          {/* Plan Name */}
-          <Text className="text-sm font-medium text-gray-600 mb-1">
-            {plan.name}
-          </Text>
-
-          {/* Workout Name */}
-          <Text className="text-2xl font-bold text-gray-900 mb-2">
-            {workout.name}
-            <Text className="text-blue-600"> (Workout {workoutLetter})</Text>
-          </Text>
-
-          {/* Week/Day Info */}
-          {weekNumber !== null && (
-            <Text className="text-sm text-gray-600 mb-2">
-              {formatWeekDay(weekNumber, dayInWeek)}
+    <View className="flex-1 bg-gray-50">
+      {/* Scrollable Content */}
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <View className="p-4">
+          {/* Header - Centered */}
+          <View
+            className="mb-1"
+            style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
+          >
+            {/* Plan Name */}
+            <Text className="text-sm font-medium text-gray-600 mb-2 text-center">
+              {plan.name}
             </Text>
-          )}
 
-          {/* Late Warning */}
-          {lateMessage && (
-            <View className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex-row items-center mb-4">
-              <Ionicons name="warning" size={20} color="#f59e0b" />
-              <Text className="text-sm text-yellow-800 ml-2 flex-1">
-                {lateMessage}
+            {/* Workout Name */}
+            <Text className="text-2xl font-bold text-gray-900 mb-3 text-center">
+              {workout.name}
+              {workout.name !== `Workout ${workoutLetter}` && (
+                <Text className="text-blue-600">
+                  {" "}
+                  (Workout {workoutLetter})
+                </Text>
+              )}
+            </Text>
+
+            {/* Week/Day Info */}
+            {weekNumber !== null && (
+              <Text className="text-sm text-gray-600 mb-4 text-center">
+                {formatWeekDay(weekNumber, dayInWeek)}
               </Text>
-            </View>
-          )}
-        </View>
+            )}
 
-        {/* Workout Overview */}
-        <View className="bg-white rounded-lg p-4 mb-6 shadow-sm">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Today&apos;s Exercises
-          </Text>
+            {/* Late Warning */}
+            {lateMessage && (
+              <View className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex-row items-center mb-6">
+                <Ionicons name="warning" size={20} color="#f59e0b" />
+                <Text className="text-sm text-yellow-800 ml-2 flex-1">
+                  {lateMessage}
+                </Text>
+              </View>
+            )}
+          </View>
 
-          {groupExercisesBySuperset(workout.exercises).map(
-            (group, groupIndex) => {
-              if (group.isSuperset) {
-                return (
-                  <View
-                    key={`superset-${groupIndex}`}
-                    className="border-l-4 border-blue-500 pl-3 bg-blue-50 rounded-r-lg mb-3 py-2"
-                  >
-                    <Text className="text-xs font-bold text-blue-600 mb-2">
-                      SUPERSET
-                    </Text>
-                    {group.exercises.map((exercise, exIndex) => (
-                      <View key={exIndex} className="mb-2">
-                        <Text className="text-base font-medium text-gray-900 mb-1">
-                          {exercise.exercise_name}
-                        </Text>
-                        <View className="flex-row items-center flex-wrap">
-                          <View className="flex-row items-center mr-4 mb-1">
-                            <Ionicons name="list" size={14} color="#6b7280" />
-                            <Text className="text-sm text-gray-600 ml-1">
-                              {exercise.sets} sets
-                            </Text>
-                          </View>
-                          <View className="flex-row items-center mr-4 mb-1">
-                            <Ionicons
-                              name="fitness"
-                              size={14}
-                              color="#6b7280"
-                            />
-                            <Text className="text-sm text-gray-600 ml-1">
-                              {exercise.reps} reps
-                            </Text>
+          {/* Workout Overview - Centered */}
+          <View
+            className="bg-white rounded-2xl p-6 mb-6 shadow-lg"
+            style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
+          >
+            <Text className="text-xl font-bold text-gray-900 mb-6 text-center">
+              Today&apos;s Exercises
+            </Text>
+
+            {groupExercisesBySuperset(workout.exercises).map(
+              (group, groupIndex) => {
+                if (group.isSuperset) {
+                  return (
+                    <View
+                      key={`superset-${groupIndex}`}
+                      className="border-l-4 border-blue-500 pl-4 bg-blue-50 rounded-r-xl mb-4 py-3"
+                    >
+                      <Text className="text-xs font-bold text-blue-600 mb-3 uppercase tracking-wide">
+                        Superset
+                      </Text>
+                      {group.exercises.map((exercise, exIndex) => (
+                        <View key={exIndex} className="mb-3 last:mb-0">
+                          <Text className="text-base font-semibold text-gray-900 mb-2">
+                            {exercise.exercise_name}
+                          </Text>
+                          <View className="flex-row items-center flex-wrap">
+                            <View className="flex-row items-center mr-6 mb-1">
+                              <Ionicons name="list" size={16} color="#6b7280" />
+                              <Text className="text-sm text-gray-600 ml-2 font-medium">
+                                {exercise.sets} sets
+                              </Text>
+                            </View>
+                            <View className="flex-row items-center mr-6 mb-1">
+                              <Ionicons
+                                name="fitness"
+                                size={16}
+                                color="#6b7280"
+                              />
+                              <Text className="text-sm text-gray-600 ml-2 font-medium">
+                                {exercise.reps} reps
+                              </Text>
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    ))}
-                    <Text className="text-xs text-blue-600 mt-1 italic">
-                      No rest between exercises •{" "}
-                      {(group.exercises[0] as any)?.rest_seconds || 0}s rest
-                      after superset
-                    </Text>
-                  </View>
-                );
-              } else {
-                const exercise = group.exercises[0];
-                return (
-                  <View
-                    key={`exercise-${groupIndex}`}
-                    className="border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:mb-0 last:pb-0"
-                  >
-                    <Text className="text-base font-medium text-gray-900 mb-1">
-                      {exercise.exercise_name}
-                    </Text>
-                    <View className="flex-row items-center flex-wrap">
-                      <View className="flex-row items-center mr-4 mb-1">
-                        <Ionicons name="list" size={14} color="#6b7280" />
-                        <Text className="text-sm text-gray-600 ml-1">
-                          {exercise.sets} sets
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center mr-4 mb-1">
-                        <Ionicons name="fitness" size={14} color="#6b7280" />
-                        <Text className="text-sm text-gray-600 ml-1">
-                          {exercise.reps} reps
-                        </Text>
-                      </View>
-                      {(exercise as any).rest_seconds > 0 && (
-                        <View className="flex-row items-center mb-1">
-                          <Ionicons name="time" size={14} color="#6b7280" />
-                          <Text className="text-sm text-gray-600 ml-1">
-                            {(exercise as any).rest_seconds}s rest
+                      ))}
+                      <Text className="text-xs text-blue-600 mt-2 italic">
+                        No rest between exercises •{" "}
+                        {formatRestTime(
+                          (group.exercises[0] as any)?.rest_seconds || 0
+                        )}{" "}
+                        rest after superset
+                      </Text>
+                    </View>
+                  );
+                } else {
+                  const exercise = group.exercises[0];
+                  return (
+                    <View
+                      key={`exercise-${groupIndex}`}
+                      className="border-l-4 border-green-500 pl-4 bg-green-50 rounded-r-xl mb-4 py-3"
+                    >
+                      <Text className="text-xs font-bold text-green-600 mb-2 uppercase tracking-wide">
+                        Exercise
+                      </Text>
+                      <Text className="text-base font-semibold text-gray-900 mb-2">
+                        {exercise.exercise_name}
+                      </Text>
+                      <View className="flex-row items-center flex-wrap">
+                        <View className="flex-row items-center mr-6 mb-1">
+                          <Ionicons name="list" size={16} color="#6b7280" />
+                          <Text className="text-sm text-gray-600 ml-2 font-medium">
+                            {exercise.sets} sets
                           </Text>
                         </View>
-                      )}
+                        <View className="flex-row items-center mr-6 mb-1">
+                          <Ionicons name="fitness" size={16} color="#6b7280" />
+                          <Text className="text-sm text-gray-600 ml-2 font-medium">
+                            {exercise.reps} reps
+                          </Text>
+                        </View>
+                        {(exercise as any).rest_seconds > 0 && (
+                          <View className="flex-row items-center mb-1">
+                            <Ionicons name="time" size={16} color="#6b7280" />
+                            <Text className="text-sm text-gray-600 ml-2 font-medium">
+                              {formatRestTime((exercise as any).rest_seconds)}{" "}
+                              rest
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                );
+                  );
+                }
               }
-            }
-          )}
-        </View>
+            )}
+          </View>
 
-        {/* Start Workout Button */}
+          {/* Info Card - Centered */}
+          <View
+            className="bg-blue-50 rounded-2xl p-6"
+            style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
+          >
+            <Text className="text-sm text-blue-900 text-center leading-6">
+              <Text className="font-bold">Ready to train?</Text> The interactive
+              workout will guide you through each exercise with rest timers and
+              rep tracking.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Fixed Start Workout Button */}
+      <View className="absolute -bottom-10 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-4">
         <TouchableOpacity
           onPress={handleStartWorkout}
-          className="bg-blue-600 rounded-lg py-4 px-6 shadow-md"
+          className="bg-blue-600 rounded-2xl py-4 px-6 shadow-lg"
         >
           <View className="flex-row items-center justify-center">
             <Ionicons name="play-circle" size={24} color="white" />
@@ -220,20 +265,8 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
             </Text>
           </View>
         </TouchableOpacity>
-
-        {/* Info Card */}
-        <View className="mt-6 bg-blue-50 rounded-lg p-4">
-          <Text className="text-sm text-blue-900">
-            <Text className="font-semibold">Ready to train?</Text> The
-            interactive workout will guide you through each exercise with rest
-            timers and rep tracking.
-          </Text>
-        </View>
-
-        {/* Bottom Spacing */}
-        <View className="h-8" />
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
