@@ -34,6 +34,29 @@ const Record = () => {
       setIsLoading(true);
       const plan = await getActivePlan(user.user_id);
       setActivePlan(plan);
+
+      // Console log when user has an active workout
+      if (plan) {
+        const currentTime = new Date().toISOString();
+        const planStartDate = plan.start_date;
+        const planSchedule = plan.schedule;
+
+        // Get today's workout using the same logic as TodaysWorkout component
+        const { getTodaysWorkout } = await import(
+          "../../lib/functions/planFunctions"
+        );
+        const todaysWorkout = getTodaysWorkout(plan);
+        const todaysWorkoutLetter = todaysWorkout
+          ? todaysWorkout.workoutLetter
+          : "No workout";
+
+        console.log("=== ACTIVE WORKOUT DEBUG INFO ===");
+        console.log("Current Time:", currentTime);
+        console.log("Plan Start Date:", planStartDate);
+        console.log("Plan Schedule:", JSON.stringify(planSchedule, null, 2));
+        console.log("Today's Workout:", todaysWorkoutLetter);
+        console.log("=================================");
+      }
     } catch (error) {
       console.error("Error loading active plan:", error);
       setActivePlan(null);

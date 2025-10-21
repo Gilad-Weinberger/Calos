@@ -110,7 +110,7 @@ IMPORTANT RULES:
 4. If exercise names don't match exactly, use the closest common exercise name (e.g., "pushup" -> "Push-ups")
 5. If sets, reps, or rest times are ranges (e.g., "3-4 sets"), use the higher number
 6. If rest time is in minutes, convert to seconds (e.g., "2 min" -> 120)
-7. Schedule should start from Monday (index 0) to Sunday (index 6)
+7. Schedule should start from Sunday (index 0) to Saturday (index 6)
 8. If the PDF doesn't specify a clear schedule, create a reasonable one based on the workouts provided
 
 SUPERSET DETECTION:

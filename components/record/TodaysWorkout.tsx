@@ -28,8 +28,8 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
           Plan Completed!
         </Text>
         <Text className="text-base text-gray-600 text-center">
-          You've finished your workout plan. Time to create a new one or extend
-          your current plan.
+          You&apos;ve finished your workout plan. Time to create a new one or
+          extend your current plan.
         </Text>
       </View>
     );
@@ -123,7 +123,7 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
         {/* Workout Overview */}
         <View className="bg-white rounded-lg p-4 mb-6 shadow-sm">
           <Text className="text-lg font-semibold text-gray-900 mb-3">
-            Today's Exercises
+            Today&apos;s Exercises
           </Text>
 
           {groupExercisesBySuperset(workout.exercises).map(
@@ -164,7 +164,8 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
                     ))}
                     <Text className="text-xs text-blue-600 mt-1 italic">
                       No rest between exercises •{" "}
-                      {group.exercises[0]?.rest_seconds}s rest after superset
+                      {(group.exercises[0] as any)?.rest_seconds || 0}s rest
+                      after superset
                     </Text>
                   </View>
                 );
@@ -191,11 +192,11 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
                           {exercise.reps} reps
                         </Text>
                       </View>
-                      {exercise.rest_seconds > 0 && (
+                      {(exercise as any).rest_seconds > 0 && (
                         <View className="flex-row items-center mb-1">
                           <Ionicons name="time" size={14} color="#6b7280" />
                           <Text className="text-sm text-gray-600 ml-1">
-                            {exercise.rest_seconds}s rest
+                            {(exercise as any).rest_seconds}s rest
                           </Text>
                         </View>
                       )}

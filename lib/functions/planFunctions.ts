@@ -191,6 +191,19 @@ export const analyzePlanPdf = async (
 };
 
 /**
+ * Get the Sunday of the week containing the given date
+ * @param date - Any date
+ * @returns Date object set to Sunday of that week at 00:00:00
+ */
+const getSundayOfWeek = (date: Date): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  const dayOfWeek = result.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  result.setDate(result.getDate() - dayOfWeek);
+  return result;
+};
+
+/**
  * Create a plan from analyzed PDF data
  * @param userId - User ID
  * @param analysisResult - Analyzed plan data from PDF
@@ -218,7 +231,7 @@ export const createPlanFromAnalysis = async (
         num_weeks: analysisResult.num_weeks,
         workouts: analysisResult.workouts,
         schedule: analysisResult.schedule,
-        start_date: new Date().toISOString(),
+        start_date: getSundayOfWeek(new Date()).toISOString(),
       })
       .select()
       .single();

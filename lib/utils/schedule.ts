@@ -138,20 +138,20 @@ export const getUpcomingSchedule = (
   numWeeks: number,
   planType: "repeat" | "once",
   daysAhead: number = 7
-): Array<{
+): {
   date: Date;
   workoutLetter: string;
   weekNumber: number | null;
   dayInWeek: number;
   isRestDay: boolean;
-}> => {
-  const upcomingWorkouts: Array<{
+}[] => {
+  const upcomingWorkouts: {
     date: Date;
     workoutLetter: string;
     weekNumber: number | null;
     dayInWeek: number;
     isRestDay: boolean;
-  }> = [];
+  }[] = [];
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
