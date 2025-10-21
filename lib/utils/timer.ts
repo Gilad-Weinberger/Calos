@@ -1,4 +1,3 @@
-import * as Haptics from "expo-haptics";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -60,82 +59,6 @@ export const formatDuration = (seconds: number): string => {
 };
 
 /**
- * Hook for a countdown timer (rest timer)
- * @param initialSeconds - Starting seconds for countdown
- * @param onComplete - Callback when timer reaches 0
- * @returns {timeLeft, isRunning, start, pause, reset, skip}
- */
-export const useCountdownTimer = (
-  initialSeconds: number,
-  onComplete?: () => void
-) => {
-  const [timeLeft, setTimeLeft] = useState(initialSeconds);
-  const [isRunning, setIsRunning] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            // Haptic feedback when timer completes
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            if (onComplete) {
-              onComplete();
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning, timeLeft, onComplete]);
-
-  const start = () => {
-    if (timeLeft > 0) {
-      setIsRunning(true);
-    }
-  };
-
-  const pause = () => {
-    setIsRunning(false);
-  };
-
-  const reset = (seconds?: number) => {
-    setIsRunning(false);
-    setTimeLeft(seconds ?? initialSeconds);
-  };
-
-  const skip = () => {
-    setIsRunning(false);
-    setTimeLeft(0);
-    if (onComplete) {
-      onComplete();
-    }
-  };
-
-  return {
-    timeLeft,
-    isRunning,
-    start,
-    pause,
-    reset,
-    skip,
-    formattedTime: formatTime(timeLeft),
-  };
-};
-
-/**
  * Hook for a stopwatch (workout duration timer)
  * @param autoStart - Whether to start automatically
  * @returns {elapsedTime, isRunning, start, pause, reset, formattedTime}
@@ -143,7 +66,7 @@ export const useCountdownTimer = (
 export const useStopwatch = (autoStart: boolean = false) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(autoStart);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
@@ -165,7 +88,7 @@ export const useStopwatch = (autoStart: boolean = false) => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning]);
+  }, [isRunning, elapsedTime]);
 
   const start = () => {
     setIsRunning(true);
@@ -187,5 +110,68 @@ export const useStopwatch = (autoStart: boolean = false) => {
     pause,
     reset,
     formattedTime: formatTime(elapsedTime),
+  };
+};
+
+/**
+ * Hook for a countdown timer (rest timer)
+ * @param initialDuration - Initial countdown duration in seconds
+ * @param onComplete - Callback when countdown reaches 0
+ * @param autoStart - Whether to start automatically
+ * @returns {timeLeft, isRunning, start, pause, reset, formattedTime}
+ */
+export const useCountdown = (
+  initialDuration: number,
+  onComplete?: () => void,
+  autoStart: boolean = false
+) => {
+  const [timeLeft, setTimeLeft] = useState(initialDuration);
+  const [isRunning, setIsRunning] = useState(autoStart);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            setIsRunning(false);
+            onComplete?.();
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning, timeLeft, onComplete]);
+
+  const start = () => {
+    setIsRunning(true);
+  };
+
+  const pause = () => {
+    setIsRunning(false);
+  };
+
+  const reset = (newDuration?: number) => {
+    setIsRunning(false);
+    setTimeLeft(newDuration ?? initialDuration);
+  };
+
+  return {
+    timeLeft,
+    isRunning,
+    start,
+    pause,
+    reset,
+    formattedTime: formatTime(timeLeft),
   };
 };

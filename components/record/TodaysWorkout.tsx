@@ -1,13 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useAuth } from "../../lib/context/AuthContext";
 import { getTodaysWorkout, Plan } from "../../lib/functions/planFunctions";
+import {
+  Achievement,
+  DatabaseWorkout,
+  getTodaysCompletedWorkout,
+  getWorkoutAchievements,
+} from "../../lib/functions/workoutFunctions";
 import {
   calculateDaysSinceScheduled,
   getLateworkoutMessage,
 } from "../../lib/utils/schedule";
 import { groupExercisesBySuperset } from "../../lib/utils/superset";
+import WorkoutCard from "../you/workouts/WorkoutCard";
 
 interface TodaysWorkoutProps {
   plan: Plan;
@@ -15,7 +23,11 @@ interface TodaysWorkoutProps {
 
 const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
   const router = useRouter();
+  const { user } = useAuth();
   const todaysWorkout = getTodaysWorkout(plan);
+  const [completedWorkout, setCompletedWorkout] =
+    useState<DatabaseWorkout | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
   // Format rest time in mm:ss format
   const formatRestTime = (seconds: number): string => {
@@ -25,6 +37,50 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
     return minutes > 0
       ? `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
       : `${seconds}s`;
+  };
+
+  // Check if today's workout has been completed
+  useEffect(() => {
+    const checkCompletedWorkout = async () => {
+      if (!user || !todaysWorkout || todaysWorkout.isRestDay) {
+        setCompletedWorkout(null);
+        setAchievements([]);
+        return;
+      }
+
+      try {
+        const workout = await getTodaysCompletedWorkout(
+          user.user_id,
+          plan.plan_id,
+          todaysWorkout.workoutLetter,
+          todaysWorkout.scheduledDate
+        );
+
+        setCompletedWorkout(workout);
+
+        if (workout) {
+          const achs = await getWorkoutAchievements(
+            user.user_id,
+            workout.workout_id,
+            "individual"
+          );
+          setAchievements(achs);
+        } else {
+          setAchievements([]);
+        }
+      } catch (error) {
+        console.error("Error checking completed workout:", error);
+        setCompletedWorkout(null);
+        setAchievements([]);
+      }
+    };
+
+    checkCompletedWorkout();
+  }, [user, plan.plan_id, todaysWorkout]);
+
+  const handleWorkoutDeleted = () => {
+    setCompletedWorkout(null);
+    setAchievements([]);
   };
 
   if (!todaysWorkout) {
@@ -68,6 +124,135 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
     });
   };
 
+  // If workout is completed, show the completed workout card with banner
+  if (completedWorkout && !isRestDay) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        >
+          <View className="p-4">
+            {/* Header - Centered */}
+            <View
+              className="mb-4"
+              style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
+            >
+              {/* Plan Name */}
+              <Text className="text-sm font-medium text-gray-600 mb-2 text-center">
+                {plan.name}
+              </Text>
+
+              {/* Workout Name */}
+              <Text className="text-2xl font-bold text-gray-900 mb-3 text-center">
+                {workout.name}
+                {!workout.name.includes(`${" "}${workoutLetter}`) && (
+                  <Text className="text-blue-600">
+                    {" "}
+                    (Workout {workoutLetter})
+                  </Text>
+                )}
+              </Text>
+
+              {/* Week/Day Info - Block Style */}
+              {weekNumber !== null && (
+                <View className="mb-4">
+                  <Text className="text-sm font-medium text-gray-600 mb-2 text-center">
+                    Week {weekNumber + 1}
+                  </Text>
+                  <View className="flex-row flex-wrap justify-center">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                      (dayName, dayIndex) => {
+                        const isToday = dayIndex === dayInWeek;
+                        const dayWorkout =
+                          plan.schedule[weekNumber]?.[dayIndex];
+                        const isRest = dayWorkout?.toLowerCase() === "rest";
+
+                        return (
+                          <View
+                            key={dayIndex}
+                            className={`rounded-lg px-3 py-2 mr-2 mb-2 ${
+                              isToday
+                                ? "bg-blue-600"
+                                : isRest
+                                  ? "bg-gray-200"
+                                  : "bg-green-100"
+                            }`}
+                          >
+                            <Text
+                              className={`text-xs mb-1 ${
+                                isToday ? "text-blue-100" : "text-gray-600"
+                              }`}
+                            >
+                              {dayName}
+                            </Text>
+                            <Text
+                              className={`text-sm font-semibold ${
+                                isToday
+                                  ? "text-white"
+                                  : isRest
+                                    ? "text-gray-600"
+                                    : "text-green-700"
+                              }`}
+                            >
+                              {dayWorkout || "-"}
+                            </Text>
+                          </View>
+                        );
+                      }
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* Late Warning */}
+              {lateMessage && (
+                <View className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex-row items-center mb-6">
+                  <Ionicons name="warning" size={20} color="#f59e0b" />
+                  <Text className="text-sm text-yellow-800 ml-2 flex-1">
+                    {lateMessage}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Workout Complete Banner */}
+            <View
+              className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 mb-6 shadow-lg"
+              style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
+            >
+              <View className="flex-row items-center justify-center">
+                <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center mr-4">
+                  <Ionicons name="checkmark" size={24} color="white" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xl font-bold text-white mb-1">
+                    Workout Complete!
+                  </Text>
+                  <Text className="text-green-100 text-sm">
+                    Great job! You&apos;ve finished today&apos;s workout.
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Completed Workout Card */}
+            <WorkoutCard
+              workout={completedWorkout}
+              userName={user?.name || "User"}
+              userProfileImage={user?.profile_image_url || null}
+              planName={plan.name}
+              achievements={achievements}
+              onWorkoutDeleted={handleWorkoutDeleted}
+            />
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  // Default view - show exercise list and start button
   return (
     <View className="flex-1 bg-gray-50">
       {/* Scrollable Content */}
@@ -90,12 +275,13 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
             {/* Workout Name */}
             <Text className="text-2xl font-bold text-gray-900 mb-3 text-center">
               {isRestDay ? "Rest Day" : workout.name}
-              {!isRestDay && workout.name !== `Workout ${workoutLetter}` && (
-                <Text className="text-blue-600">
-                  {" "}
-                  (Workout {workoutLetter})
-                </Text>
-              )}
+              {!isRestDay &&
+                !workout.name.includes(`${" "}${workoutLetter}`) && (
+                  <Text className="text-blue-600">
+                    {" "}
+                    (Workout {workoutLetter})
+                  </Text>
+                )}
             </Text>
 
             {/* Week/Day Info - Block Style */}

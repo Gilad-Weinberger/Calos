@@ -83,6 +83,32 @@ export interface WorkoutData {
   end_time?: string;
 }
 
+export interface DatabaseWorkout {
+  workout_id: string;
+  workout_date: string;
+  created_at: string;
+  start_time?: string;
+  end_time?: string;
+  plan_id?: string;
+  plan_workout_letter?: string;
+  scheduled_date?: string;
+  plans?: {
+    name: string;
+  };
+  workout_exercises: {
+    exercise_id: string;
+    sets: number;
+    reps: number[];
+    order_index: number;
+    superset_group?: string;
+    video_urls?: string[];
+    exercises: {
+      name: string;
+      type: "static" | "dynamic";
+    };
+  }[];
+}
+
 /**
  * Fetch all available exercises from the database
  */
@@ -553,4 +579,84 @@ export const calculateWorkoutDuration = (
   const durationMs = end - start;
 
   return Math.floor(durationMs / 1000);
+};
+
+/**
+ * Get today's completed workout if it exists
+ * @param userId - User ID
+ * @param planId - Plan ID
+ * @param workoutLetter - Workout letter (A, B, C, etc.)
+ * @param scheduledDate - The scheduled date for the workout
+ * @returns Completed workout data or null if not found
+ */
+export const getTodaysCompletedWorkout = async (
+  userId: string,
+  planId: string,
+  workoutLetter: string,
+  scheduledDate: Date
+): Promise<DatabaseWorkout | null> => {
+  try {
+    // Format scheduled date to match the format used when saving workouts (today at midnight)
+    const today = new Date(scheduledDate);
+    today.setHours(0, 0, 0, 0);
+    const scheduledDateStr = today.toISOString();
+
+    const { data, error } = await supabase
+      .from("workouts")
+      .select(
+        `
+        workout_id,
+        workout_date,
+        created_at,
+        start_time,
+        end_time,
+        plan_id,
+        plan_workout_letter,
+        scheduled_date,
+        plans (
+          name
+        ),
+        workout_exercises (
+          exercise_id,
+          sets,
+          reps,
+          order_index,
+          superset_group,
+          video_urls,
+          exercises (
+            name,
+            type
+          )
+        )
+      `
+      )
+      .eq("user_id", userId)
+      .eq("plan_id", planId)
+      .eq("plan_workout_letter", workoutLetter)
+      .eq("scheduled_date", scheduledDateStr)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // No workout found for today
+        return null;
+      }
+      console.error("Error fetching today's completed workout:", error);
+      throw error;
+    }
+
+    // Convert video URLs to signed URLs for secure access
+    if (data && data.workout_exercises) {
+      for (const exercise of data.workout_exercises) {
+        if (exercise.video_urls && exercise.video_urls.length > 0) {
+          exercise.video_urls = await convertToSignedUrls(exercise.video_urls);
+        }
+      }
+    }
+
+    return data as unknown as DatabaseWorkout;
+  } catch (error) {
+    console.error("Error in getTodaysCompletedWorkout:", error);
+    throw error;
+  }
 };
