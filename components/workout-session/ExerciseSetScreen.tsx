@@ -1,11 +1,11 @@
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { ExerciseDefinition } from "../../lib/functions/planFunctions";
+import SetProgressBar from "./SetProgressBar";
+import DynamicExerciseInput from "./inputs/DynamicExerciseInput";
+import StaticExerciseInput from "./inputs/StaticExerciseInput";
 import SupersetBadge from "./superset/SupersetBadge";
 import SupersetOverview from "./superset/SupersetOverview";
-import SetProgressBar from "./SetProgressBar";
-import StaticExerciseInput from "./inputs/StaticExerciseInput";
-import DynamicExerciseInput from "./inputs/DynamicExerciseInput";
 
 interface ExerciseSetScreenProps {
   currentExercise: ExerciseDefinition;
@@ -64,7 +64,10 @@ const ExerciseSetScreen: React.FC<ExerciseSetScreenProps> = ({
       <View className="mb-8">
         {/* Superset Badge */}
         {inSuperset && supersetInfo && (
-          <SupersetBadge index={supersetInfo.index} total={supersetInfo.total} />
+          <SupersetBadge
+            index={supersetInfo.index}
+            total={supersetInfo.total}
+          />
         )}
 
         {/* Superset Exercises Overview */}

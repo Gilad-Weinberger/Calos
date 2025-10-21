@@ -165,11 +165,15 @@ export const useWorkoutSession = () => {
         );
       }
     } else if (isLastSet) {
-      // Start rest after last set
-      setIsResting(true);
-      setRestDuration(currentExercise.rest_seconds);
-      resetRestTimer(currentExercise.rest_seconds);
-      startRestTimer();
+      if (isLastExercise) {
+        handleFinishWorkout();
+      } else {
+        // Start rest after last set
+        setIsResting(true);
+        setRestDuration(currentExercise.rest_seconds);
+        resetRestTimer(currentExercise.rest_seconds);
+        startRestTimer();
+      }
     } else {
       if (inSuperset) {
         // In superset but last exercise in superset - start rest
@@ -276,11 +280,16 @@ export const useWorkoutSession = () => {
         setCurrentRepInput((nextExerciseInSuperset.reps || 0).toString());
       }
     } else if (isLastSet) {
-      // Start rest after last set
-      setIsResting(true);
-      setRestDuration(currentExercise.rest_seconds);
-      resetRestTimer(currentExercise.rest_seconds);
-      startRestTimer();
+      // Check if this is the last exercise - finish immediately without rest
+      if (isLastExercise) {
+        handleFinishWorkout();
+      } else {
+        // Start rest after last set
+        setIsResting(true);
+        setRestDuration(currentExercise.rest_seconds);
+        resetRestTimer(currentExercise.rest_seconds);
+        startRestTimer();
+      }
     } else {
       // Not in superset or last exercise in superset - start rest and move to next set
       if (inSuperset) {
@@ -309,6 +318,10 @@ export const useWorkoutSession = () => {
 
   const moveToNextExercise = useCallback(() => {
     const nextExerciseIndex = currentExerciseIndex + 1;
+    if (nextExerciseIndex >= exercises.length) {
+      console.warn("Attempted to move beyond last exercise");
+      return;
+    }
     setCurrentExerciseIndex(nextExerciseIndex);
     setCurrentSetIndex(0);
     setCurrentRepInput((exercises[nextExerciseIndex]?.reps || 0).toString());
@@ -319,9 +332,18 @@ export const useWorkoutSession = () => {
     setShowReadyPrompt(false);
     resetRestTimer();
 
-    // If this was rest after the last set of a non-final exercise, move to next exercise
+    // If this was rest after the last set, move to next exercise
     if (isLastSet && !isLastExercise) {
-      moveToNextExercise();
+      // Check if we're in a superset and this is the last exercise of the superset
+      if (inSuperset && supersetInfo?.isLast) {
+        // This is the last exercise of a superset - move to next exercise group
+        moveToNextExercise();
+      } else if (!inSuperset) {
+        // Regular exercise - move to next exercise
+        moveToNextExercise();
+      }
+      // If we're in a superset but not the last exercise of the superset,
+      // the rest timer should not have been shown in the first place
     }
   };
 
