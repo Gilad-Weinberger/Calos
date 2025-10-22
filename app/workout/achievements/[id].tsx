@@ -9,14 +9,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AchievementIcon from "../../components/ui/AchievementIcon";
-import { useAuth } from "../../lib/context/AuthContext";
+import AchievementIcon from "../../../components/ui/AchievementIcon";
+import { useAuth } from "../../../lib/context/AuthContext";
 import {
   Achievement,
   formatWorkoutDate,
   getWorkoutAchievements,
-} from "../../lib/functions/workoutFunctions";
-import { supabase } from "../../lib/utils/supabase";
+} from "../../../lib/functions/workoutFunctions";
+import { supabase } from "../../../lib/utils/supabase";
 
 interface WorkoutData {
   workout_id: string;

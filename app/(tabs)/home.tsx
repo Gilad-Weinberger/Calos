@@ -123,7 +123,7 @@ const Home = () => {
           Follow some users to see their workouts in your feed
         </Text>
         <TouchableOpacity
-          onPress={() => router.push("/user-search")}
+          onPress={() => router.push("/social/user-search")}
           className="bg-blue-500 rounded-xl px-6 py-3 mt-6"
         >
           <Text className="text-white font-semibold">Find Users to Follow</Text>
@@ -154,7 +154,7 @@ const Home = () => {
           },
           {
             name: "search",
-            onPress: () => router.push("/user-search"),
+            onPress: () => router.push("/social/user-search"),
           },
         ]}
       />

@@ -8,13 +8,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CountdownScreen from "../components/workout-session/CountdownScreen";
-import ExerciseSetScreen from "../components/workout-session/ExerciseSetScreen";
-import HoldTimerScreen from "../components/workout-session/HoldTimerScreen";
-import ReadyPromptScreen from "../components/workout-session/ReadyPromptScreen";
-import RestTimerScreen from "../components/workout-session/RestTimerScreen";
-import { useWorkoutSession } from "../components/workout-session/useWorkoutSession";
-import WorkoutSessionHeader from "../components/workout-session/WorkoutSessionHeader";
+import CountdownScreen from "../../components/workout-session/CountdownScreen";
+import ExerciseSetScreen from "../../components/workout-session/ExerciseSetScreen";
+import HoldTimerScreen from "../../components/workout-session/HoldTimerScreen";
+import ReadyPromptScreen from "../../components/workout-session/ReadyPromptScreen";
+import RestTimerScreen from "../../components/workout-session/RestTimerScreen";
+import { useWorkoutSession } from "../../components/workout-session/useWorkoutSession";
+import WorkoutSessionHeader from "../../components/workout-session/WorkoutSessionHeader";
 
 const WorkoutSession = () => {
   const {

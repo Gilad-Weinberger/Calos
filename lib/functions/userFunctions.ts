@@ -285,3 +285,55 @@ export const getFollowing = async (
     return { data: null, error };
   }
 };
+
+/**
+ * Update privacy settings (profile visibility)
+ */
+export const updatePrivacySettings = async (
+  userId: string,
+  isPublic: boolean
+): Promise<{ error: any }> => {
+  try {
+    const { error } = await supabase
+      .from("users")
+      .update({ is_public: isPublic })
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error updating privacy settings:", error);
+      return { error };
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error("Exception in updatePrivacySettings:", error);
+    return { error };
+  }
+};
+
+/**
+ * Delete user account and all associated data
+ * WARNING: This is a destructive operation that cannot be undone
+ */
+export const deleteUserAccount = async (
+  userId: string
+): Promise<{ error: any }> => {
+  try {
+    // Note: This will cascade delete all related data due to foreign key constraints
+    // The auth user will also be deleted when the user record is deleted
+    const { error } = await supabase
+      .from("users")
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error deleting user account:", error);
+      return { error };
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error("Exception in deleteUserAccount:", error);
+    return { error };
+  }
+};

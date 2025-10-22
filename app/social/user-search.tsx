@@ -11,14 +11,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAuth } from "../lib/context/AuthContext";
+import { useAuth } from "../../lib/context/AuthContext";
 import {
   followUser,
   isFollowing,
   SearchUserResult,
   searchUsers,
   unfollowUser,
-} from "../lib/functions/userFunctions";
+} from "../../lib/functions/userFunctions";
 
 const UserSearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");

@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import React, { useState } from "react";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,7 +30,7 @@ const You = () => {
         icons={[
           {
             name: "settings",
-            onPress: () => console.log("Gear pressed"),
+            onPress: () => router.push("/settings"),
           },
         ]}
       />

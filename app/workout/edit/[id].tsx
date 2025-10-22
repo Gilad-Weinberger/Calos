@@ -10,10 +10,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ExerciseSetInput from "../../components/record/ExerciseSetInput";
-import { useAuth } from "../../lib/context/AuthContext";
-import { WorkoutExercise } from "../../lib/functions/workoutFunctions";
-import { supabase } from "../../lib/utils/supabase";
+import ExerciseSetInput from "../../../components/record/ExerciseSetInput";
+import { useAuth } from "../../../lib/context/AuthContext";
+import { WorkoutExercise } from "../../../lib/functions/workoutFunctions";
+import { supabase } from "../../../lib/utils/supabase";
 
 interface WorkoutData {
   workout_id: string;

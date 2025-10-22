@@ -171,7 +171,7 @@ const Record = () => {
             {/* Edit Current Plan */}
             <TouchableOpacity
               onPress={() => {
-                router.push("/plan-management");
+                router.push("/workout/plan-management");
                 setMenuVisible(false);
               }}
               className="flex-row items-center py-4 border-b border-gray-200"

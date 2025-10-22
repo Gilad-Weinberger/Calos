@@ -116,7 +116,7 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
 
   const handleStartWorkout = () => {
     router.push({
-      pathname: "/workout-session",
+      pathname: "/workout/workout-session",
       params: {
         planId: plan.plan_id,
         workoutLetter: workoutLetter,

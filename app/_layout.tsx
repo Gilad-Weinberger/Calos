@@ -24,7 +24,36 @@ function RootLayoutNav() {
       screenOptions={{
         headerShown: false,
       }}
-    />
+    >
+      <Stack.Screen
+        name="settings"
+        options={{
+          presentation: "card",
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="settings/account"
+        options={{
+          presentation: "card",
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="settings/notifications"
+        options={{
+          presentation: "card",
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="settings/about"
+        options={{
+          presentation: "card",
+          animation: "slide_from_right",
+        }}
+      />
+    </Stack>
   );
 }
 

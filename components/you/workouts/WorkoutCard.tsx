@@ -105,7 +105,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
 
   const handleCongratsPress = () => {
     router.push({
-      pathname: "/workout-achievements/[id]",
+      pathname: "/workout/achievements/[id]",
       params: { id: workout.workout_id },
     });
   };
@@ -113,7 +113,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
   const handleEditPress = () => {
     setMenuVisible(false);
     router.push({
-      pathname: "/workout-edit/[id]",
+      pathname: "/workout/edit/[id]",
       params: { id: workout.workout_id },
     });
   };

@@ -10,13 +10,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "../lib/context/AuthContext";
+import { useAuth } from "../../lib/context/AuthContext";
 import {
   deactivateCurrentPlan,
   deletePlan,
   getActivePlan,
   Plan,
-} from "../lib/functions/planFunctions";
+} from "../../lib/functions/planFunctions";
 
 const PlanManagement = () => {
   const { user } = useAuth();
