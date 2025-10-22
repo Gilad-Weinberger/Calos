@@ -14,15 +14,12 @@ import {
   View,
 } from "react-native";
 import { useAuth } from "../../lib/context/AuthContext";
-import { checkUsernameAvailable } from "../../lib/functions/userFunctions";
 
 const OnboardingScreen = () => {
-  const [username, setUsername] = useState("");
+  const [description, setDescription] = useState("");
   const [name, setName] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [usernameError, setUsernameError] = useState("");
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const { updateUserProfile, uploadProfileImage } = useAuth();
 
   const pickImage = async () => {
@@ -103,68 +100,7 @@ const OnboardingScreen = () => {
     );
   };
 
-  const validateUsername = (value: string) => {
-    if (value.length < 3) {
-      setUsernameError("Username must be at least 3 characters");
-      return false;
-    }
-    if (value.length > 20) {
-      setUsernameError("Username must be less than 20 characters");
-      return false;
-    }
-    if (!/^[a-zA-Z0-9_]+$/.test(value)) {
-      setUsernameError(
-        "Username can only contain letters, numbers, and underscores"
-      );
-      return false;
-    }
-    setUsernameError("");
-    return true;
-  };
-
-  const checkUsername = async (value: string) => {
-    if (!validateUsername(value)) {
-      return;
-    }
-
-    setIsCheckingUsername(true);
-    try {
-      const { available, error } = await checkUsernameAvailable(value);
-      if (error) {
-        setUsernameError("Error checking username availability");
-      } else if (!available) {
-        setUsernameError("Username is already taken");
-      } else {
-        setUsernameError("");
-      }
-    } catch (error) {
-      setUsernameError("Error checking username availability");
-    } finally {
-      setIsCheckingUsername(false);
-    }
-  };
-
-  const handleUsernameChange = (value: string) => {
-    setUsername(value);
-    if (value.length > 0) {
-      validateUsername(value);
-    } else {
-      setUsernameError("");
-    }
-  };
-
-  const handleUsernameBlur = () => {
-    if (username.trim()) {
-      checkUsername(username.trim());
-    }
-  };
-
   const handleComplete = async () => {
-    if (!username.trim()) {
-      Alert.alert("Error", "Please enter a username");
-      return;
-    }
-
     if (!name.trim()) {
       Alert.alert("Error", "Please enter your name");
       return;
@@ -175,8 +111,8 @@ const OnboardingScreen = () => {
       return;
     }
 
-    if (usernameError) {
-      Alert.alert("Error", "Please fix the username error");
+    if (description.length > 300) {
+      Alert.alert("Error", "Description must be 300 characters or less");
       return;
     }
 
@@ -206,7 +142,7 @@ const OnboardingScreen = () => {
       const { error } = await updateUserProfile(
         name.trim(),
         profileImageUrl,
-        username.trim()
+        description.trim() || undefined
       );
 
       if (error) {
@@ -240,7 +176,7 @@ const OnboardingScreen = () => {
             Complete Your Profile
           </Text>
           <Text className="text-base text-gray-500 text-center">
-            Add your username, name and profile picture to get started
+            Add your name, description and profile picture to get started
           </Text>
         </View>
 
@@ -279,34 +215,22 @@ const OnboardingScreen = () => {
         <View className="gap-4">
           <View>
             <Text className="text-base font-semibold text-gray-700 mb-2">
-              Username
+              Description (Optional)
             </Text>
-            <View className="relative">
-              <TextInput
-                className={`border rounded-xl p-4 text-base bg-gray-50 ${
-                  usernameError ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="Enter your username"
-                placeholderTextColor="#9CA3AF"
-                value={username}
-                onChangeText={handleUsernameChange}
-                onBlur={handleUsernameBlur}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {isCheckingUsername && (
-                <View className="absolute right-3 top-4">
-                  <ActivityIndicator size="small" color="#3B82F6" />
-                </View>
-              )}
-            </View>
-            {usernameError ? (
-              <Text className="text-red-500 text-sm mt-1">{usernameError}</Text>
-            ) : (
-              <Text className="text-gray-500 text-sm mt-1">
-                3-20 characters, letters, numbers, and underscores only
-              </Text>
-            )}
+            <TextInput
+              className="border border-gray-300 rounded-xl p-4 text-base bg-gray-50"
+              placeholder="Tell us about yourself..."
+              placeholderTextColor="#9CA3AF"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={3}
+              maxLength={300}
+              autoCapitalize="sentences"
+            />
+            <Text className="text-gray-500 text-sm mt-1">
+              {description.length}/300 characters
+            </Text>
           </View>
 
           <View>

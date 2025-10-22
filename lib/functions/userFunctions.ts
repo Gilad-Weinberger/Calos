@@ -4,7 +4,7 @@ export interface UserProfile {
   user_id: string;
   email: string;
   name: string | null;
-  username: string | null;
+  description: string | null;
   profile_image_url: string | null;
   created_at: string;
   updated_at: string;
@@ -16,7 +16,7 @@ export interface UserProfile {
 export interface SearchUserResult {
   user_id: string;
   name: string | null;
-  username: string | null;
+  description: string | null;
   profile_image_url: string | null;
   is_public: boolean;
 }
@@ -72,7 +72,7 @@ export const unfollowUser = async (
 };
 
 /**
- * Search users by name or username
+ * Search users by name
  */
 export const searchUsers = async (
   query: string
@@ -84,8 +84,8 @@ export const searchUsers = async (
 
     const { data, error } = await supabase
       .from("users")
-      .select("user_id, name, username, profile_image_url, is_public")
-      .or(`name.ilike.%${query}%,username.ilike.%${query}%`)
+      .select("user_id, name, description, profile_image_url, is_public")
+      .ilike("name", `%${query}%`)
       .eq("is_public", true)
       .limit(20);
 
@@ -153,86 +153,7 @@ export const isFollowing = async (
   }
 };
 
-/**
- * Check if a username is available
- */
-export const checkUsernameAvailable = async (
-  username: string,
-  excludeUserId?: string
-): Promise<{ available: boolean; error: any }> => {
-  try {
-    if (!username || username.length < 3 || username.length > 20) {
-      return { available: false, error: null };
-    }
 
-    // Validate username format (alphanumeric + underscore)
-    const usernameRegex = /^[a-zA-Z0-9_]+$/;
-    if (!usernameRegex.test(username)) {
-      return { available: false, error: null };
-    }
-
-    let query = supabase
-      .from("users")
-      .select("user_id")
-      .eq("username", username);
-
-    if (excludeUserId) {
-      query = query.neq("user_id", excludeUserId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error checking username availability:", error);
-      return { available: false, error };
-    }
-
-    const available = !data || data.length === 0;
-    return { available, error: null };
-  } catch (error) {
-    console.error("Exception in checkUsernameAvailable:", error);
-    return { available: false, error };
-  }
-};
-
-/**
- * Update username
- */
-export const updateUsername = async (
-  userId: string,
-  newUsername: string
-): Promise<{ error: any }> => {
-  try {
-    // First check if username is available
-    const { available, error: checkError } = await checkUsernameAvailable(
-      newUsername,
-      userId
-    );
-
-    if (checkError) {
-      return { error: checkError };
-    }
-
-    if (!available) {
-      return { error: { message: "Username is already taken" } };
-    }
-
-    const { error } = await supabase
-      .from("users")
-      .update({ username: newUsername })
-      .eq("user_id", userId);
-
-    if (error) {
-      console.error("Error updating username:", error);
-      return { error };
-    }
-
-    return { error: null };
-  } catch (error) {
-    console.error("Exception in updateUsername:", error);
-    return { error };
-  }
-};
 
 /**
  * Get followers list
@@ -244,7 +165,7 @@ export const getFollowers = async (
     const { data, error } = await supabase
       .from("users")
       .select(
-        "user_id, name, username, profile_image_url, created_at, updated_at"
+        "user_id, email, name, description, profile_image_url, created_at, updated_at"
       )
       .contains("following", [userId]);
 
@@ -270,7 +191,7 @@ export const getFollowing = async (
     const { data, error } = await supabase
       .from("users")
       .select(
-        "user_id, name, username, profile_image_url, created_at, updated_at"
+        "user_id, email, name, description, profile_image_url, created_at, updated_at"
       )
       .contains("followers", [userId]);
 
@@ -335,5 +256,193 @@ export const deleteUserAccount = async (
   } catch (error) {
     console.error("Exception in deleteUserAccount:", error);
     return { error };
+  }
+};
+
+/**
+ * Get user workout statistics
+ */
+export const getUserWorkoutStats = async (
+  userId: string
+): Promise<{
+  data: {
+    totalWorkouts: number;
+    totalSets: number;
+    totalReps: number;
+    thisWeekWorkouts: number;
+    thisWeekSets: number;
+    thisWeekReps: number;
+  } | null;
+  error: any;
+}> => {
+  try {
+    // Get all workouts for the user
+    const { data: workouts, error: workoutsError } = await supabase
+      .from("workouts")
+      .select(
+        `
+        workout_id,
+        workout_date,
+        workout_exercises (
+          sets,
+          reps
+        )
+      `
+      )
+      .eq("user_id", userId);
+
+    if (workoutsError) {
+      console.error("Error fetching user workouts:", workoutsError);
+      return { data: null, error: workoutsError };
+    }
+
+    if (!workouts || workouts.length === 0) {
+      return {
+        data: {
+          totalWorkouts: 0,
+          totalSets: 0,
+          totalReps: 0,
+          thisWeekWorkouts: 0,
+          thisWeekSets: 0,
+          thisWeekReps: 0,
+        },
+        error: null,
+      };
+    }
+
+    // Calculate this week's date range
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    let totalSets = 0;
+    let totalReps = 0;
+    let thisWeekWorkouts = 0;
+    let thisWeekSets = 0;
+    let thisWeekReps = 0;
+
+    workouts.forEach((workout) => {
+      const workoutDate = new Date(workout.workout_date);
+      const isThisWeek = workoutDate >= startOfWeek && workoutDate <= endOfWeek;
+
+      if (isThisWeek) {
+        thisWeekWorkouts++;
+      }
+
+      workout.workout_exercises.forEach((exercise: any) => {
+        const exerciseSets = exercise.sets || 0;
+        const exerciseReps =
+          exercise.reps?.reduce((sum: number, rep: number) => sum + rep, 0) ||
+          0;
+
+        totalSets += exerciseSets;
+        totalReps += exerciseReps;
+
+        if (isThisWeek) {
+          thisWeekSets += exerciseSets;
+          thisWeekReps += exerciseReps;
+        }
+      });
+    });
+
+    return {
+      data: {
+        totalWorkouts: workouts.length,
+        totalSets,
+        totalReps,
+        thisWeekWorkouts,
+        thisWeekSets,
+        thisWeekReps,
+      },
+      error: null,
+    };
+  } catch (error) {
+    console.error("Exception in getUserWorkoutStats:", error);
+    return { data: null, error };
+  }
+};
+
+/**
+ * Get user's recent media (videos and images)
+ */
+export const getUserRecentMedia = async (
+  userId: string,
+  limit: number = 4
+): Promise<{
+  data:
+    | {
+        url: string;
+        type: "video" | "image";
+        exerciseName?: string;
+        workoutDate: string;
+      }[]
+    | null;
+  error: any;
+}> => {
+  try {
+    // Get recent workouts with video URLs
+    const { data: workouts, error: workoutsError } = await supabase
+      .from("workouts")
+      .select(
+        `
+        workout_id,
+        workout_date,
+        workout_exercises (
+          video_urls,
+          exercises (
+            name
+          )
+        )
+      `
+      )
+      .eq("user_id", userId)
+      .order("workout_date", { ascending: false })
+      .limit(10); // Get more workouts to find enough media
+
+    if (workoutsError) {
+      console.error("Error fetching user workouts for media:", workoutsError);
+      return { data: null, error: workoutsError };
+    }
+
+    if (!workouts || workouts.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const mediaItems: {
+      url: string;
+      type: "video" | "image";
+      exerciseName?: string;
+      workoutDate: string;
+    }[] = [];
+
+    // Collect all video URLs from workouts
+    workouts.forEach((workout) => {
+      workout.workout_exercises.forEach((exercise: any) => {
+        if (exercise.video_urls && exercise.video_urls.length > 0) {
+          exercise.video_urls.forEach((url: string) => {
+            if (mediaItems.length < limit) {
+              mediaItems.push({
+                url,
+                type: "video",
+                exerciseName: exercise.exercises?.name,
+                workoutDate: workout.workout_date,
+              });
+            }
+          });
+        }
+      });
+    });
+
+    // If we don't have enough videos, we could add profile images here
+    // For now, we'll just return what we have
+
+    return { data: mediaItems, error: null };
+  } catch (error) {
+    console.error("Exception in getUserRecentMedia:", error);
+    return { data: null, error };
   }
 };

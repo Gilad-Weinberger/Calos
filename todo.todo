@@ -1,0 +1,13 @@
+Create:
+    - Profile page with all user images, information, stats. 
+    - showing famous public useers when user have less than 2 following.
+    - excersies page instead of maps.
+    - validation to actually-recorded workout before saving (like in strava workout edit-before saving page)
+    - validation to plan before saving (like in strava workout edit-before saving page)
+    - progress components in the You page.
+    
+Verify:
+    - make sure the search-user page works.
+
+Debug:
+    - 

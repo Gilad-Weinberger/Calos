@@ -223,6 +223,7 @@ const Workouts: React.FC = () => {
             workout={item}
             userName={user?.name || "User"}
             userProfileImage={user?.profile_image_url || null}
+            userId={user?.user_id}
             planName={item.plans?.name || undefined}
             achievements={workoutAchievements[item.workout_id] || []}
             onWorkoutDeleted={() => fetchWorkouts(true)}

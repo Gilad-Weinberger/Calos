@@ -94,6 +94,7 @@ const Home = () => {
         workout={item}
         userName={userInfo.name || "Unknown User"}
         userProfileImage={userInfo.profile_image_url}
+        userId={userInfo.user_id}
         hideAchievements={true}
         onWorkoutDeleted={() => {
           // Refresh the feed when a workout is deleted

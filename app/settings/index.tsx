@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../lib/context/AuthContext";
 import { updatePrivacySettings } from "../../lib/functions/userFunctions";
 
@@ -118,23 +117,19 @@ const Settings = () => {
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="bg-white border-b border-gray-200">
-        <SafeAreaView edges={["top"]}>
-          <View className="flex-row items-center justify-between px-4 py-3">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="p-2 -ml-2"
-            >
-              <Text className="text-lg text-gray-600">
-                <Ionicons name="chevron-back" size={24} color="black" />
-              </Text>
-            </TouchableOpacity>
-            <Text className="text-xl font-semibold text-gray-900">
-              Settings
-            </Text>
-            <View className="w-8" />
-          </View>
-        </SafeAreaView>
+      <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="mr-4 p-2"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </TouchableOpacity>
+          <Text className="text-xl font-bold text-gray-800 flex-1">
+            Settings
+          </Text>
+        </View>
       </View>
 
       <ScrollView className="flex-1">

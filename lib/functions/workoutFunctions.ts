@@ -665,7 +665,6 @@ export interface FollowedUserWorkout extends DatabaseWorkout {
   users: {
     user_id: string;
     name: string | null;
-    username: string | null;
     profile_image_url: string | null;
   };
 }
@@ -718,7 +717,6 @@ export const getFollowedUsersWorkouts = async (
         users!workouts_user_id_fkey (
           user_id,
           name,
-          username,
           profile_image_url
         ),
         workout_exercises (

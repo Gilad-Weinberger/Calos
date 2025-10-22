@@ -132,6 +132,13 @@ const UserSearchScreen = () => {
     }
   };
 
+  const handleUserPress = (userId: string) => {
+    router.push({
+      pathname: "/profile/[id]",
+      params: { id: userId },
+    });
+  };
+
   const renderUserItem = ({ item }: { item: SearchUserResult }) => {
     const isCurrentlyFollowing = followingStates[item.user_id] || false;
     const isLoading = loadingStates[item.user_id] || false;
@@ -139,26 +146,34 @@ const UserSearchScreen = () => {
     return (
       <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100">
         <View className="flex-row items-center">
-          <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center overflow-hidden mr-3">
-            {item.profile_image_url ? (
-              <Image
-                source={{ uri: item.profile_image_url }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <Ionicons name="person" size={24} color="white" />
-            )}
-          </View>
+          <TouchableOpacity
+            onPress={() => handleUserPress(item.user_id)}
+            className="flex-row items-center flex-1"
+            activeOpacity={0.7}
+          >
+            <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center overflow-hidden mr-3">
+              {item.profile_image_url ? (
+                <Image
+                  source={{ uri: item.profile_image_url }}
+                  className="w-full h-full"
+                  resizeMode="cover"
+                />
+              ) : (
+                <Ionicons name="person" size={24} color="white" />
+              )}
+            </View>
 
-          <View className="flex-1">
-            <Text className="text-base font-semibold text-gray-800">
-              {item.name || "Unknown User"}
-            </Text>
-            <Text className="text-sm text-gray-500">
-              @{item.username || "no_username"}
-            </Text>
-          </View>
+            <View className="flex-1">
+              <Text className="text-base font-semibold text-gray-800">
+                {item.name || "Unknown User"}
+              </Text>
+              {item.description && (
+                <Text className="text-sm text-gray-500" numberOfLines={1}>
+                  {item.description}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
 
           {item.user_id !== user?.user_id && (
             <TouchableOpacity
@@ -207,7 +222,7 @@ const UserSearchScreen = () => {
             No users found for &quot;{searchQuery}&quot;
           </Text>
           <Text className="text-gray-400 mt-2 text-center text-sm">
-            Try searching with a different name or username
+            Try searching with a different name
           </Text>
         </View>
       );
@@ -220,7 +235,7 @@ const UserSearchScreen = () => {
           Search for users to follow
         </Text>
         <Text className="text-gray-400 mt-2 text-center text-sm">
-          Enter a name or username to find other users
+          Enter a name to find other users
         </Text>
       </View>
     );
@@ -249,7 +264,7 @@ const UserSearchScreen = () => {
             <Ionicons name="search" size={20} color="#9CA3AF" />
             <TextInput
               className="flex-1 ml-3 text-base text-gray-800"
-              placeholder="Search by name or username..."
+              placeholder="Search by name..."
               placeholderTextColor="#9CA3AF"
               value={searchQuery}
               onChangeText={handleSearchChange}

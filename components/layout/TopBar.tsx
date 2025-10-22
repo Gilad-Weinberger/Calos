@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +19,15 @@ const TopBar: React.FC<TopBarProps> = ({ title, icons }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
+  const handleUserProfilePress = () => {
+    if (user?.user_id) {
+      router.push({
+        pathname: "/profile/[id]",
+        params: { id: user.user_id },
+      });
+    }
+  };
+
   return (
     <View
       className="flex-row items-center justify-between px-4 py-4 bg-white border-b border-gray-200"
@@ -30,6 +40,7 @@ const TopBar: React.FC<TopBarProps> = ({ title, icons }) => {
       <View className="flex-row items-center space-x-4">
         {/* User profile circle */}
         <TouchableOpacity
+          onPress={handleUserProfilePress}
           className="w-8 h-8 rounded-full bg-blue-500 items-center justify-center overflow-hidden"
           activeOpacity={0.7}
         >

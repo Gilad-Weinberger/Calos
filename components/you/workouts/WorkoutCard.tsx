@@ -50,6 +50,7 @@ interface WorkoutCardProps {
   };
   userName: string;
   userProfileImage: string | null;
+  userId?: string; // Add userId prop for navigation
   title?: string;
   planName?: string;
   achievements?: {
@@ -63,6 +64,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
   workout,
   userName,
   userProfileImage,
+  userId,
   title,
   planName,
   achievements,
@@ -196,30 +198,48 @@ const WorkoutCard: React.FC<WorkoutCardProps> = ({
     setVideoModalVisible(true);
   };
 
+  const handleUserPress = () => {
+    if (userId) {
+      router.push({
+        pathname: "/profile/[id]",
+        params: { id: userId },
+      });
+    }
+  };
+
   return (
     <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
       {/* Header Section */}
       <View className="flex-row items-center mb-3">
-        <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center overflow-hidden mr-3">
-          {userProfileImage ? (
-            <Image
-              source={{ uri: userProfileImage }}
-              className="w-full h-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <Ionicons name="person" size={24} color="white" />
-          )}
-        </View>
-        <View className="flex-1">
-          <Text className="text-base font-semibold text-gray-800">
-            {userName}
-          </Text>
-          <View className="flex-row items-center">
-            <Ionicons name="barbell" size={14} color="#6B7280" />
-            <Text className="text-sm text-gray-600 ml-1">{formattedDate}</Text>
+        <TouchableOpacity
+          onPress={handleUserPress}
+          disabled={!userId}
+          className="flex-row items-center flex-1"
+          activeOpacity={userId ? 0.7 : 1}
+        >
+          <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center overflow-hidden mr-3">
+            {userProfileImage ? (
+              <Image
+                source={{ uri: userProfileImage }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <Ionicons name="person" size={24} color="white" />
+            )}
           </View>
-        </View>
+          <View className="flex-1">
+            <Text className="text-base font-semibold text-gray-800">
+              {userName}
+            </Text>
+            <View className="flex-row items-center">
+              <Ionicons name="barbell" size={14} color="#6B7280" />
+              <Text className="text-sm text-gray-600 ml-1">
+                {formattedDate}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
 
         {/* Menu Button */}
         <TouchableOpacity

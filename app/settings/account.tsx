@@ -15,18 +15,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../lib/context/AuthContext";
-import { checkUsernameAvailable } from "../../lib/functions/userFunctions";
 
 const AccountSettings = () => {
   const { user, updateUserProfile, uploadProfileImage } = useAuth();
   const [name, setName] = useState(user?.name || "");
-  const [username, setUsername] = useState(user?.username || "");
+  const [description, setDescription] = useState(user?.description || "");
   const [profileImage, setProfileImage] = useState<string | null>(
     user?.profile_image_url || null
   );
   const [isLoading, setIsLoading] = useState(false);
-  const [usernameError, setUsernameError] = useState("");
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
 
   const pickImage = async () => {
     try {
@@ -57,53 +54,14 @@ const AccountSettings = () => {
     }
   };
 
-  const checkUsername = async (newUsername: string) => {
-    if (!newUsername || newUsername === user?.username) {
-      setUsernameError("");
-      return;
-    }
-
-    setIsCheckingUsername(true);
-    setUsernameError("");
-
-    try {
-      const { available, error } = await checkUsernameAvailable(
-        newUsername,
-        user?.user_id
-      );
-
-      if (error) {
-        setUsernameError("Error checking username");
-        return;
-      }
-
-      if (!available) {
-        setUsernameError("Username is already taken");
-        return;
-      }
-
-      // Username is available
-      setUsernameError("");
-    } catch (error) {
-      setUsernameError("Error checking username");
-    } finally {
-      setIsCheckingUsername(false);
-    }
-  };
-
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert("Error", "Name is required");
       return;
     }
 
-    if (!username.trim()) {
-      Alert.alert("Error", "Username is required");
-      return;
-    }
-
-    if (usernameError) {
-      Alert.alert("Error", "Please fix the username error");
+    if (description.length > 300) {
+      Alert.alert("Error", "Description must be 300 characters or less");
       return;
     }
 
@@ -128,7 +86,7 @@ const AccountSettings = () => {
       const { error } = await updateUserProfile(
         name.trim(),
         profileImageUrl || undefined,
-        username.trim()
+        description.trim() || undefined
       );
 
       if (error) {
@@ -139,7 +97,7 @@ const AccountSettings = () => {
       Alert.alert("Success", "Profile updated successfully", [
         { text: "OK", onPress: () => router.back() },
       ]);
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to update profile");
     } finally {
       setIsLoading(false);
@@ -212,39 +170,24 @@ const AccountSettings = () => {
             />
           </View>
 
-          {/* Username Input */}
+          {/* Description Input */}
           <View className="mb-6">
             <Text className="text-sm font-medium text-gray-700 mb-2">
-              Username
+              Description
             </Text>
-            <View className="relative">
-              <TextInput
-                value={username}
-                onChangeText={(text) => {
-                  setUsername(text);
-                  // Debounce username check
-                  setTimeout(() => checkUsername(text), 500);
-                }}
-                placeholder="Enter username"
-                className={`border rounded-lg px-4 py-3 text-base pr-10 ${
-                  usernameError ? "border-red-500" : "border-gray-300"
-                }`}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {isCheckingUsername && (
-                <View className="absolute right-3 top-3">
-                  <ActivityIndicator size="small" color="#6B7280" />
-                </View>
-              )}
-            </View>
-            {usernameError ? (
-              <Text className="text-red-500 text-sm mt-1">{usernameError}</Text>
-            ) : (
-              <Text className="text-gray-500 text-sm mt-1">
-                3-20 characters, letters, numbers, and underscores only
-              </Text>
-            )}
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Tell us about yourself..."
+              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+              multiline
+              numberOfLines={3}
+              maxLength={300}
+              autoCapitalize="sentences"
+            />
+            <Text className="text-gray-500 text-sm mt-1">
+              {description.length}/300 characters
+            </Text>
           </View>
 
           {/* Email (Read-only) */}

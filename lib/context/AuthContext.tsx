@@ -15,7 +15,7 @@ interface User {
   user_id: string;
   email: string;
   name: string | null;
-  username: string | null;
+  description: string | null;
   profile_image_url: string | null;
   created_at: string;
   updated_at: string;
@@ -35,7 +35,7 @@ interface AuthContextType {
   updateUserProfile: (
     name: string,
     profileImageUrl?: string,
-    username?: string
+    description?: string
   ) => Promise<{ error: any }>;
   uploadProfileImage: (
     uri: string
@@ -244,21 +244,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // User is authenticated but profile is still loading
       // Wait for profile to load before making navigation decisions
       return;
-    } else if (
-      authUser &&
-      user &&
-      (!user.name || !user.profile_image_url || !user.username)
-    ) {
+    } else if (authUser && user && !user.name) {
       // User is authenticated but hasn't completed profile (missing name, profile image, or username)
       if (!inAuthGroup || segments[1] !== "onboarding") {
         router.replace("/auth/onboarding");
       }
-    } else if (
-      authUser &&
-      user?.name &&
-      user?.profile_image_url &&
-      user?.username
-    ) {
+    } else if (authUser && user?.name) {
       // User is authenticated and has completed profile
       if (inAuthGroup || isIndexPage) {
         router.replace("/(tabs)/home");
@@ -336,7 +327,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signOut = async () => {
     setLoading(true);
     try {
+      console.log("[AuthContext] Starting sign out process");
       await supabase.auth.signOut();
+      console.log("[AuthContext] Sign out completed");
+
+      // Explicitly clear the user state
+      setAuthUser(null);
+      setUser(null);
+
+      // Navigate to index page
+      router.replace("/");
     } catch (error) {
       console.error("Error signing out:", error);
     } finally {
@@ -404,7 +404,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateUserProfile = async (
     name: string,
     profileImageUrl?: string,
-    username?: string
+    description?: string
   ) => {
     if (!authUser) {
       return { error: "No authenticated user" };
@@ -416,8 +416,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (profileImageUrl) {
         updateData.profile_image_url = profileImageUrl;
       }
-      if (username) {
-        updateData.username = username;
+      if (description) {
+        updateData.description = description;
       }
 
       const { error } = await supabase

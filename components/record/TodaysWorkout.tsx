@@ -242,6 +242,7 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
               workout={completedWorkout}
               userName={user?.name || "User"}
               userProfileImage={user?.profile_image_url || null}
+              userId={user?.user_id}
               planName={plan.name}
               achievements={achievements}
               onWorkoutDeleted={handleWorkoutDeleted}
