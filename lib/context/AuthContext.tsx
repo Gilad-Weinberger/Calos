@@ -15,9 +15,13 @@ interface User {
   user_id: string;
   email: string;
   name: string | null;
+  username: string | null;
   profile_image_url: string | null;
   created_at: string;
   updated_at: string;
+  followers?: string[];
+  following?: string[];
+  is_public?: boolean;
 }
 
 interface AuthContextType {
@@ -30,7 +34,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateUserProfile: (
     name: string,
-    profileImageUrl?: string
+    profileImageUrl?: string,
+    username?: string
   ) => Promise<{ error: any }>;
   uploadProfileImage: (
     uri: string
@@ -239,12 +244,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // User is authenticated but profile is still loading
       // Wait for profile to load before making navigation decisions
       return;
-    } else if (authUser && user && (!user.name || !user.profile_image_url)) {
-      // User is authenticated but hasn't completed profile (missing name or profile image)
+    } else if (
+      authUser &&
+      user &&
+      (!user.name || !user.profile_image_url || !user.username)
+    ) {
+      // User is authenticated but hasn't completed profile (missing name, profile image, or username)
       if (!inAuthGroup || segments[1] !== "onboarding") {
         router.replace("/auth/onboarding");
       }
-    } else if (authUser && user?.name && user?.profile_image_url) {
+    } else if (
+      authUser &&
+      user?.name &&
+      user?.profile_image_url &&
+      user?.username
+    ) {
       // User is authenticated and has completed profile
       if (inAuthGroup || isIndexPage) {
         router.replace("/(tabs)/home");
@@ -387,7 +401,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const updateUserProfile = async (name: string, profileImageUrl?: string) => {
+  const updateUserProfile = async (
+    name: string,
+    profileImageUrl?: string,
+    username?: string
+  ) => {
     if (!authUser) {
       return { error: "No authenticated user" };
     }
@@ -397,6 +415,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const updateData: any = { name };
       if (profileImageUrl) {
         updateData.profile_image_url = profileImageUrl;
+      }
+      if (username) {
+        updateData.username = username;
       }
 
       const { error } = await supabase

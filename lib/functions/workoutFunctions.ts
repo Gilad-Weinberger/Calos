@@ -313,14 +313,14 @@ export const formatWorkoutDate = (date: string): string => {
 
   const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   };
 
-  return workoutDate.toLocaleString("en-US", options).replace(",", " at");
+  return workoutDate.toLocaleString("en-US", options);
 };
 
 export interface Achievement {
@@ -658,5 +658,113 @@ export const getTodaysCompletedWorkout = async (
   } catch (error) {
     console.error("Error in getTodaysCompletedWorkout:", error);
     throw error;
+  }
+};
+
+export interface FollowedUserWorkout extends DatabaseWorkout {
+  users: {
+    user_id: string;
+    name: string | null;
+    username: string | null;
+    profile_image_url: string | null;
+  };
+}
+
+/**
+ * Get recent workouts from users that the current user follows
+ * @param userId - Current user ID
+ * @param limit - Number of workouts to fetch
+ * @param offset - Offset for pagination
+ * @returns Array of workouts from followed users
+ */
+export const getFollowedUsersWorkouts = async (
+  userId: string,
+  limit: number = 10,
+  offset: number = 0
+): Promise<{ data: FollowedUserWorkout[] | null; error: any }> => {
+  try {
+    // First get the list of users that the current user follows
+    const { data: followedUsers, error: followedError } = await supabase
+      .from("users")
+      .select("user_id")
+      .contains("followers", [userId]);
+
+    if (followedError) {
+      console.error("Error fetching followed users:", followedError);
+      return { data: null, error: followedError };
+    }
+
+    if (!followedUsers || followedUsers.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const followedUserIds = followedUsers.map((u) => u.user_id);
+
+    const { data, error } = await supabase
+      .from("workouts")
+      .select(
+        `
+        workout_id,
+        workout_date,
+        created_at,
+        start_time,
+        end_time,
+        plan_id,
+        plan_workout_letter,
+        scheduled_date,
+        plans (
+          name
+        ),
+        users!workouts_user_id_fkey (
+          user_id,
+          name,
+          username,
+          profile_image_url
+        ),
+        workout_exercises (
+          exercise_id,
+          sets,
+          reps,
+          order_index,
+          superset_group,
+          video_urls,
+          exercises (
+            name,
+            type
+          )
+        )
+      `
+      )
+      .in("user_id", followedUserIds)
+      .order("workout_date", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error("Error fetching followed users workouts:", error);
+      return { data: null, error };
+    }
+
+    // Convert video URLs to signed URLs for secure access
+    if (data) {
+      for (const workout of data) {
+        if (workout.workout_exercises) {
+          for (const exercise of workout.workout_exercises) {
+            if (exercise.video_urls && exercise.video_urls.length > 0) {
+              exercise.video_urls = await convertToSignedUrls(
+                exercise.video_urls
+              );
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      data: (data as unknown as FollowedUserWorkout[]) || [],
+      error: null,
+    };
+  } catch (error) {
+    console.error("Exception in getFollowedUsersWorkouts:", error);
+    return { data: null, error };
   }
 };
