@@ -65,7 +65,7 @@ const UserWorkoutsPage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -149,7 +149,7 @@ const UserWorkoutsPage = () => {
               No workouts yet
             </Text>
             <Text className="text-gray-600 mt-2 text-center">
-              {profileUser?.name || "This user"} hasn't completed any workouts
+              {profileUser?.name || "This user"} hasn&apos;t completed any workouts
             </Text>
           </View>
         ) : (

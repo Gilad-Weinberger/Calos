@@ -6,10 +6,10 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import FullPageTopBar from "../../../components/layout/FullPageTopBar";
 import AchievementIcon from "../../../components/ui/AchievementIcon";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
@@ -147,21 +147,7 @@ const WorkoutAchievementsPage: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={handleBackPress}
-            className="mr-4 p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-800 flex-1">
-            Results
-          </Text>
-        </View>
-      </View>
+      <FullPageTopBar title="Results" onBackPress={handleBackPress} />
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Summary Section */}

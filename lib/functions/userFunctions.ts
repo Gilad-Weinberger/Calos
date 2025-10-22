@@ -153,8 +153,6 @@ export const isFollowing = async (
   }
 };
 
-
-
 /**
  * Get followers list
  */
@@ -269,27 +267,39 @@ export const getUserWorkoutStats = async (
     totalWorkouts: number;
     totalSets: number;
     totalReps: number;
+    totalDuration: number;
     thisWeekWorkouts: number;
     thisWeekSets: number;
     thisWeekReps: number;
+    thisWeekDuration: number;
+    weeklyData: {
+      weekLabel: string;
+      workouts: number;
+      sets: number;
+      duration: number;
+    }[];
   } | null;
   error: any;
 }> => {
   try {
-    // Get all workouts for the user
+    // Get all workouts for the user with start_time, end_time, and superset_group
     const { data: workouts, error: workoutsError } = await supabase
       .from("workouts")
       .select(
         `
         workout_id,
         workout_date,
+        start_time,
+        end_time,
         workout_exercises (
           sets,
-          reps
+          reps,
+          superset_group
         )
       `
       )
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .order("workout_date", { ascending: true });
 
     if (workoutsError) {
       console.error("Error fetching user workouts:", workoutsError);
@@ -302,9 +312,12 @@ export const getUserWorkoutStats = async (
           totalWorkouts: 0,
           totalSets: 0,
           totalReps: 0,
+          totalDuration: 0,
           thisWeekWorkouts: 0,
           thisWeekSets: 0,
           thisWeekReps: 0,
+          thisWeekDuration: 0,
+          weeklyData: [],
         },
         error: null,
       };
@@ -319,18 +332,78 @@ export const getUserWorkoutStats = async (
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
+    // Calculate 3 months ago for weekly data
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(now.getMonth() - 3);
+
     let totalSets = 0;
     let totalReps = 0;
+    let totalDuration = 0;
     let thisWeekWorkouts = 0;
     let thisWeekSets = 0;
     let thisWeekReps = 0;
+    let thisWeekDuration = 0;
+
+    // Create weekly buckets for the last 3 months
+    const weeklyData: {
+      weekLabel: string;
+      workouts: number;
+      sets: number;
+      duration: number;
+    }[] = [];
+
+    // Initialize weekly buckets
+    const currentWeekStart = new Date(startOfWeek);
+    for (let i = 0; i < 13; i++) {
+      const weekStart = new Date(currentWeekStart);
+      weekStart.setDate(currentWeekStart.getDate() - i * 7);
+
+      const monthNames = [
+        "JAN",
+        "FEB",
+        "MAR",
+        "APR",
+        "MAY",
+        "JUN",
+        "JUL",
+        "AUG",
+        "SEP",
+        "OCT",
+        "NOV",
+        "DEC",
+      ];
+      const weekLabel = `${monthNames[weekStart.getMonth()]} ${weekStart.getDate()}`;
+
+      weeklyData.unshift({
+        weekLabel,
+        workouts: 0,
+        sets: 0,
+        duration: 0,
+      });
+    }
 
     workouts.forEach((workout) => {
       const workoutDate = new Date(workout.workout_date);
       const isThisWeek = workoutDate >= startOfWeek && workoutDate <= endOfWeek;
+      const isWithinThreeMonths = workoutDate >= threeMonthsAgo;
+
+      // Calculate workout duration in minutes
+      let workoutDuration = 0;
+      if (workout.start_time && workout.end_time) {
+        const startTime = new Date(workout.start_time);
+        const endTime = new Date(workout.end_time);
+        workoutDuration = Math.round(
+          (endTime.getTime() - startTime.getTime()) / (1000 * 60)
+        );
+      }
 
       if (isThisWeek) {
         thisWeekWorkouts++;
+        thisWeekDuration += workoutDuration;
+      }
+
+      if (isWithinThreeMonths) {
+        totalDuration += workoutDuration;
       }
 
       workout.workout_exercises.forEach((exercise: any) => {
@@ -339,12 +412,31 @@ export const getUserWorkoutStats = async (
           exercise.reps?.reduce((sum: number, rep: number) => sum + rep, 0) ||
           0;
 
-        totalSets += exerciseSets;
+        // Count sets with superset logic: if superset_group exists, count as 2, else count as 1
+        const setCount = exercise.superset_group
+          ? exerciseSets * 2
+          : exerciseSets;
+
+        totalSets += setCount;
         totalReps += exerciseReps;
 
         if (isThisWeek) {
-          thisWeekSets += exerciseSets;
+          thisWeekSets += setCount;
           thisWeekReps += exerciseReps;
+        }
+
+        // Add to weekly data if within 3 months
+        if (isWithinThreeMonths) {
+          // Find which week this workout belongs to
+          const weekIndex = Math.floor(
+            (now.getTime() - workoutDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+          );
+          if (weekIndex >= 0 && weekIndex < weeklyData.length) {
+            weeklyData[weeklyData.length - 1 - weekIndex].workouts += 1;
+            weeklyData[weeklyData.length - 1 - weekIndex].sets += setCount;
+            weeklyData[weeklyData.length - 1 - weekIndex].duration +=
+              workoutDuration;
+          }
         }
       });
     });
@@ -354,9 +446,12 @@ export const getUserWorkoutStats = async (
         totalWorkouts: workouts.length,
         totalSets,
         totalReps,
+        totalDuration,
         thisWeekWorkouts,
         thisWeekSets,
         thisWeekReps,
+        thisWeekDuration,
+        weeklyData,
       },
       error: null,
     };

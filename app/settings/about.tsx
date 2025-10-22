@@ -1,4 +1,3 @@
-import { router } from "expo-router";
 import React from "react";
 import {
   Alert,
@@ -8,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import FullPageTopBar from "../../components/layout/FullPageTopBar";
 
 const AboutSettings = () => {
   const appVersion = "1.0.0"; // From app.json
@@ -53,21 +52,7 @@ const AboutSettings = () => {
 
   return (
     <View className="flex-1 bg-white">
-      {/* Header */}
-      <View className="bg-white border-b border-gray-200">
-        <SafeAreaView edges={["top"]}>
-          <View className="flex-row items-center justify-between px-4 py-3">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="p-2 -ml-2"
-            >
-              <Text className="text-lg text-gray-600">←</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold text-gray-900">About</Text>
-            <View className="w-8" />
-          </View>
-        </SafeAreaView>
-      </View>
+      <FullPageTopBar title="About" />
 
       <ScrollView className="flex-1">
         {/* App Info Section */}

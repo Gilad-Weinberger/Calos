@@ -1,4 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import {
+  formatDistanceToNow,
+  isThisWeek,
+  isThisYear,
+  isToday,
+  isYesterday,
+} from "date-fns";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useState } from "react";
@@ -13,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import FullPageTopBar from "../../components/layout/FullPageTopBar";
 import MediaGrid from "../../components/profile/MediaGrid";
 import ProfileStats from "../../components/profile/ProfileStats";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -36,6 +44,28 @@ const ProfilePage = () => {
   const [followingLoading, setFollowingLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to format date in a friendly way
+  const getFriendlyDate = (date: Date): string => {
+    if (isToday(date)) {
+      return "Today";
+    } else if (isYesterday(date)) {
+      return "Yesterday";
+    } else if (isThisWeek(date)) {
+      return formatDistanceToNow(date, { addSuffix: true });
+    } else if (isThisYear(date)) {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    } else {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  };
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -158,28 +188,15 @@ const ProfilePage = () => {
   if (loading) {
     return (
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="mr-4 p-2"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#374151" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold text-gray-800 flex-1">
-              Profile
-            </Text>
-            <TouchableOpacity
-              onPress={handleShare}
-              className="p-2"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="share-social-outline" size={24} color="#374151" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <FullPageTopBar
+          title="Profile"
+          rightIcons={[
+            {
+              name: "share-social-outline",
+              onPress: handleShare,
+            },
+          ]}
+        />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#0066FF" />
           <Text className="text-gray-600 mt-2">Loading profile...</Text>
@@ -191,28 +208,15 @@ const ProfilePage = () => {
   if (error) {
     return (
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="mr-4 p-2"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#374151" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold text-gray-800 flex-1">
-              Profile
-            </Text>
-            <TouchableOpacity
-              onPress={handleShare}
-              className="p-2"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="share-social-outline" size={24} color="#374151" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <FullPageTopBar
+          title="Profile"
+          rightIcons={[
+            {
+              name: "share-social-outline",
+              onPress: handleShare,
+            },
+          ]}
+        />
         <View className="flex-1 items-center justify-center p-4">
           <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
           <Text className="text-lg font-semibold text-gray-800 mt-4 text-center">
@@ -235,28 +239,15 @@ const ProfilePage = () => {
 
   return (
     <View className="flex-1 bg-white">
-      {/* Header */}
-      <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="mr-4 p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-800 flex-1">
-            Profile
-          </Text>
-          <TouchableOpacity
-            onPress={handleShare}
-            className="p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="share-social-outline" size={24} color="#374151" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <FullPageTopBar
+        title="Profile"
+        rightIcons={[
+          {
+            name: "share-social-outline",
+            onPress: handleShare,
+          },
+        ]}
+      />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -373,43 +364,31 @@ const ProfilePage = () => {
             </View>
           </View>
           <View className="h-px bg-gray-200 my-6" />
-          <View className="px-6 py-2">
-            {/* Workout Statistics Section */}
-            {workoutStats && <ProfileStats stats={workoutStats} />}
+          {/* Workout Statistics Section */}
+          {workoutStats && <ProfileStats stats={workoutStats} />}
 
+          <View className="h-px bg-gray-200 my-6" />
+          <View className="px-6 py-2">
             {/* Workouts Section */}
             <View className="mb-6">
               <TouchableOpacity
                 onPress={handleViewWorkouts}
-                className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+                className="flex-row items-center justify-between"
               >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center">
-                    <Ionicons
-                      name="barbell-outline"
-                      size={20}
-                      color="#6B7280"
-                    />
-                    <Text className="text-lg font-semibold text-gray-800 ml-2">
+                <View className="flex-row items-center gap-4">
+                  <Ionicons name="barbell-outline" size={26} color="#6B7280" />
+                  <View>
+                    <Text className="text-lg font-semibold text-gray-800">
                       Workouts
                     </Text>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Text className="text-sm text-gray-600 mr-2">
-                      {workoutStats?.totalWorkouts || 0} workouts
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color="#9CA3AF"
-                    />
+                    {workoutStats && workoutStats.totalWorkouts > 0 && (
+                      <Text className="text-sm text-gray-500">
+                        {getFriendlyDate(new Date())}
+                      </Text>
+                    )}
                   </View>
                 </View>
-                {workoutStats && workoutStats.totalWorkouts > 0 && (
-                  <Text className="text-sm text-gray-500 mt-1">
-                    Most recent: {new Date().toLocaleDateString()}
-                  </Text>
-                )}
+                <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
           </View>

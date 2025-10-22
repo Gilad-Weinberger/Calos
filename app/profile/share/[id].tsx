@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
+import FullPageTopBar from "../../../components/layout/FullPageTopBar";
 import { getUserProfile } from "../../../lib/functions/userFunctions";
 
 const QRCodeSharePage = () => {
@@ -46,21 +47,7 @@ const QRCodeSharePage = () => {
   if (loading) {
     return (
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="mr-4 p-2"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#374151" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold text-gray-800 flex-1">
-              Share profile
-            </Text>
-          </View>
-        </View>
+        <FullPageTopBar title="Share profile" />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#0066FF" />
           <Text className="text-gray-600 mt-2">Loading...</Text>
@@ -72,21 +59,7 @@ const QRCodeSharePage = () => {
   if (error) {
     return (
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              className="mr-4 p-2"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#374151" />
-            </TouchableOpacity>
-            <Text className="text-xl font-bold text-gray-800 flex-1">
-              Share profile
-            </Text>
-          </View>
-        </View>
+        <FullPageTopBar title="Share profile" />
         <View className="flex-1 items-center justify-center p-4">
           <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
           <Text className="text-lg font-semibold text-gray-800 mt-4 text-center">
@@ -109,21 +82,7 @@ const QRCodeSharePage = () => {
 
   return (
     <View className="flex-1 bg-white">
-      {/* Header */}
-      <View className="bg-white border-b border-gray-200 pt-12 pb-4 px-4">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="mr-4 p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-xl font-bold text-gray-800 flex-1">
-            Share profile
-          </Text>
-        </View>
-      </View>
+      <FullPageTopBar title="Share profile" />
 
       <SafeAreaView className="flex-1" edges={["bottom", "left", "right"]}>
         <View className="flex-1 items-center justify-center px-6">
