@@ -272,7 +272,7 @@ const ProfilePage = () => {
           {/* Media Grid Section */}
           {recentMedia.length > 0 && <MediaGrid mediaItems={recentMedia} />}
           {/* Profile Information Section */}
-          <View className="p-6">
+          <View className="p-6 pb-2">
             <View className="mb-6">
               <View className="flex-row items-center mb-4">
                 <View className="w-20 h-20 rounded-full bg-gray-200 items-center justify-center overflow-hidden mr-4">
@@ -306,7 +306,7 @@ const ProfilePage = () => {
             </View>
 
             {/* Social Stats Section */}
-            <View className="mb-6">
+            <View>
               <View className="flex-row items-center mb-4 gap-4">
                 <View className="flex-col items-start">
                   <Text className="text-center text-sm text-gray-500">
@@ -326,54 +326,54 @@ const ProfilePage = () => {
                 </View>
               </View>
 
-              <View className="flex-row items-center gap-2 mb-4">
-              {!isOwnProfile && (
-                <TouchableOpacity
-                  onPress={handleFollow}
-                  disabled={followingLoading}
-                  className={`h-8 rounded-lg flex-row items-center justify-center ${
-                    isFollowingUser
-                      ? "border border-blue-500 w-32"
-                      : "bg-blue-500 w-24"
-                  }`}
-                >
-                  {followingLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={isFollowingUser ? "#6B7280" : "white"}
-                    />
-                  ) : (
-                    <>
-                      <Ionicons
-                        name={isFollowingUser ? "checkmark" : "add"}
-                        size={16}
-                        color={isFollowingUser ? "#0066FF" : "white"}
+              <View className="flex-row items-center gap-2">
+                {!isOwnProfile && (
+                  <TouchableOpacity
+                    onPress={handleFollow}
+                    disabled={followingLoading}
+                    className={`h-8 rounded-lg flex-row items-center justify-center ${
+                      isFollowingUser
+                        ? "border border-blue-500 w-32"
+                        : "bg-blue-500 w-24"
+                    }`}
+                  >
+                    {followingLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={isFollowingUser ? "#6B7280" : "white"}
                       />
-                      <Text
-                        className={`font-medium text-sm ml-2 ${
-                          isFollowingUser ? "text-blue-500" : "text-white"
-                        }`}
-                      >
-                        {isFollowingUser ? "Following" : "Follow"}
-                      </Text>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <Ionicons
+                          name={isFollowingUser ? "checkmark" : "add"}
+                          size={16}
+                          color={isFollowingUser ? "#0066FF" : "white"}
+                        />
+                        <Text
+                          className={`font-medium text-sm ml-2 ${
+                            isFollowingUser ? "text-blue-500" : "text-white"
+                          }`}
+                        >
+                          {isFollowingUser ? "Following" : "Follow"}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => router.push(`/profile/share/${id}`)}
+                  className="h-8 rounded-lg flex-row items-center justify-center bg-white border border-blue-500 w-32"
+                >
+                  <Ionicons name="qr-code-outline" size={16} color="#0066FF" />
+                  <Text className="font-medium text-sm ml-2 text-blue-500">
+                    Share QR
+                  </Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                onPress={handleViewWorkouts}
-                className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
-              >
-                <View className="flex-row items-center">
-                  <Ionicons name="chatbox-outline" size={20} color="#6B7280" />
-                </View>
-                <Text className="text-sm text-gray-600 ml-2">
-                  Messages
-                </Text>
-              </TouchableOpacity>
               </View>
             </View>
-
+          </View>
+          <View className="h-px bg-gray-200 my-6" />
+          <View className="px-6 py-2">
             {/* Workout Statistics Section */}
             {workoutStats && <ProfileStats stats={workoutStats} />}
 
