@@ -1,10 +1,12 @@
 Create:
-    - Profile page with all user images, information, stats. 
-    - showing famous public useers when user have less than 2 following.
+    ✔ Profile page with all user images, information, stats. @done(25-10-22 23:17)
+    - showing famous public users when user have less than 2 following.
     - excersies page instead of maps.
     - validation to actually-recorded workout before saving (like in strava workout edit-before saving page)
     - validation to plan before saving (like in strava workout edit-before saving page)
     - progress components in the You page.
+    - organize the flow of the record page.
+    - make users able to create plans with ai.
     
 Verify:
     - make sure the search-user page works.
