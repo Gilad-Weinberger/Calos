@@ -275,17 +275,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Identify user first, then capture signup event
-      if (data.user?.id) {
-        posthog.identify(data.user.id, {
-          email: email,
-          signup_date: new Date().toISOString(),
-        });
+      if (data.user?.id && posthog) {
+        try {
+          posthog.identify(data.user.id, {
+            email: email,
+            signup_date: new Date().toISOString(),
+          });
 
-        posthog.capture("signup", {
-          email: email,
-          user_id: data.user.id,
-          timestamp: new Date().toISOString(),
-        });
+          posthog.capture("signup", {
+            email: email,
+            user_id: data.user.id,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.warn("PostHog analytics error during signup:", error);
+        }
       }
 
       console.log(

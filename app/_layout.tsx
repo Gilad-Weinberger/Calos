@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { PostHogProvider } from "posthog-react-native";
@@ -29,14 +30,27 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  return (
-    <PostHogProvider client={posthog}>
-      <SafeAreaProvider>
-        <StatusBar style="dark" backgroundColor="#FFFFFF" />
-        <AuthProvider>
-          <RootLayoutNav />
-        </AuthProvider>
-      </SafeAreaProvider>
-    </PostHogProvider>
+  // Check if PostHog should be enabled (not in production)
+  const isProduction =
+    Constants.expoConfig?.extra?.eas?.projectId &&
+    (Constants.expoConfig?.extra?.eas?.channel === "production" ||
+      process.env.NODE_ENV === "production");
+
+  const shouldUsePostHog = !isProduction && posthog;
+
+  const content = (
+    <SafeAreaProvider>
+      <StatusBar style="dark" backgroundColor="#FFFFFF" />
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
+
+  // Conditionally wrap with PostHogProvider
+  if (shouldUsePostHog) {
+    return <PostHogProvider client={posthog}>{content}</PostHogProvider>;
+  }
+
+  return content;
 }
