@@ -1,7 +1,6 @@
 Ideas:
-    ☐ make all users have forced ltr ui @started(25-10-26 23:46)
+    ✔ make all users have forced ltr ui @started(25-10-26 23:46) @done(25-10-26 23:51) @lasted(5m32s)
     - make the feed also show users that the user don't follow if there aren't 5-8 workouts to show in the feed.
-    - 
     
 Create:
     ✔ Profile page with all user images, information, stats. @done(25-10-22 23:17)
@@ -18,4 +17,4 @@ Verify:
     - make sure the search-user page works.
 
 Debug:
-    - 
+    -
