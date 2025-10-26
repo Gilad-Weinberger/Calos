@@ -57,7 +57,12 @@ export default {
           },
         },
       ],
-      "expo-localization",
+      [
+        "expo-localization",
+        {
+          isRTL: false,
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,
