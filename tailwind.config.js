@@ -11,4 +11,9 @@ module.exports = {
       extend: {},
     },
     plugins: [],
+    // Enable RTL support
+    corePlugins: {
+      // Enable RTL-aware utilities
+      direction: true,
+    },
   }

@@ -2,11 +2,15 @@ import Constants from "expo-constants";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { PostHogProvider } from "posthog-react-native";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, I18nManager, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 import { AuthProvider, useAuth } from "../lib/context/AuthContext";
 import { posthog } from "../lib/utils/posthog";
+
+// Force LTR layout
+I18nManager.forceRTL(false);
+I18nManager.allowRTL(false);
 
 function RootLayoutNav() {
   const { initializing } = useAuth();
