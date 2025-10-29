@@ -52,6 +52,34 @@ export const convertToSignedUrls = async (
   return signedUrls;
 };
 
+/**
+ * Convert video URLs for workout data asynchronously
+ * @param workouts - Array of workout data
+ * @returns Promise that resolves when all video URLs are converted
+ */
+export const convertWorkoutVideoUrls = async (
+  workouts: any[]
+): Promise<void> => {
+  const conversionPromises = workouts.map(async (workout) => {
+    if (workout.workout_exercises) {
+      for (const exercise of workout.workout_exercises) {
+        if (exercise.video_urls && exercise.video_urls.length > 0) {
+          try {
+            exercise.video_urls = await convertToSignedUrls(
+              exercise.video_urls
+            );
+          } catch (error) {
+            console.error("Error converting video URLs:", error);
+            // Keep original URLs as fallback
+          }
+        }
+      }
+    }
+  });
+
+  await Promise.all(conversionPromises);
+};
+
 export interface Exercise {
   exercise_id: string;
   name: string;
@@ -270,21 +298,7 @@ export const getUserRecentWorkouts = async (
       throw error;
     }
 
-    // Convert video URLs to signed URLs for secure access
-    if (data) {
-      for (const workout of data) {
-        if (workout.workout_exercises) {
-          for (const exercise of workout.workout_exercises) {
-            if (exercise.video_urls && exercise.video_urls.length > 0) {
-              exercise.video_urls = await convertToSignedUrls(
-                exercise.video_urls
-              );
-            }
-          }
-        }
-      }
-    }
-
+    // Return data immediately, video URLs will be converted asynchronously
     return data || [];
   } catch (error) {
     console.error("Error in getUserRecentWorkouts:", error);

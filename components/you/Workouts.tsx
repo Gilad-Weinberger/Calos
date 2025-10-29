@@ -9,6 +9,7 @@ import {
 import { useAuth } from "../../lib/context/AuthContext";
 import {
   Achievement,
+  convertWorkoutVideoUrls,
   getUserRecentWorkouts,
   getWorkoutAchievements,
 } from "../../lib/functions/workoutFunctions";
@@ -51,6 +52,9 @@ const Workouts: React.FC = () => {
   >({});
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+  const [achievementsCache, setAchievementsCache] = useState<
+    Record<string, Achievement[]>
+  >({});
 
   const BATCH_SIZE = 5;
 
@@ -100,30 +104,64 @@ const Workouts: React.FC = () => {
           setOffset(BATCH_SIZE);
         }
 
-        // Fetch achievements for each workout
-        const achievementsMap: Record<string, Achievement[]> = {};
-        for (const workout of data as unknown as WorkoutData[]) {
+        // Fetch achievements for workouts that aren't cached
+        const workoutsToFetch = (data as unknown as WorkoutData[]).filter(
+          (workout) => !achievementsCache[workout.workout_id]
+        );
+
+        const achievementsPromises = workoutsToFetch.map(async (workout) => {
           try {
             const achievements = await getWorkoutAchievements(
               user.user_id,
               workout.workout_id,
               "individual" // Compare each set individually against historical data
             );
-            achievementsMap[workout.workout_id] = achievements;
+            return { workoutId: workout.workout_id, achievements };
           } catch (err) {
             console.error(
               `Error fetching achievements for workout ${workout.workout_id}:`,
               err
             );
-            achievementsMap[workout.workout_id] = [];
+            return { workoutId: workout.workout_id, achievements: [] };
           }
-        }
+        });
+
+        // Wait for all achievement fetches to complete
+        const achievementsResults = await Promise.all(achievementsPromises);
+
+        // Convert results to map and update cache
+        const achievementsMap: Record<string, Achievement[]> = {};
+        achievementsResults.forEach(({ workoutId, achievements }) => {
+          achievementsMap[workoutId] = achievements;
+        });
+
+        // Update cache with new achievements
+        setAchievementsCache((prev) => ({
+          ...prev,
+          ...achievementsMap,
+        }));
+
+        // Merge cached and new achievements
+        const allAchievements = {
+          ...achievementsCache,
+          ...achievementsMap,
+        };
 
         // Merge achievements with existing ones
         setWorkoutAchievements((prev) => ({
           ...(isRefresh ? {} : prev),
-          ...achievementsMap,
+          ...allAchievements,
         }));
+
+        // Convert video URLs asynchronously after UI is updated
+        convertWorkoutVideoUrls(data as unknown as WorkoutData[])
+          .then(() => {
+            // Trigger a re-render to show converted video URLs
+            setWorkouts((currentWorkouts) => [...currentWorkouts]);
+          })
+          .catch((error) => {
+            console.error("Error converting video URLs:", error);
+          });
       } catch (err) {
         console.error("Error fetching workouts:", err);
         setError("Failed to load workouts. Please try again.");
