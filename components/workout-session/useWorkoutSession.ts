@@ -45,6 +45,14 @@ export const useWorkoutSession = () => {
   const [countdownValue, setCountdownValue] = useState(3);
   const [isHolding, setIsHolding] = useState(false);
   const [holdDuration, setHoldDuration] = useState(0);
+
+  // Manual duration input modal state
+  const [showManualDurationInput, setShowManualDurationInput] = useState(false);
+  const [manualDurationInput, setManualDurationInput] = useState("");
+  const [previousSetInfo, setPreviousSetInfo] = useState<{
+    exerciseIndex: number;
+    setIndex: number;
+  } | null>(null);
   const [workoutName, setWorkoutName] = useState("");
 
   // Stopwatch for workout duration
@@ -133,22 +141,47 @@ export const useWorkoutSession = () => {
   const isLastSet = currentSetIndex === totalSets - 1;
   const isLastExercise = currentExerciseIndex === totalExercises - 1;
 
-  const handleStaticSetComplete = () => {
+  const handleStaticSetComplete = (isNaturalCompletion: boolean = false) => {
     if (!isHolding) return;
 
-    // Calculate actual duration (target duration - time left)
     const targetDuration = currentExercise?.duration || 30;
-    const actualDuration = targetDuration - holdTimeLeft;
 
-    // Save completed duration
-    const newCompletedReps = [...completedReps];
-    newCompletedReps[currentExerciseIndex][currentSetIndex] = actualDuration;
-    setCompletedReps(newCompletedReps);
+    if (isNaturalCompletion) {
+      // Timer completed naturally - use target duration
+      const newCompletedReps = [...completedReps];
+      newCompletedReps[currentExerciseIndex][currentSetIndex] = targetDuration;
+      setCompletedReps(newCompletedReps);
 
-    // Reset hold state
-    setIsHolding(false);
-    setHoldDuration(0);
+      // Reset hold state
+      setIsHolding(false);
+      setHoldDuration(0);
 
+      // Continue to next set or exercise
+      proceedToNextSetOrExercise();
+    } else {
+      // Manual completion - first move to next set, then show modal
+      // Store current set info before moving
+      setPreviousSetInfo({
+        exerciseIndex: currentExerciseIndex,
+        setIndex: currentSetIndex,
+      });
+
+      // Reset hold state
+      setIsHolding(false);
+      setHoldDuration(0);
+
+      // Move to next set or exercise first
+      proceedToNextSetOrExercise();
+
+      // Then show input modal for the previous set
+      setTimeout(() => {
+        setManualDurationInput(targetDuration.toString());
+        setShowManualDurationInput(true);
+      }, 100); // Small delay to ensure state updates are complete
+    }
+  };
+
+  const proceedToNextSetOrExercise = () => {
     // Move to next set or exercise (same logic as dynamic exercises)
     if (inSuperset && nextExerciseInSuperset) {
       const nextExerciseIndex = exercises.findIndex(
@@ -298,6 +331,35 @@ export const useWorkoutSession = () => {
       resetRestTimer(currentExercise.rest_seconds);
       startRestTimer();
     }
+  };
+
+  const handleManualDurationSubmit = () => {
+    const duration = parseInt(manualDurationInput);
+
+    if (isNaN(duration) || duration <= 0) {
+      Alert.alert(
+        "Invalid Duration",
+        "Please enter a valid duration greater than 0 seconds"
+      );
+      return;
+    }
+
+    // Save completed duration to the previous set using stored info
+    if (previousSetInfo) {
+      const newCompletedReps = [...completedReps];
+      newCompletedReps[previousSetInfo.exerciseIndex][
+        previousSetInfo.setIndex
+      ] = duration;
+      setCompletedReps(newCompletedReps);
+      console.log("Updated completedReps:", newCompletedReps);
+    } else {
+      console.log("No previousSetInfo found!");
+    }
+
+    // Close modal and reset state
+    setShowManualDurationInput(false);
+    setManualDurationInput("");
+    setPreviousSetInfo(null);
   };
 
   const moveToNextExercise = useCallback(() => {
@@ -501,11 +563,10 @@ export const useWorkoutSession = () => {
 
   // Static exercise countdown timer
   const {
-    timeLeft: holdTimeLeft,
     isRunning: isHoldTimerRunning,
     start: startHoldTimer,
     reset: resetHoldTimer,
-  } = useCountdown(holdDuration, handleStaticSetComplete, false);
+  } = useCountdown(holdDuration, () => handleStaticSetComplete(true), false);
 
   // Haptic feedback for 3-second warning
   useEffect(() => {
@@ -548,6 +609,8 @@ export const useWorkoutSession = () => {
     isHolding,
     isHoldTimerRunning,
     holdDuration,
+    showManualDurationInput,
+    manualDurationInput,
     workoutName,
     elapsedTime,
     restDuration,
@@ -565,8 +628,10 @@ export const useWorkoutSession = () => {
 
     // Actions
     setCurrentRepInput,
+    setManualDurationInput,
     handleSetComplete,
     handleStaticSetComplete,
+    handleManualDurationSubmit,
     skipRest,
     handleExit,
   };

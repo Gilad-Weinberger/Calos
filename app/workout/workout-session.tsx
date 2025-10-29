@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import CountdownScreen from "../../components/workout-session/CountdownScreen";
 import ExerciseSetScreen from "../../components/workout-session/ExerciseSetScreen";
 import HoldTimerScreen from "../../components/workout-session/HoldTimerScreen";
+import ManualDurationInputModal from "../../components/workout-session/ManualDurationInputModal";
 import ReadyPromptScreen from "../../components/workout-session/ReadyPromptScreen";
 import RestTimerScreen from "../../components/workout-session/RestTimerScreen";
 import { useWorkoutSession } from "../../components/workout-session/useWorkoutSession";
@@ -32,6 +33,8 @@ const WorkoutSession = () => {
     isHolding,
     isHoldTimerRunning,
     holdDuration,
+    showManualDurationInput,
+    manualDurationInput,
     elapsedTime,
     restDuration,
     restTimeLeft,
@@ -48,8 +51,10 @@ const WorkoutSession = () => {
 
     // Actions
     setCurrentRepInput,
+    setManualDurationInput,
     handleSetComplete,
     handleStaticSetComplete,
+    handleManualDurationSubmit,
     skipRest,
     handleExit,
   } = useWorkoutSession();
@@ -140,6 +145,19 @@ const WorkoutSession = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Manual Duration Input Modal */}
+      {currentExercise && (
+        <ManualDurationInputModal
+          visible={showManualDurationInput}
+          onSubmit={handleManualDurationSubmit}
+          currentExercise={currentExercise}
+          currentSetIndex={currentSetIndex}
+          totalSets={totalSets}
+          manualDurationInput={manualDurationInput}
+          onInputChange={setManualDurationInput}
+        />
+      )}
     </SafeAreaView>
   );
 };

@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface IconConfig {
   name: keyof typeof Ionicons.glyphMap;
@@ -20,7 +19,6 @@ const FullPageTopBar: React.FC<FullPageTopBarProps> = ({
   onBackPress,
   rightIcons = [],
 }) => {
-  const insets = useSafeAreaInsets();
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -33,7 +31,7 @@ const FullPageTopBar: React.FC<FullPageTopBarProps> = ({
   return (
     <View
       className="bg-white border-b border-gray-200 px-4"
-      style={{ paddingTop: insets.top + 12, paddingBottom: 6 }}
+      style={{ paddingTop: 12, paddingBottom: 6 }}
     >
       <View className="flex-row items-center">
         {/* Back button */}

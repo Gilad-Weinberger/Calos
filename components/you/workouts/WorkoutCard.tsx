@@ -35,6 +35,8 @@ interface WorkoutCardProps {
     end_time?: string;
     plan_id?: string;
     plan_workout_letter?: string;
+    title?: string;
+    description?: string;
     workout_exercises: {
       exercise_id: string;
       sets: number;
@@ -66,8 +68,6 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
     userName,
     userProfileImage,
     userId,
-    title,
-    planName,
     achievements,
     onWorkoutDeleted,
   }) => {
@@ -99,7 +99,6 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
 
     const {
       totalSets,
-      totalReps,
       totalExercises,
       formattedDate,
       bestAchievement,
@@ -204,13 +203,9 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
     };
 
     // Memoize video-related calculations
-    const { hasVideos, videoCount, videosWithContext } = useMemo(() => {
+    const { hasVideos, videosWithContext } = useMemo(() => {
       const hasVideos = workout.workout_exercises.some(
         (ex) => ex.video_urls && ex.video_urls.length > 0
-      );
-      const videoCount = workout.workout_exercises.reduce(
-        (count, ex) => count + (ex.video_urls?.length || 0),
-        0
       );
 
       // Flatten all videos with their exercise context
@@ -225,7 +220,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
         }));
       });
 
-      return { hasVideos, videoCount, videosWithContext };
+      return { hasVideos, videosWithContext };
     }, [workout.workout_exercises]);
 
     const handleVideoPress = (video: (typeof videosWithContext)[0]) => {
@@ -326,38 +321,35 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
         </Modal>
 
         {/* Title Section */}
-        <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-2xl font-bold text-gray-800 flex-1">
-            {title || `Workout Session`}
+        <Text className="text-xl font-bold text-gray-800 flex-1 mt-1">
+          {workout.title || `Workout Session`}
+        </Text>
+
+        {/* Description Section */}
+        {workout.description && (
+          <Text className="text-sm text-gray-600 leading-5">
+            {workout.description}
           </Text>
-          {hasVideos && (
-            <View className="bg-purple-100 rounded-full px-3 py-1 flex-row items-center">
-              <Ionicons name="videocam" size={14} color="#9333EA" />
-              <Text className="text-xs font-medium text-purple-700 ml-1">
-                {videoCount}
-              </Text>
-            </View>
-          )}
-        </View>
+        )}
 
         {/* Stats Section */}
-        <View className="flex-row justify-between mb-4">
-          <View className="flex-1">
-            <Text className="text-sm text-gray-500 mb-1">Total Sets</Text>
-            <Text className="text-lg font-semibold text-gray-800">
-              {totalSets}
-            </Text>
-          </View>
-          <View className="flex-1">
+        <View className="flex-row justify-between mb-4 mt-4">
+          {/* <View className="flex-1">
             <Text className="text-sm text-gray-500 mb-1">Total Reps</Text>
             <Text className="text-lg font-semibold text-gray-800">
               {totalReps}
             </Text>
-          </View>
+          </View> */}
           <View className="flex-1">
             <Text className="text-sm text-gray-500 mb-1">Exercises</Text>
             <Text className="text-lg font-semibold text-gray-800">
               {totalExercises}
+            </Text>
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm text-gray-500 mb-1">Total Sets</Text>
+            <Text className="text-lg font-semibold text-gray-800">
+              {totalSets}
             </Text>
           </View>
           {durationText && (
@@ -380,16 +372,6 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
             </View>
           )}
         </View>
-
-        {/* Plan Badge */}
-        {planName && workout.plan_workout_letter && (
-          <View className="mb-4 bg-blue-50 rounded-lg px-3 py-2 flex-row items-center">
-            <Ionicons name="document-text" size={16} color="#2563eb" />
-            <Text className="text-sm font-medium text-blue-700 ml-2">
-              {planName} - Workout {workout.plan_workout_letter}
-            </Text>
-          </View>
-        )}
 
         {/* Congrats Section */}
         {bestAchievement && (
@@ -529,15 +511,21 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
                     style={{ width: 140, minHeight: 180 }}
                   >
                     {/* Exercise Type Icon */}
-                    <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mb-3">
+                    <View
+                      className={`w-10 h-10 rounded-full items-center justify-center mb-3 ${workoutEx.exercise_type === "dynamic" ? "bg-blue-100" : "bg-green-100"}`}
+                    >
                       <Ionicons
                         name={
                           workoutEx.exercise_type === "dynamic"
                             ? "flash"
-                            : "pause"
+                            : "time"
                         }
                         size={20}
-                        color="#3B82F6"
+                        color={
+                          workoutEx.exercise_type === "dynamic"
+                            ? "#3B82F6"
+                            : "#22C55E"
+                        }
                       />
                     </View>
 
@@ -548,13 +536,6 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
                     >
                       {workoutEx.exercise_name}
                     </Text>
-
-                    {/* Exercise Type Badge */}
-                    <View className="bg-white rounded-full px-2 py-1 self-start mb-3">
-                      <Text className="text-xs text-gray-600 capitalize">
-                        {workoutEx.exercise_type}
-                      </Text>
-                    </View>
 
                     {/* Sets and Reps */}
                     <View className="flex-1 justify-end">

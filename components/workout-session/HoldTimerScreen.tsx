@@ -10,7 +10,7 @@ interface HoldTimerScreenProps {
   currentSetIndex: number;
   totalSets: number;
   isTimerRunning: boolean;
-  onComplete: () => void;
+  onComplete: (isNaturalCompletion: boolean) => void;
 }
 
 const HoldTimerScreen: React.FC<HoldTimerScreenProps> = ({
@@ -36,8 +36,8 @@ const HoldTimerScreen: React.FC<HoldTimerScreenProps> = ({
           // Reset audio flag for next timer cycle
           audioTriggeredRef.current = false;
           resetAudioFlag();
-          // Auto-complete when timer reaches 0
-          onComplete();
+          // Auto-complete when timer reaches 0 (natural completion)
+          onComplete(true);
           return { shouldRepeat: false, delay: 0 };
         }}
       >
@@ -73,7 +73,7 @@ const HoldTimerScreen: React.FC<HoldTimerScreenProps> = ({
       </View>
 
       <TouchableOpacity
-        onPress={onComplete}
+        onPress={() => onComplete(false)}
         className="bg-green-600 rounded-lg py-5 px-8 shadow-lg"
       >
         <Text className="text-white font-bold text-xl text-center">

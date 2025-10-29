@@ -24,6 +24,8 @@ interface WorkoutData {
   plan_id?: string;
   plan_workout_letter?: string;
   scheduled_date?: string;
+  title?: string;
+  description?: string;
   plans?: {
     name: string;
   };

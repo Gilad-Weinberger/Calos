@@ -66,7 +66,7 @@ const WorkoutEditScreen: React.FC = () => {
       const workoutData = await getWorkoutById(id, user.user_id);
 
       setWorkout(workoutData);
-      setTitle(workoutData.title || workoutData.plans?.name || "Workout");
+      setTitle(workoutData.title || "Workout Session");
       setDescription(workoutData.description || "");
       setVisibility(
         (workoutData.visibility as "public" | "followers" | "private") ||

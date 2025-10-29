@@ -1,3 +1,4 @@
+import { isToday, isTomorrow } from "date-fns";
 import * as FileSystem from "expo-file-system";
 import { posthog } from "../utils/posthog";
 import { supabase } from "../utils/supabase";
@@ -273,6 +274,8 @@ export const getUserRecentWorkouts = async (
         plan_id,
         plan_workout_letter,
         scheduled_date,
+        title,
+        description,
         plans (
           name
         ),
@@ -325,21 +328,35 @@ export const calculateTotalReps = (exercises: WorkoutExercise[]): number => {
 
 /**
  * Format workout date to readable string
- * Example: "August 18, 2025 at 7:56 AM"
+ * Shows "today", "tomorrow", or the date itself, but keeps the time
+ * Example: "today at 7:56 AM" or "tomorrow at 7:56 AM" or "August 18, 2025 at 7:56 AM"
  */
 export const formatWorkoutDate = (date: string): string => {
   const workoutDate = new Date(date);
 
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+  // Format time part (hh:mm AM/PM)
+  const timeOptions: Intl.DateTimeFormatOptions = {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   };
+  const timeString = workoutDate.toLocaleString("en-US", timeOptions);
 
-  return workoutDate.toLocaleString("en-US", options);
+  // Check if it's today, tomorrow, or another date
+  if (isToday(workoutDate)) {
+    return `today at ${timeString}`;
+  } else if (isTomorrow(workoutDate)) {
+    return `tomorrow at ${timeString}`;
+  } else {
+    // Format date part
+    const dateOptions: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    };
+    const dateString = workoutDate.toLocaleDateString("en-US", dateOptions);
+    return `${dateString} at ${timeString}`;
+  }
 };
 
 export interface Achievement {
@@ -632,6 +649,7 @@ export const getTodaysCompletedWorkout = async (
         plan_id,
         plan_workout_letter,
         scheduled_date,
+        title,
         plans (
           name
         ),
@@ -730,6 +748,8 @@ export const getFollowedUsersWorkouts = async (
         plan_id,
         plan_workout_letter,
         scheduled_date,
+        title,
+        description,
         plans (
           name
         ),
