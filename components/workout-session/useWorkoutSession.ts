@@ -391,20 +391,13 @@ export const useWorkoutSession = () => {
         end_time: endTime,
       };
 
-      await saveCompleteWorkout(user.user_id, workoutData);
-
-      Alert.alert(
-        "Workout Complete!",
-        "Great job! Your workout has been saved.",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              router.replace("/(tabs)/you"); // Redirect the user to view the workout
-            },
-          },
-        ]
+      const { workout_id } = await saveCompleteWorkout(
+        user.user_id,
+        workoutData
       );
+
+      // Navigate to edit screen instead of showing success alert
+      router.push(`/workout/edit/${workout_id}`);
     } catch (error) {
       console.error("Error saving workout:", error);
       Alert.alert("Error", "Failed to save workout. Please try again.");

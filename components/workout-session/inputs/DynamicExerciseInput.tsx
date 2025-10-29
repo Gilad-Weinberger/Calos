@@ -27,7 +27,6 @@ const DynamicExerciseInput: React.FC<DynamicExerciseInputProps> = ({
           placeholder={currentExercise.reps?.toString() || "0"}
           className="text-6xl font-bold text-center text-gray-900"
           maxLength={3}
-          autoFocus
         />
         <Text className="text-center text-gray-600 mt-2">
           reps (target: {currentExercise.reps})

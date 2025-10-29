@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { posthog } from "../utils/posthog";
@@ -59,6 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const isFetchingProfileRef = useRef(false);
+  const lastProcessedUserIdRef = useRef<string | null>(null);
   const router = useRouter();
   const segments = useSegments();
 
@@ -133,37 +136,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
-  // Ensure user profile exists (fetch or create)
-  const ensureUserProfile = useCallback(
-    async (userId: string, email: string): Promise<User | null> => {
-      // First, try to fetch existing profile
-      const profile = await fetchUserProfile(userId);
-      if (profile) {
-        return profile;
-      }
+  // Initialize auth state
+  useEffect(() => {
+    let mounted = true;
 
-      // If no profile exists, create it
-      console.log(
-        `[AuthContext] No profile found for user ${userId}, creating new profile`
-      );
-      const { error: createError } = await createUserProfile(userId, email);
-      if (createError) {
-        console.error(
-          `[AuthContext] Failed to create profile for ${userId}:`,
-          createError
+    // Ensure user profile exists (fetch or create) - defined inside effect to avoid dependency issues
+    const ensureUserProfile = async (
+      userId: string,
+      email: string
+    ): Promise<User | null> => {
+      // Prevent concurrent fetches for the same user
+      if (isFetchingProfileRef.current) {
+        console.log(
+          `[AuthContext] Profile fetch already in progress for ${userId}`
         );
         return null;
       }
 
-      // Fetch the newly created profile
-      return await fetchUserProfile(userId);
-    },
-    [fetchUserProfile, createUserProfile]
-  );
+      isFetchingProfileRef.current = true;
+      try {
+        // First, try to fetch existing profile
+        const profile = await fetchUserProfile(userId);
+        if (profile) {
+          return profile;
+        }
 
-  // Initialize auth state
-  useEffect(() => {
-    let mounted = true;
+        // If no profile exists, create it
+        console.log(
+          `[AuthContext] No profile found for user ${userId}, creating new profile`
+        );
+        const { error: createError } = await createUserProfile(userId, email);
+        if (createError) {
+          console.error(
+            `[AuthContext] Failed to create profile for ${userId}:`,
+            createError
+          );
+          return null;
+        }
+
+        // Fetch the newly created profile
+        return await fetchUserProfile(userId);
+      } finally {
+        isFetchingProfileRef.current = false;
+      }
+    };
 
     const initializeAuth = async () => {
       try {
@@ -174,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (mounted) {
           if (session?.user) {
             setAuthUser(session.user);
+            lastProcessedUserIdRef.current = session.user.id;
 
             // Ensure user profile exists (fetch or create)
             const userProfile = await ensureUserProfile(
@@ -184,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           } else {
             setAuthUser(null);
             setUser(null);
+            lastProcessedUserIdRef.current = null;
           }
           setInitializing(false);
         }
@@ -207,18 +225,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         `[AuthContext] Auth state change: ${event}, user: ${session?.user?.id}`
       );
 
+      // Skip TOKEN_REFRESHED events if user hasn't changed
+      if (
+        event === "TOKEN_REFRESHED" &&
+        lastProcessedUserIdRef.current === session?.user?.id
+      ) {
+        console.log(`[AuthContext] Skipping TOKEN_REFRESHED for same user`);
+        return;
+      }
+
       if (session?.user) {
         setAuthUser(session.user);
 
-        // Ensure user profile exists (fetch or create)
-        const userProfile = await ensureUserProfile(
-          session.user.id,
-          session.user.email!
-        );
-        setUser(userProfile);
+        // Only fetch profile if user changed or on initial sign in
+        if (
+          event !== "TOKEN_REFRESHED" ||
+          lastProcessedUserIdRef.current !== session.user.id
+        ) {
+          lastProcessedUserIdRef.current = session.user.id;
+          // Ensure user profile exists (fetch or create)
+          const userProfile = await ensureUserProfile(
+            session.user.id,
+            session.user.email!
+          );
+          setUser(userProfile);
+        }
       } else {
         setAuthUser(null);
         setUser(null);
+        lastProcessedUserIdRef.current = null;
       }
     });
 
@@ -226,11 +261,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [ensureUserProfile]);
+  }, [fetchUserProfile, createUserProfile]);
 
   // Handle navigation based on authentication state
   useEffect(() => {
     if (initializing) return;
+    if (isFetchingProfileRef.current) return; // Don't navigate while fetching profile
 
     const inAuthGroup = segments[0] === "auth";
     const isIndexPage = !segments[0];

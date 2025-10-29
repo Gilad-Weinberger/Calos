@@ -1,3 +1,4 @@
+import * as FileSystem from "expo-file-system";
 import { posthog } from "../utils/posthog";
 import { supabase } from "../utils/supabase";
 import { deleteWorkoutVideos } from "./videoFunctions";
@@ -92,6 +93,10 @@ export interface DatabaseWorkout {
   plan_id?: string;
   plan_workout_letter?: string;
   scheduled_date?: string;
+  title?: string;
+  description?: string;
+  media_urls?: string[];
+  visibility?: string;
   plans?: {
     name: string;
   };
@@ -764,5 +769,260 @@ export const getFollowedUsersWorkouts = async (
   } catch (error) {
     console.error("Exception in getFollowedUsersWorkouts:", error);
     return { data: null, error };
+  }
+};
+
+/**
+ * Upload a single media file (image or video) for a workout
+ * @param userId - User ID
+ * @param workoutId - Workout ID
+ * @param mediaUri - Local URI of the media file
+ * @param mediaType - Type of media ('image' or 'video')
+ * @returns Storage URL of the uploaded file
+ */
+export const uploadWorkoutMedia = async (
+  userId: string,
+  workoutId: string,
+  mediaUri: string,
+  mediaType: "image" | "video"
+): Promise<string> => {
+  try {
+    // Create a unique filename with timestamp
+    const fileExt =
+      mediaUri.split(".").pop()?.toLowerCase() ||
+      (mediaType === "image" ? "jpg" : "mp4");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const fileName = `${userId}/${workoutId}/${mediaType}-${timestamp}.${fileExt}`;
+
+    // Read file as base64 using expo-file-system
+    const base64 = await FileSystem.readAsStringAsync(mediaUri, {
+      encoding: "base64",
+    });
+
+    // Convert base64 to ArrayBuffer for upload
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+
+    // Upload to Supabase storage
+    const { error } = await supabase.storage
+      .from("workout-media")
+      .upload(fileName, byteArray, {
+        contentType:
+          mediaType === "image" ? `image/${fileExt}` : `video/${fileExt}`,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Error uploading workout media:", error);
+      throw new Error(`Failed to upload media: ${error.message}`);
+    }
+
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from("workout-media")
+      .getPublicUrl(fileName);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error in uploadWorkoutMedia:", error);
+    throw error;
+  }
+};
+
+/**
+ * Upload multiple media files for a workout
+ * @param userId - User ID
+ * @param workoutId - Workout ID
+ * @param mediaItems - Array of media items with URI and type
+ * @returns Array of storage URLs
+ */
+export const uploadWorkoutMediaFiles = async (
+  userId: string,
+  workoutId: string,
+  mediaItems: { uri: string; type: "image" | "video" }[]
+): Promise<string[]> => {
+  try {
+    const uploadPromises = mediaItems.map((item) =>
+      uploadWorkoutMedia(userId, workoutId, item.uri, item.type)
+    );
+
+    const urls = await Promise.all(uploadPromises);
+    return urls;
+  } catch (error) {
+    console.error("Error in uploadWorkoutMediaFiles:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update workout metadata (title, description, media_urls, visibility)
+ * @param workoutId - Workout ID
+ * @param userId - User ID (for security check)
+ * @param data - Metadata to update
+ */
+export const updateWorkoutMetadata = async (
+  workoutId: string,
+  userId: string,
+  data: {
+    title?: string;
+    description?: string;
+    media_urls?: string[];
+    visibility?: string;
+  }
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from("workouts")
+      .update(data)
+      .eq("workout_id", workoutId)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error updating workout metadata:", error);
+      throw new Error(`Failed to update workout: ${error.message}`);
+    }
+  } catch (error) {
+    console.error("Error in updateWorkoutMetadata:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update workout exercises data
+ * @param workoutId - Workout ID
+ * @param userId - User ID (for security check)
+ * @param exercises - Updated exercises data
+ */
+export const updateWorkoutExercises = async (
+  workoutId: string,
+  userId: string,
+  exercises: WorkoutExercise[]
+): Promise<void> => {
+  try {
+    // First verify the workout belongs to the user
+    const { data: workout, error: workoutError } = await supabase
+      .from("workouts")
+      .select("workout_id")
+      .eq("workout_id", workoutId)
+      .eq("user_id", userId)
+      .single();
+
+    if (workoutError || !workout) {
+      throw new Error("Workout not found or access denied");
+    }
+
+    // Delete existing workout exercises
+    const { error: deleteError } = await supabase
+      .from("workout_exercises")
+      .delete()
+      .eq("workout_id", workoutId);
+
+    if (deleteError) {
+      console.error("Error deleting workout exercises:", deleteError);
+      throw new Error(
+        `Failed to delete existing exercises: ${deleteError.message}`
+      );
+    }
+
+    // Insert updated workout exercises
+    const workoutExercises = exercises.map((exercise, index) => ({
+      workout_id: workoutId,
+      exercise_id: exercise.exercise_id,
+      sets: exercise.sets,
+      reps: exercise.reps,
+      order_index: index + 1,
+      superset_group: exercise.superset_group || null,
+      video_urls: exercise.video_urls || null,
+      analysis_metadata: exercise.analysis_metadata || null,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("workout_exercises")
+      .insert(workoutExercises);
+
+    if (insertError) {
+      console.error("Error inserting workout exercises:", insertError);
+      throw new Error(`Failed to update exercises: ${insertError.message}`);
+    }
+  } catch (error) {
+    console.error("Error in updateWorkoutExercises:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get a single workout by ID for validation screen
+ * @param workoutId - Workout ID
+ * @param userId - User ID (for security check)
+ * @returns Workout data with exercises
+ */
+export const getWorkoutById = async (
+  workoutId: string,
+  userId: string
+): Promise<DatabaseWorkout> => {
+  try {
+    const { data, error } = await supabase
+      .from("workouts")
+      .select(
+        `
+        workout_id,
+        workout_date,
+        created_at,
+        start_time,
+        end_time,
+        plan_id,
+        plan_workout_letter,
+        scheduled_date,
+        title,
+        description,
+        media_urls,
+        visibility,
+        plans (
+          name
+        ),
+        workout_exercises (
+          exercise_id,
+          sets,
+          reps,
+          order_index,
+          superset_group,
+          video_urls,
+          exercises (
+            name,
+            type
+          )
+        )
+      `
+      )
+      .eq("workout_id", workoutId)
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching workout:", error);
+      throw new Error(`Failed to fetch workout: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error("Workout not found");
+    }
+
+    // Convert video URLs to signed URLs for secure access
+    if (data.workout_exercises) {
+      for (const exercise of data.workout_exercises) {
+        if (exercise.video_urls && exercise.video_urls.length > 0) {
+          exercise.video_urls = await convertToSignedUrls(exercise.video_urls);
+        }
+      }
+    }
+
+    return data as unknown as DatabaseWorkout;
+  } catch (error) {
+    console.error("Error in getWorkoutById:", error);
+    throw error;
   }
 };

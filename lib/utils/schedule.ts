@@ -219,6 +219,64 @@ export const getTodayScheduledDate = (startDate: Date): Date => {
 };
 
 /**
+ * Get the next scheduled workout (non-rest) from the plan
+ * @param startDate - When the plan was activated
+ * @param schedule - Array of weekly schedules
+ * @param numWeeks - Total number of weeks in the plan
+ * @param planType - 'repeat' or 'once'
+ * @param currentDate - Current date (defaults to today)
+ * @returns Next workout info or null if no upcoming workouts
+ */
+export const getNextScheduledWorkout = (
+  startDate: Date,
+  schedule: string[][],
+  numWeeks: number,
+  planType: "repeat" | "once",
+  currentDate: Date = new Date()
+): {
+  workoutLetter: string;
+  scheduledDate: Date;
+  weekNumber: number | null;
+  dayInWeek: number;
+  daysUntil: number;
+} | null => {
+  const today = new Date(currentDate);
+  today.setHours(0, 0, 0, 0);
+
+  // Look ahead up to 14 days to find the next workout
+  for (let daysAhead = 1; daysAhead <= 14; daysAhead++) {
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysAhead);
+
+    const workoutLetter = getScheduledWorkoutForDate(
+      startDate,
+      schedule,
+      numWeeks,
+      planType,
+      targetDate
+    );
+
+    // If we found a workout and it's not a rest day
+    if (workoutLetter && workoutLetter.toLowerCase() !== "rest") {
+      const daysElapsed = getDaysElapsed(startDate, targetDate);
+      const weekNumber = getWeekNumber(daysElapsed, numWeeks, planType);
+      const dayInWeek = getDayInWeek(daysElapsed);
+
+      return {
+        workoutLetter,
+        scheduledDate: targetDate,
+        weekNumber,
+        dayInWeek,
+        daysUntil: daysAhead,
+      };
+    }
+  }
+
+  // No upcoming workouts found
+  return null;
+};
+
+/**
  * Format week and day display
  * @param weekNumber - Week number (0-indexed)
  * @param dayInWeek - Day in week (0-6)

@@ -13,6 +13,7 @@ import {
 import {
   calculateDaysSinceScheduled,
   getLateworkoutMessage,
+  getNextScheduledWorkout,
 } from "../../lib/utils/schedule";
 import { groupExercisesBySuperset } from "../../lib/utils/superset";
 import WorkoutCard from "../you/workouts/WorkoutCard";
@@ -28,6 +29,16 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
   const [completedWorkout, setCompletedWorkout] =
     useState<DatabaseWorkout | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+
+  // Calculate next scheduled workout for rest days
+  const nextWorkout = todaysWorkout?.isRestDay
+    ? getNextScheduledWorkout(
+        new Date(plan.start_date),
+        plan.schedule,
+        plan.num_weeks,
+        plan.plan_type
+      )
+    : null;
 
   // Format rest time in mm:ss format
   const formatRestTime = (seconds: number): string => {
@@ -120,6 +131,19 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
       params: {
         planId: plan.plan_id,
         workoutLetter: workoutLetter,
+      },
+    });
+  };
+
+  const handleStartNextWorkout = () => {
+    if (!nextWorkout) return;
+
+    router.push({
+      pathname: "/workout/workout-session",
+      params: {
+        planId: plan.plan_id,
+        workoutLetter: nextWorkout.workoutLetter,
+        scheduledDate: nextWorkout.scheduledDate.toISOString(),
       },
     });
   };
@@ -349,20 +373,82 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
           {/* Conditional Content */}
           {isRestDay ? (
             /* Rest Day Content */
-            <View
-              className="bg-white rounded-2xl p-6 mb-6 shadow-lg"
-              style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
-            >
-              <View className="items-center">
-                <View className="w-20 h-20 rounded-full bg-blue-100 items-center justify-center mb-4">
-                  <Ionicons name="bed" size={40} color="#2563eb" />
+            <>
+              <View
+                className="bg-white rounded-2xl p-6 mb-6 shadow-lg"
+                style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
+              >
+                <View className="items-center">
+                  <View className="w-20 h-20 rounded-full bg-blue-100 items-center justify-center mb-4">
+                    <Ionicons name="bed" size={40} color="#2563eb" />
+                  </View>
+                  <Text className="text-base text-gray-600 text-center leading-6">
+                    Take it easy today. Recovery is an essential part of your
+                    training!
+                  </Text>
                 </View>
-                <Text className="text-base text-gray-600 text-center leading-6">
-                  Take it easy today. Recovery is an essential part of your
-                  training!
-                </Text>
               </View>
-            </View>
+
+              {/* Next Workout Card */}
+              {nextWorkout && (
+                <View
+                  className="bg-white rounded-2xl p-6 mb-6 shadow-lg border-2 border-green-100"
+                  style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
+                >
+                  <View className="flex-row items-center mb-4">
+                    <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center mr-3">
+                      <Ionicons name="fitness" size={20} color="#10b981" />
+                    </View>
+                    <Text className="text-lg font-bold text-gray-900">
+                      Next Scheduled Workout
+                    </Text>
+                  </View>
+
+                  <View className="mb-4">
+                    <Text className="text-xl font-bold text-gray-900 mb-2">
+                      {plan.workouts[nextWorkout.workoutLetter]?.name ||
+                        `Workout ${nextWorkout.workoutLetter}`}
+                    </Text>
+
+                    <View className="flex-row items-center mb-2">
+                      <Ionicons name="calendar" size={16} color="#6b7280" />
+                      <Text className="text-sm text-gray-600 ml-2">
+                        {nextWorkout.daysUntil === 1
+                          ? "Tomorrow"
+                          : `In ${nextWorkout.daysUntil} days`}
+                        {nextWorkout.weekNumber !== null && (
+                          <Text className="text-gray-500">
+                            {" "}
+                            • Week {nextWorkout.weekNumber + 1}
+                          </Text>
+                        )}
+                      </Text>
+                    </View>
+
+                    <View className="flex-row items-center">
+                      <Ionicons name="list" size={16} color="#6b7280" />
+                      <Text className="text-sm text-gray-600 ml-2">
+                        {plan.workouts[nextWorkout.workoutLetter]?.exercises
+                          ?.length || 0}{" "}
+                        exercises
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleStartNextWorkout}
+                    className="bg-green-600 rounded-xl py-3 px-4"
+                  >
+                    <View className="flex-row items-center justify-center">
+                      <Ionicons name="play-circle" size={20} color="white" />
+                      <Text className="text-white font-bold text-base ml-2">
+                        Do This Workout Now
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           ) : (
             /* Workout Day Content */
             <>

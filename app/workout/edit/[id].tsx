@@ -1,117 +1,117 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ExerciseSetInput from "../../../components/record/ExerciseSetInput";
+import FullPageTopBar from "../../../components/layout/FullPageTopBar";
+import MediaUploadInput from "../../../components/workout-edit/MediaUploadInput";
+import VisibilitySelector from "../../../components/workout-edit/VisibilitySelector";
+import WorkoutEditActions from "../../../components/workout-edit/WorkoutEditActions";
+import WorkoutEditExerciseList from "../../../components/workout-edit/WorkoutEditExerciseList";
+import WorkoutMetadataForm from "../../../components/workout-edit/WorkoutMetadataForm";
+import WorkoutStatsSummary from "../../../components/workout-edit/WorkoutStatsSummary";
 import { useAuth } from "../../../lib/context/AuthContext";
-import { WorkoutExercise } from "../../../lib/functions/workoutFunctions";
-import { supabase } from "../../../lib/utils/supabase";
+import {
+  calculateTotalReps,
+  calculateTotalSets,
+  calculateWorkoutDuration,
+  DatabaseWorkout,
+  deleteWorkout,
+  getWorkoutById,
+  updateWorkoutExercises,
+  updateWorkoutMetadata,
+  uploadWorkoutMediaFiles,
+  WorkoutExercise,
+} from "../../../lib/functions/workoutFunctions";
 
-interface WorkoutData {
-  workout_id: string;
-  workout_date: string;
-  exercises: Array<{
-    workout_exercise_id: string;
-    exercise_id: string;
-    sets: number;
-    reps: number[];
-    order_index: number;
-    video_urls: string[];
-    exercises: {
-      name: string;
-      type: "static" | "dynamic";
-    };
-  }>;
+interface MediaItem {
+  id: string;
+  uri: string;
+  type: "image" | "video";
+  name?: string;
 }
 
-const WorkoutEdit: React.FC = () => {
-  const { id } = useLocalSearchParams();
+const WorkoutEditScreen: React.FC = () => {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [workout, setWorkout] = useState<WorkoutData | null>(null);
+  const [workout, setWorkout] = useState<DatabaseWorkout | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDiscarding, setIsDiscarding] = useState(false);
+
+  // Form state
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<
+    "public" | "followers" | "private"
+  >("public");
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
-  useEffect(() => {
-    if (user && id) {
-      fetchWorkout();
-    }
-  }, [user, id]);
+  const loadWorkout = useCallback(async () => {
+    if (!id || !user?.user_id) return;
 
-  const fetchWorkout = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
+      const workoutData = await getWorkoutById(id, user.user_id);
 
-      const { data, error } = await supabase
-        .from("workouts")
-        .select(
-          `
-          workout_id,
-          workout_date,
-          workout_exercises (
-            workout_exercise_id,
-            exercise_id,
-            sets,
-            reps,
-            order_index,
-            video_urls,
-            exercises (
-              name,
-              type
-            )
-          )
-        `
-        )
-        .eq("workout_id", id)
-        .eq("user_id", user?.user_id)
-        .single();
+      setWorkout(workoutData);
+      setTitle(workoutData.title || workoutData.plans?.name || "Workout");
+      setDescription(workoutData.description || "");
+      setVisibility(
+        (workoutData.visibility as "public" | "followers" | "private") ||
+          "public"
+      );
 
-      if (error) {
-        console.error("Error fetching workout:", error);
-        Alert.alert("Error", "Failed to load workout");
-        router.back();
-        return;
-      }
-
-      if (!data) {
-        Alert.alert("Error", "Workout not found");
-        router.back();
-        return;
-      }
-
-      setWorkout(data as WorkoutData);
-
-      // Convert to WorkoutExercise format
-      const workoutExercises: WorkoutExercise[] = (
-        data.workout_exercises || []
-      ).map((ex: any) => ({
-        exercise_id: ex.exercise_id,
-        exercise_name: ex.exercises.name,
-        exercise_type: ex.exercises.type,
-        sets: ex.sets,
-        reps: ex.reps,
-        order_index: ex.order_index,
-      }));
-
+      // Convert workout exercises to WorkoutExercise format
+      const workoutExercises: WorkoutExercise[] =
+        workoutData.workout_exercises.map((ex) => ({
+          exercise_id: ex.exercise_id,
+          exercise_name: ex.exercises.name,
+          exercise_type: ex.exercises.type,
+          sets: ex.sets,
+          reps: ex.reps,
+          order_index: ex.order_index,
+          superset_group: ex.superset_group,
+          video_urls: ex.video_urls,
+        }));
       setExercises(workoutExercises);
+
+      // Convert existing media URLs to MediaItem format
+      if (workoutData.media_urls && workoutData.media_urls.length > 0) {
+        const existingMedia: MediaItem[] = workoutData.media_urls.map(
+          (url, index) => ({
+            id: `existing-${index}`,
+            uri: url,
+            type:
+              url.includes(".mp4") || url.includes(".mov") ? "video" : "image",
+            name: `media-${index}`,
+          })
+        );
+        setMediaItems(existingMedia);
+      }
     } catch (error) {
-      console.error("Error in fetchWorkout:", error);
-      Alert.alert("Error", "Failed to load workout");
+      console.error("Error loading workout:", error);
+      Alert.alert("Error", "Failed to load workout data");
       router.back();
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, [id, user?.user_id, router]);
+
+  useEffect(() => {
+    loadWorkout();
+  }, [loadWorkout]);
 
   const handleExerciseUpdate = (
     index: number,
@@ -124,216 +124,196 @@ const WorkoutEdit: React.FC = () => {
 
   const handleExerciseRemove = (index: number) => {
     const newExercises = exercises.filter((_, i) => i !== index);
-    // Update order indices
-    const reorderedExercises = newExercises.map((exercise, i) => ({
-      ...exercise,
-      order_index: i + 1,
-    }));
-    setExercises(reorderedExercises);
+    setExercises(newExercises);
   };
 
   const handleSave = async () => {
-    if (!user || !workout) {
-      return;
-    }
+    if (!user || !id) return;
 
     try {
-      setSaving(true);
+      setIsSaving(true);
 
-      // Delete all existing workout exercises
-      const { error: deleteError } = await supabase
-        .from("workout_exercises")
-        .delete()
-        .eq("workout_id", workout.workout_id);
+      // Upload new media files
+      const newMediaItems = mediaItems.filter(
+        (item) => !item.id.startsWith("existing-")
+      );
+      let mediaUrls: string[] = [];
 
-      if (deleteError) {
-        console.error("Error deleting workout exercises:", deleteError);
-        throw deleteError;
+      if (newMediaItems.length > 0) {
+        const mediaToUpload = newMediaItems.map((item) => ({
+          uri: item.uri,
+          type: item.type,
+        }));
+        mediaUrls = await uploadWorkoutMediaFiles(
+          user.user_id,
+          id,
+          mediaToUpload
+        );
       }
 
-      // Insert updated workout exercises
-      const workoutExercises = exercises.map((exercise, index) => ({
-        workout_id: workout.workout_id,
-        exercise_id: exercise.exercise_id,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        order_index: index + 1,
-        video_urls: [], // Keep existing videos if any
-      }));
+      // Include existing media URLs
+      const existingMediaUrls = mediaItems
+        .filter((item) => item.id.startsWith("existing-"))
+        .map((item) => item.uri);
 
-      const { error: insertError } = await supabase
-        .from("workout_exercises")
-        .insert(workoutExercises);
+      const allMediaUrls = [...existingMediaUrls, ...mediaUrls];
 
-      if (insertError) {
-        console.error("Error inserting workout exercises:", insertError);
-        throw insertError;
-      }
+      // Update workout metadata
+      await updateWorkoutMetadata(id, user.user_id, {
+        title: title.trim() || undefined,
+        description: description.trim() || undefined,
+        media_urls: allMediaUrls,
+        visibility,
+      });
 
-      Alert.alert("Success!", "Workout updated successfully", [
-        {
-          text: "OK",
-          onPress: () => router.back(),
-        },
-      ]);
+      // Update workout exercises
+      await updateWorkoutExercises(id, user.user_id, exercises);
+
+      Alert.alert(
+        "Workout Saved!",
+        "Your workout has been updated successfully.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/(tabs)/you"),
+          },
+        ]
+      );
     } catch (error) {
       console.error("Error saving workout:", error);
-      Alert.alert("Error", "Failed to save changes. Please try again.");
+      Alert.alert("Error", "Failed to save workout. Please try again.");
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
-  if (loading) {
+  const handleDiscard = () => {
+    Alert.alert(
+      "Discard Workout",
+      "Are you sure you want to discard this workout? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: async () => {
+            if (!user || !id) return;
+
+            try {
+              setIsDiscarding(true);
+              await deleteWorkout(id, user.user_id);
+              router.replace("/(tabs)/you");
+            } catch (error) {
+              console.error("Error discarding workout:", error);
+              Alert.alert(
+                "Error",
+                "Failed to discard workout. Please try again."
+              );
+            } finally {
+              setIsDiscarding(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const getWorkoutStats = () => {
+    if (!workout) return { totalSets: 0, totalReps: 0, duration: 0 };
+
+    const totalSets = calculateTotalSets(exercises);
+    const totalReps = calculateTotalReps(exercises);
+    const duration = calculateWorkoutDuration(
+      workout.start_time || null,
+      workout.end_time ?? null
+    );
+
+    return { totalSets, totalReps, duration: duration ?? 0 };
+  };
+
+  if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="text-gray-600 mt-4">Loading workout...</Text>
-        </View>
+      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="text-gray-600 mt-4">Loading workout...</Text>
       </SafeAreaView>
     );
   }
 
   if (!workout) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-1 items-center justify-center p-4">
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
-          <Text className="text-xl font-bold text-gray-900 mt-4">
-            Workout Not Found
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="bg-blue-600 rounded-lg py-3 px-6 mt-6"
-          >
-            <Text className="text-white font-semibold">Go Back</Text>
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+        <Text className="text-gray-600">Workout not found</Text>
+        <TouchableOpacity
+          className="mt-4 px-6 py-2 bg-blue-500 rounded-lg"
+          onPress={() => router.back()}
+        >
+          <Text className="text-white font-medium">Go Back</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
+  const stats = getWorkoutStats();
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="p-4">
-          {/* Header */}
-          <View className="flex-row items-center mb-6">
-            <TouchableOpacity onPress={() => router.back()} className="mr-3">
-              <Ionicons name="arrow-back" size={24} color="#111827" />
-            </TouchableOpacity>
-            <View className="flex-1">
-              <Text className="text-2xl font-bold text-gray-900">
-                Edit Workout
-              </Text>
-              <Text className="text-base text-gray-600">
-                {new Date(workout.workout_date).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </Text>
-            </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
+      >
+        {/* Header */}
+        <FullPageTopBar title="Edit Workout" />
+
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="p-4 gap-y-4">
+            {/* Title + Description */}
+            <WorkoutMetadataForm
+              title={title}
+              description={description}
+              onTitleChange={setTitle}
+              onDescriptionChange={setDescription}
+            />
+
+            {/* Exercises List */}
+            <WorkoutEditExerciseList
+              exercises={exercises}
+              onExerciseUpdate={handleExerciseUpdate}
+              onExerciseRemove={handleExerciseRemove}
+            />
+
+            {/* Visibility Selector */}
+            <VisibilitySelector
+              visibility={visibility}
+              onChange={setVisibility}
+            />
+
+            {/* Media Upload */}
+            <MediaUploadInput
+              onMediaChange={setMediaItems}
+              initialMedia={mediaItems}
+              maxItems={10}
+            />
+
+            {/* Workout Stats */}
+            <WorkoutStatsSummary
+              totalSets={stats.totalSets}
+              totalReps={stats.totalReps}
+              duration={stats.duration}
+            />
           </View>
+        </ScrollView>
 
-          {/* Exercise List */}
-          {exercises.length > 0 && (
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-3">
-                Exercises ({exercises.length})
-              </Text>
-              {exercises.map((exercise, index) => (
-                <ExerciseSetInput
-                  key={`${exercise.exercise_id}-${index}`}
-                  exercise={exercise}
-                  onUpdate={(updatedExercise) =>
-                    handleExerciseUpdate(index, updatedExercise)
-                  }
-                  onRemove={() => handleExerciseRemove(index)}
-                />
-              ))}
-            </View>
-          )}
-
-          {exercises.length === 0 && (
-            <View className="bg-yellow-50 rounded-lg p-4 mb-6">
-              <View className="flex-row items-start">
-                <Ionicons name="warning" size={20} color="#f59e0b" />
-                <Text className="text-yellow-900 ml-2 flex-1">
-                  All exercises have been removed. Saving will delete this
-                  workout.
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Videos Section */}
-          {workout.exercises.some((ex) => ex.video_urls?.length > 0) && (
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-3">
-                Workout Videos
-              </Text>
-              {workout.exercises.map((ex, idx) =>
-                ex.video_urls && ex.video_urls.length > 0 ? (
-                  <View
-                    key={idx}
-                    className="bg-white rounded-lg p-4 mb-3 border border-gray-200"
-                  >
-                    <Text className="text-base font-semibold text-gray-900 mb-2">
-                      {ex.exercises.name}
-                    </Text>
-                    <View className="flex-row flex-wrap">
-                      {ex.video_urls.map((url, vidIdx) => (
-                        <View
-                          key={vidIdx}
-                          className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden mr-2 mb-2"
-                        >
-                          <Ionicons
-                            name="videocam"
-                            size={32}
-                            color="#6b7280"
-                            style={{
-                              position: "absolute",
-                              top: "50%",
-                              left: "50%",
-                              marginLeft: -16,
-                              marginTop: -16,
-                              zIndex: 1,
-                            }}
-                          />
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ) : null
-              )}
-            </View>
-          )}
-
-          {/* Save Button */}
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={saving}
-            className={`rounded-lg py-4 px-6 ${
-              saving ? "bg-gray-300" : "bg-blue-600"
-            }`}
-          >
-            <Text
-              className={`text-center font-semibold text-base ${
-                saving ? "text-gray-500" : "text-white"
-              }`}
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Bottom Spacing */}
-          <View className="h-8" />
-        </View>
-      </ScrollView>
+        {/* Action Buttons */}
+        <WorkoutEditActions
+          onSave={handleSave}
+          onDiscard={handleDiscard}
+          isSaving={isSaving}
+          isDiscarding={isDiscarding}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
-export default WorkoutEdit;
+export default WorkoutEditScreen;
