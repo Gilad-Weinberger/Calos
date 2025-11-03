@@ -1,6 +1,6 @@
--- Fix ambiguous column references in achievement functions
+-- Fixing ambiguous column references in achievement functions
 
--- Fix get_user_personal_record function
+-- Fixing get_user_personal_record function
 CREATE OR REPLACE FUNCTION get_user_personal_record(p_user_id UUID, p_exercise_id UUID)
 RETURNS TABLE (
     exercise_id UUID,
@@ -40,7 +40,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Fix get_user_exercise_rankings function
+-- Fixing get_user_exercise_rankings function
 CREATE OR REPLACE FUNCTION get_user_exercise_rankings(p_user_id UUID, p_exercise_id UUID, p_limit INTEGER DEFAULT 5)
 RETURNS TABLE (
     exercise_id UUID,
@@ -94,7 +94,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Fix get_user_exercise_podium function
+-- Fixing get_user_exercise_podium function
 CREATE OR REPLACE FUNCTION get_user_exercise_podium(p_user_id UUID, p_exercise_id UUID)
 RETURNS TABLE (
     exercise_id UUID,
