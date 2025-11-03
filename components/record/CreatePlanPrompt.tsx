@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -24,6 +25,7 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
   onPlanCreated,
 }) => {
   const { user } = useAuth();
+  const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -98,24 +100,17 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
       setUploadProgress(95);
 
       // Step 3: Create plan
-      await createPlanFromAnalysis(user.user_id, analysisResult);
+      const createdPlan = await createPlanFromAnalysis(
+        user.user_id,
+        analysisResult
+      );
 
       setCurrentStep("Plan created successfully!");
       setUploadProgress(100);
       setIsAnalyzing(false);
 
-      Alert.alert(
-        "Success!",
-        `Your workout plan "${analysisResult.name}" has been created successfully!`,
-        [
-          {
-            text: "Let's Go!",
-            onPress: () => {
-              onPlanCreated();
-            },
-          },
-        ]
-      );
+      // Navigate to edit page in validation mode
+      router.push(`/plan/edit/${createdPlan.plan_id}?isNew=true` as any);
     } catch (error) {
       console.error("Error creating plan:", error);
       setIsUploading(false);

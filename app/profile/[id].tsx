@@ -26,6 +26,7 @@ import ProfileStats from "../../components/profile/ProfileStats";
 import { useAuth } from "../../lib/context/AuthContext";
 import {
   followUser,
+  getUserLastWorkoutDate,
   getUserProfile,
   getUserRecentMedia,
   getUserWorkoutStats,
@@ -39,6 +40,7 @@ const ProfilePage = () => {
   const [profileUser, setProfileUser] = useState<any>(null);
   const [workoutStats, setWorkoutStats] = useState<any>(null);
   const [recentMedia, setRecentMedia] = useState<any[]>([]);
+  const [lastWorkoutDate, setLastWorkoutDate] = useState<string | null>(null);
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [followingLoading, setFollowingLoading] = useState(false);
@@ -101,6 +103,10 @@ const ProfilePage = () => {
       // Fetch recent media
       const { data: media } = await getUserRecentMedia(id);
       setRecentMedia(media || []);
+
+      // Fetch last workout date
+      const { data: lastWorkout } = await getUserLastWorkoutDate(id);
+      setLastWorkoutDate(lastWorkout);
 
       // Check if current user is following this user
       if (currentUser && currentUser.user_id !== id) {
@@ -238,7 +244,7 @@ const ProfilePage = () => {
   const followingCount = profileUser.following?.length || 0;
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <FullPageTopBar
         title="Profile"
         rightIcons={[
@@ -381,9 +387,9 @@ const ProfilePage = () => {
                     <Text className="text-lg font-semibold text-gray-800">
                       Workouts
                     </Text>
-                    {workoutStats && workoutStats.totalWorkouts > 0 && (
+                    {workoutStats && workoutStats.totalWorkouts > 0 && lastWorkoutDate && (
                       <Text className="text-sm text-gray-500">
-                        {getFriendlyDate(new Date())}
+                        {getFriendlyDate(new Date(lastWorkoutDate))}
                       </Text>
                     )}
                   </View>
@@ -394,7 +400,7 @@ const ProfilePage = () => {
           </View>
         </SafeAreaView>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -168,23 +168,25 @@ const Record = () => {
               </View>
             </TouchableOpacity>
 
-            {/* Edit Current Plan */}
+            {/* Edit Plan Details */}
             <TouchableOpacity
               onPress={() => {
-                router.push("/workout/plan-management");
+                if (activePlan) {
+                  router.push(`/plan/edit/${activePlan.plan_id}` as any);
+                }
                 setMenuVisible(false);
               }}
               className="flex-row items-center py-4 border-b border-gray-200"
             >
-              <View className="w-10 h-10 rounded-full bg-orange-100 items-center justify-center mr-3">
-                <Ionicons name="settings" size={20} color="#f97316" />
+              <View className="w-10 h-10 rounded-full bg-purple-100 items-center justify-center mr-3">
+                <Ionicons name="create-outline" size={20} color="#9333ea" />
               </View>
               <View className="flex-1">
                 <Text className="text-base font-semibold text-gray-900">
-                  Edit Current Plan
+                  Manage Plan
                 </Text>
                 <Text className="text-sm text-gray-600">
-                  View and manage your active workout plan
+                  Modify workouts, exercises, and schedule
                 </Text>
               </View>
             </TouchableOpacity>

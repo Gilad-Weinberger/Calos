@@ -462,6 +462,37 @@ export const getUserWorkoutStats = async (
 };
 
 /**
+ * Get user's last workout date
+ */
+export const getUserLastWorkoutDate = async (
+  userId: string
+): Promise<{ data: string | null; error: any }> => {
+  try {
+    const { data, error } = await supabase
+      .from("workouts")
+      .select("workout_date")
+      .eq("user_id", userId)
+      .order("workout_date", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      // If there are no workouts, return null (not an error)
+      if (error.code === "PGRST116") {
+        return { data: null, error: null };
+      }
+      console.error("Error fetching last workout date:", error);
+      return { data: null, error };
+    }
+
+    return { data: data?.workout_date || null, error: null };
+  } catch (error) {
+    console.error("Exception in getUserLastWorkoutDate:", error);
+    return { data: null, error };
+  }
+};
+
+/**
  * Get user's recent media (videos and images)
  */
 export const getUserRecentMedia = async (

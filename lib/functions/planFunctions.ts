@@ -252,6 +252,40 @@ export const createPlanFromAnalysis = async (
 };
 
 /**
+ * Get a specific plan by ID
+ * @param planId - Plan ID
+ * @param userId - User ID (for security)
+ * @returns Plan or null
+ */
+export const getPlanById = async (
+  planId: string,
+  userId: string
+): Promise<Plan | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("plans")
+      .select("*")
+      .eq("plan_id", planId)
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // Plan not found
+        return null;
+      }
+      console.error("Error fetching plan:", error);
+      throw error;
+    }
+
+    return data as Plan;
+  } catch (error) {
+    console.error("Error in getPlanById:", error);
+    throw error;
+  }
+};
+
+/**
  * Get the user's active plan
  * @param userId - User ID
  * @returns Active plan or null
