@@ -155,59 +155,27 @@ const WeekScheduleCard: React.FC<WeekScheduleCardProps> = ({
     return totalDistance;
   };
 
-  // Get workout duration estimate (55m - 65m for strength workouts)
-  const getWorkoutDuration = (workoutLetter: string): string | null => {
+  // Get exercise count for strength workouts
+  const getExerciseCount = (workoutLetter: string): number | null => {
     const workout = plan.workouts[workoutLetter];
-    if (!workout) return null;
-
-    // Estimate duration based on number of exercises and sets
-    const totalExercises = workout.exercises.length;
-    if (totalExercises === 0) return null;
-
-    const avgSets =
-      workout.exercises.reduce((sum, ex) => sum + ex.sets, 0) / totalExercises;
-    const avgRest =
-      workout.exercises.reduce((sum, ex) => sum + ex.rest_seconds, 0) /
-      totalExercises;
-
-    // Rough estimate: 2-3 minutes per set + rest time
-    const estimatedMinutes = Math.round(
-      (totalExercises * avgSets * 2.5 + (totalExercises * avgRest) / 60) / 60
-    );
-
-    if (estimatedMinutes < 45) return "45m - 55m";
-    if (estimatedMinutes < 65) return "55m - 65m";
-    if (estimatedMinutes < 75) return "65m - 75m";
-    return "75m - 85m";
+    if (!workout || workout.exercises.length === 0) return null;
+    return workout.exercises.length;
   };
 
   // Format workout name for display
-  const formatWorkoutName = (
-    workoutLetter: string
-  ): { name: string; distance: number | null } => {
+  const formatWorkoutName = (workoutLetter: string): { name: string } => {
     const workout = plan.workouts[workoutLetter];
-    if (!workout) return { name: workoutLetter, distance: null };
+    if (!workout) return { name: workoutLetter };
 
     const name = workout.name;
 
-    // If it's a running workout, try to extract distance
-    if (isRunningWorkout(name)) {
-      const distance = extractDistance(name);
-      if (distance) {
-        // Clean up the name to remove distance info if already there
-        const cleanName = name.replace(/\s*[·•]\s*\d+\.?\d*\s*km/i, "").trim();
-        return { name: `${cleanName} · ${distance}km`, distance };
-      }
-      return { name, distance: null };
+    // For strength workouts, add exercise count
+    const exerciseCount = getExerciseCount(workoutLetter);
+    if (exerciseCount !== null) {
+      return { name: `${name} · ${exerciseCount} exercises` };
     }
 
-    // For strength workouts, add duration
-    const duration = getWorkoutDuration(workoutLetter);
-    if (duration) {
-      return { name: `${name} · ${duration}`, distance: null };
-    }
-
-    return { name, distance: null };
+    return { name };
   };
 
   const weekDistance = calculateWeekDistance();
@@ -219,11 +187,11 @@ const WeekScheduleCard: React.FC<WeekScheduleCardProps> = ({
 
   return (
     <View
-      className={`bg-white rounded-lg p-4 mb-4 ${isCurrentWeek ? "border-2 border-black" : ""}`}
+      className={`bg-white rounded-lg p-4 mb-4 ${isCurrentWeek ? "border-3 border-black" : ""}`}
     >
       {/* Header */}
       <View className="mb-3">
-        <Text className="text-gray-600 text-sm mb-1">
+        <Text className="text-gray-600 text-xs font-semibold mb-1">
           {formatDateRange(weekStart, weekEnd)}
         </Text>
         <Text className="text-xl font-bold text-gray-900">
@@ -271,7 +239,7 @@ const WeekScheduleCard: React.FC<WeekScheduleCardProps> = ({
           const workout = plan.workouts[workoutLetter];
           const workoutInfo = workout
             ? formatWorkoutName(workoutLetter)
-            : { name: workoutLetter, distance: null };
+            : { name: workoutLetter };
           const isRunning = workout && isRunningWorkout(workout.name);
 
           return (

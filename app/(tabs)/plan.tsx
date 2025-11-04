@@ -81,12 +81,9 @@ const Plan = () => {
   }
 
   return (
-    <View className="flex-1bg-white">
+    <View className="flex-1 bg-white">
       <TopBar title="Your Plan" icons={[]} />
-      <SafeAreaView
-        className="flex-1 bg-gray-50"
-        edges={["bottom", "left", "right"]}
-      >
+      <SafeAreaView className="flex-1 bg-gray-50" edges={["left", "right"]}>
         {!activePlan ? (
           <View className="flex-1 items-center justify-center p-4">
             <Text className="text-gray-600 text-center">
