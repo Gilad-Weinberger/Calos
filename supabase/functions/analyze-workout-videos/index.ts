@@ -4,6 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.21.0";
+import { PostHog } from "npm:posthog-node@4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +45,16 @@ serve(async (req) => {
   console.log("=== Edge Function Invoked ===");
   console.log("Method:", req.method);
   console.log("Headers:", Object.fromEntries(req.headers.entries()));
+
+  // Initialize PostHog
+  const posthogApiKey = Deno.env.get("POSTHOG_API_KEY");
+  const posthogHost =
+    Deno.env.get("POSTHOG_HOST") || "https://us.i.posthog.com";
+  let posthog: PostHog | null = null;
+
+  if (posthogApiKey) {
+    posthog = new PostHog(posthogApiKey, { host: posthogHost });
+  }
 
   try {
     // Get environment variables
@@ -111,7 +122,9 @@ serve(async (req) => {
       );
     }
 
-    const { videoUrls } = requestBody as VideoAnalysisRequest;
+    const { videoUrls, userId } = requestBody as VideoAnalysisRequest & {
+      userId?: string;
+    };
 
     if (!videoUrls || videoUrls.length === 0) {
       console.error("No video URLs provided in request");
@@ -144,7 +157,17 @@ serve(async (req) => {
       analysis: GeminiAnalysisResult;
     }[] = [];
 
-    for (const videoUrl of videoUrls) {
+    // Track analytics for each video
+    const videoAnalytics: {
+      videoIndex: number;
+      latency: number;
+      inputTokens: number;
+      outputTokens: number;
+      cost: number;
+    }[] = [];
+
+    for (let videoIndex = 0; videoIndex < videoUrls.length; videoIndex++) {
+      const videoUrl = videoUrls[videoIndex];
       try {
         console.log(`\n--- Processing video: ${videoUrl} ---`);
 
@@ -383,6 +406,9 @@ IMPORTANT TIPS:
 
 Return ONLY valid JSON. Use the most specific exercise name that matches what you see.`;
 
+        // Track start time for latency measurement
+        const startTime = Date.now();
+
         // Generate content with video using inline data (official Gemini API format)
         console.log(
           "Calling Gemini API for video analysis with inline data..."
@@ -413,6 +439,26 @@ Return ONLY valid JSON. Use the most specific exercise name that matches what yo
         const response = await result.response;
         const text = response.text();
         console.log(`Gemini response for ${videoUrl}:`, text);
+
+        // Calculate latency and extract usage metadata
+        const latency = (Date.now() - startTime) / 1000;
+        const usageMetadata = response.usageMetadata || {};
+        const inputTokens = usageMetadata.promptTokenCount || 0;
+        const outputTokens = usageMetadata.candidatesTokenCount || 0;
+
+        // Calculate cost based on Gemini 2.5 Flash pricing
+        const inputCost = (inputTokens / 1000000) * 0.075;
+        const outputCost = (outputTokens / 1000000) * 0.3;
+        const totalCost = inputCost + outputCost;
+
+        // Store analytics for this video
+        videoAnalytics.push({
+          videoIndex,
+          latency,
+          inputTokens,
+          outputTokens,
+          cost: totalCost,
+        });
 
         // Parse JSON response
         const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -545,6 +591,33 @@ Return ONLY valid JSON. Use the most specific exercise name that matches what yo
       );
     });
 
+    // Capture PostHog analytics events for each video
+    if (posthog && videoAnalytics.length > 0) {
+      try {
+        for (const analytics of videoAnalytics) {
+          posthog.capture({
+            distinctId: userId || "anonymous",
+            event: "$ai_generation",
+            properties: {
+              $ai_model: "gemini-2.5-flash",
+              $ai_latency: analytics.latency,
+              $ai_input_tokens: analytics.inputTokens,
+              $ai_output_tokens: analytics.outputTokens,
+              $ai_total_cost_usd: analytics.cost,
+              analysis_type: "video_workout",
+              video_index: analytics.videoIndex,
+              total_videos: videoUrls.length,
+              total_exercises_detected: results.length,
+            },
+          });
+        }
+        await posthog.shutdown();
+      } catch (phError) {
+        console.error("PostHog error:", phError);
+        // Don't fail the request if PostHog fails
+      }
+    }
+
     return new Response(JSON.stringify({ results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -559,6 +632,15 @@ Return ONLY valid JSON. Use the most specific exercise name that matches what yo
       console.error("Error stack:", error.stack);
     }
     console.error("Full error object:", JSON.stringify(error, null, 2));
+
+    // Ensure PostHog is shut down even on error
+    if (posthog) {
+      try {
+        await posthog.shutdown();
+      } catch (phError) {
+        console.error("PostHog shutdown error:", phError);
+      }
+    }
 
     return new Response(
       JSON.stringify({

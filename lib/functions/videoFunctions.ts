@@ -87,10 +87,12 @@ export const uploadWorkoutVideo = async (
 /**
  * Analyze workout videos using Gemini AI via Edge Function
  * @param videoUrls - Array of video URLs from Supabase Storage
+ * @param userId - Optional user ID for analytics tracking
  * @returns Array of analyzed workout exercises grouped by exercise type
  */
 export const analyzeWorkoutVideos = async (
-  videoUrls: string[]
+  videoUrls: string[],
+  userId?: string
 ): Promise<VideoAnalysisResult[]> => {
   try {
     if (videoUrls.length === 0) {
@@ -101,12 +103,13 @@ export const analyzeWorkoutVideos = async (
       `🔄 Calling edge function with ${videoUrls.length} video(s)...`
     );
     console.log("Video URLs:", videoUrls);
+    console.log("User ID:", userId);
 
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke(
       "analyze-workout-videos",
       {
-        body: { videoUrls },
+        body: { videoUrls, userId },
       }
     );
 

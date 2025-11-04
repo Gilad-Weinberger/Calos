@@ -133,21 +133,24 @@ export const uploadPlanPdf = async (
  * Call the Edge Function to analyze a PDF workout plan
  * @param pdfUrl - URL of the uploaded PDF
  * @param aiNotes - Optional instructions for the AI analyzer
+ * @param userId - Optional user ID for analytics tracking
  * @returns Analyzed plan data
  */
 export const analyzePlanPdf = async (
   pdfUrl: string,
-  aiNotes?: string
+  aiNotes?: string,
+  userId?: string
 ): Promise<PDFAnalysisResult> => {
   try {
     console.log("🔄 Calling analyze-workout-plan edge function...");
     console.log("PDF URL:", pdfUrl);
     console.log("AI Notes:", aiNotes);
+    console.log("User ID:", userId);
 
     const { data, error } = await supabase.functions.invoke(
       "analyze-workout-plan",
       {
-        body: { pdfUrl, aiNotes },
+        body: { pdfUrl, aiNotes, userId },
       }
     );
 

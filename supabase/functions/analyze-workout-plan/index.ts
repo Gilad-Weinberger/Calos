@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PostHog } from "npm:posthog-node@4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,16 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Initialize PostHog
+  const posthogApiKey = Deno.env.get("POSTHOG_API_KEY");
+  const posthogHost =
+    Deno.env.get("POSTHOG_HOST") || "https://us.i.posthog.com";
+  let posthog: PostHog | null = null;
+
+  if (posthogApiKey) {
+    posthog = new PostHog(posthogApiKey, { host: posthogHost });
   }
 
   try {
@@ -28,7 +39,7 @@ serve(async (req) => {
     });
 
     // Parse request body
-    const { pdfUrl, aiNotes } = await req.json();
+    const { pdfUrl, aiNotes, userId } = await req.json();
 
     if (!pdfUrl) {
       return new Response(JSON.stringify({ error: "pdfUrl is required" }), {
@@ -150,6 +161,9 @@ SUPERSET DETECTION:
 
     prompt += `\n\nReturn ONLY the JSON object, no additional text or explanation.`;
 
+    // Track start time for latency measurement
+    const startTime = Date.now();
+
     // Call Gemini API
     const result = await model.generateContent([
       {
@@ -163,6 +177,20 @@ SUPERSET DETECTION:
 
     const response = await result.response;
     const text = response.text();
+
+    // Calculate latency in seconds
+    const latency = (Date.now() - startTime) / 1000;
+
+    // Extract usage metadata from Gemini response
+    const usageMetadata = response.usageMetadata || {};
+    const inputTokens = usageMetadata.promptTokenCount || 0;
+    const outputTokens = usageMetadata.candidatesTokenCount || 0;
+
+    // Calculate cost based on Gemini 2.5 Flash pricing
+    // Input: $0.075 per 1M tokens, Output: $0.30 per 1M tokens
+    const inputCost = (inputTokens / 1000000) * 0.075;
+    const outputCost = (outputTokens / 1000000) * 0.3;
+    const totalCost = inputCost + outputCost;
 
     // Parse JSON from response
     let parsedData;
@@ -183,11 +211,46 @@ SUPERSET DETECTION:
       genAI
     );
 
+    // Capture PostHog analytics event
+    if (posthog) {
+      try {
+        posthog.capture({
+          distinctId: userId || "anonymous",
+          event: "$ai_generation",
+          properties: {
+            $ai_model: "gemini-2.5-flash",
+            $ai_latency: latency,
+            $ai_input_tokens: inputTokens,
+            $ai_output_tokens: outputTokens,
+            $ai_total_cost_usd: totalCost,
+            analysis_type: "pdf_workout_plan",
+            has_ai_notes: !!(aiNotes && aiNotes.trim()),
+            num_workouts: Object.keys(validatedData.workouts || {}).length,
+            num_weeks: validatedData.num_weeks,
+          },
+        });
+        await posthog.shutdown();
+      } catch (phError) {
+        console.error("PostHog error:", phError);
+        // Don't fail the request if PostHog fails
+      }
+    }
+
     return new Response(JSON.stringify(validatedData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error in analyze-workout-plan:", error);
+
+    // Ensure PostHog is shut down even on error
+    if (posthog) {
+      try {
+        await posthog.shutdown();
+      } catch (phError) {
+        console.error("PostHog shutdown error:", phError);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         error: error.message || "An error occurred during PDF analysis",

@@ -93,7 +93,8 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
 
       const analysisResult = await analyzePlanPdf(
         pdfUrl,
-        aiNotes.trim() || undefined
+        aiNotes.trim() || undefined,
+        user?.user_id
       );
 
       setCurrentStep("Finalizing workout plan...");

@@ -184,7 +184,7 @@ const WorkoutForm: React.FC = () => {
       setMode("analyzing");
 
       // Call the analysis Edge Function
-      const results = await analyzeWorkoutVideos(videoUrls);
+      const results = await analyzeWorkoutVideos(videoUrls, user?.user_id);
 
       setAnalysisResults(results);
       setMode("results");
