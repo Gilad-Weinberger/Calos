@@ -299,6 +299,7 @@ export const getUserWorkoutStats = async (
       `
       )
       .eq("user_id", userId)
+      .eq("done", true)
       .order("workout_date", { ascending: true });
 
     if (workoutsError) {

@@ -126,6 +126,7 @@ export interface DatabaseWorkout {
   description?: string;
   media_urls?: string[];
   visibility?: string;
+  done?: boolean;
   plans?: {
     name: string;
   };
@@ -166,40 +167,125 @@ export const getAllExercises = async (): Promise<Exercise[]> => {
 };
 
 /**
+ * Find a scheduled workout for today that hasn't been done yet
+ */
+export const findScheduledWorkoutForToday = async (
+  userId: string,
+  planId: string,
+  scheduledDate: Date
+): Promise<{ workout_id: string } | null> => {
+  try {
+    const today = new Date(scheduledDate);
+    today.setHours(0, 0, 0, 0);
+    const scheduledDateStr = today.toISOString();
+
+    const { data, error } = await supabase
+      .from("workouts")
+      .select("workout_id")
+      .eq("user_id", userId)
+      .eq("plan_id", planId)
+      .eq("scheduled_date", scheduledDateStr)
+      .eq("done", false)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // No scheduled workout found
+        return null;
+      }
+      console.error("Error finding scheduled workout:", error);
+      throw error;
+    }
+
+    return data || null;
+  } catch (error) {
+    console.error("Error in findScheduledWorkoutForToday:", error);
+    throw error;
+  }
+};
+
+/**
  * Create a new workout and all its exercises in a single transaction
+ * If there's an active plan and a scheduled workout for today, update that instead of creating new
  */
 export const saveCompleteWorkout = async (
   userId: string,
   workoutData: WorkoutData
 ): Promise<{ workout_id: string }> => {
   try {
-    // First, create the workout record
-    const { data: workout, error: workoutError } = await supabase
-      .from("workouts")
-      .insert({
-        user_id: userId,
-        workout_date: new Date().toISOString(),
-        plan_id: workoutData.plan_id || null,
-        plan_workout_letter: workoutData.plan_workout_letter || null,
-        scheduled_date: workoutData.scheduled_date || null,
-        start_time: workoutData.start_time || null,
-        end_time: workoutData.end_time || null,
-      })
-      .select("workout_id")
-      .single();
+    let workoutId: string;
+    let isUpdate = false;
 
-    if (workoutError) {
-      console.error("Error creating workout:", workoutError);
-      throw workoutError;
+    // Check if there's a scheduled workout for today that we should update
+    if (workoutData.plan_id && workoutData.scheduled_date) {
+      const scheduledDate = new Date(workoutData.scheduled_date);
+      const existingWorkout = await findScheduledWorkoutForToday(
+        userId,
+        workoutData.plan_id,
+        scheduledDate
+      );
+
+      if (existingWorkout) {
+        // Update existing scheduled workout
+        workoutId = existingWorkout.workout_id;
+        isUpdate = true;
+
+        // Delete existing workout exercises
+        await supabase
+          .from("workout_exercises")
+          .delete()
+          .eq("workout_id", workoutId);
+
+        // Update the workout record
+        const { error: updateError } = await supabase
+          .from("workouts")
+          .update({
+            workout_date: new Date().toISOString(),
+            done: true,
+            start_time: workoutData.start_time || null,
+            end_time: workoutData.end_time || null,
+          })
+          .eq("workout_id", workoutId);
+
+        if (updateError) {
+          console.error("Error updating scheduled workout:", updateError);
+          throw updateError;
+        }
+      }
     }
 
-    if (!workout) {
-      throw new Error("Failed to create workout");
+    if (!isUpdate) {
+      // Create new workout record
+      const { data: workout, error: workoutError } = await supabase
+        .from("workouts")
+        .insert({
+          user_id: userId,
+          workout_date: new Date().toISOString(),
+          plan_id: workoutData.plan_id || null,
+          plan_workout_letter: workoutData.plan_workout_letter || null,
+          scheduled_date: workoutData.scheduled_date || null,
+          start_time: workoutData.start_time || null,
+          end_time: workoutData.end_time || null,
+          done: true, // Manual workouts are immediately done
+        })
+        .select("workout_id")
+        .single();
+
+      if (workoutError) {
+        console.error("Error creating workout:", workoutError);
+        throw workoutError;
+      }
+
+      if (!workout) {
+        throw new Error("Failed to create workout");
+      }
+
+      workoutId = workout.workout_id;
     }
 
-    // Then, create all workout exercises
+    // Create all workout exercises
     const workoutExercises = workoutData.exercises.map((exercise, index) => ({
-      workout_id: workout.workout_id,
+      workout_id: workoutId,
       exercise_id: exercise.exercise_id,
       sets: exercise.sets,
       reps: exercise.reps,
@@ -216,10 +302,12 @@ export const saveCompleteWorkout = async (
     if (exercisesError) {
       console.error("Error creating workout exercises:", exercisesError);
       // If exercises fail, we should clean up the workout record
-      await supabase
-        .from("workouts")
-        .delete()
-        .eq("workout_id", workout.workout_id);
+      if (!isUpdate) {
+        await supabase
+          .from("workouts")
+          .delete()
+          .eq("workout_id", workoutId);
+      }
       throw exercisesError;
     }
 
@@ -240,7 +328,7 @@ export const saveCompleteWorkout = async (
       try {
         posthog.identify(userId);
         posthog.capture("workout_created", {
-          workout_id: workout.workout_id,
+          workout_id: workoutId,
           user_id: userId,
           exercise_count: workoutData.exercises.length,
           total_sets: totalSets,
@@ -248,13 +336,14 @@ export const saveCompleteWorkout = async (
           exercise_types: uniqueExerciseTypes,
           exercises: workoutData.exercises.map((ex) => ex.exercise_name),
           timestamp: new Date().toISOString(),
+          is_update: isUpdate,
         });
       } catch (error) {
         console.warn("PostHog analytics error during workout creation:", error);
       }
     }
 
-    return { workout_id: workout.workout_id };
+    return { workout_id: workoutId };
   } catch (error) {
     console.error("Error in saveCompleteWorkout:", error);
     throw error;
@@ -284,6 +373,7 @@ export const getUserRecentWorkouts = async (
         scheduled_date,
         title,
         description,
+        done,
         plans (
           name
         ),
@@ -301,6 +391,7 @@ export const getUserRecentWorkouts = async (
       `
       )
       .eq("user_id", userId)
+      .eq("done", true)
       .order("workout_date", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -658,6 +749,7 @@ export const getTodaysCompletedWorkout = async (
         plan_workout_letter,
         scheduled_date,
         title,
+        done,
         plans (
           name
         ),
@@ -679,6 +771,7 @@ export const getTodaysCompletedWorkout = async (
       .eq("plan_id", planId)
       .eq("plan_workout_letter", workoutLetter)
       .eq("scheduled_date", scheduledDateStr)
+      .eq("done", true)
       .single();
 
     if (error) {
@@ -781,6 +874,7 @@ export const getFollowedUsersWorkouts = async (
       `
       )
       .in("user_id", followedUserIds)
+      .eq("done", true)
       .order("workout_date", { ascending: false })
       .range(offset, offset + limit - 1);
 

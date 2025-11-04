@@ -12,11 +12,14 @@ import {
 } from "../../lib/functions/workoutFunctions";
 import {
   calculateDaysSinceScheduled,
+  getDaysElapsed,
   getLateworkoutMessage,
   getNextScheduledWorkout,
+  getWeekNumber,
 } from "../../lib/utils/schedule";
 import { groupExercisesBySuperset } from "../../lib/utils/superset";
 import WorkoutCard from "../you/workouts/WorkoutCard";
+import WeekSchedule from "./WeekSchedule";
 
 interface TodaysWorkoutProps {
   plan: Plan;
@@ -115,10 +118,17 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
     workoutLetter,
     workout,
     scheduledDate,
-    weekNumber,
+    weekNumber: todaysWorkoutWeekNumber,
     dayInWeek,
     isRestDay,
   } = todaysWorkout;
+
+  // Calculate week number for rest days (it's null for rest days in getTodaysWorkout)
+  const daysElapsed = getDaysElapsed(new Date(plan.start_date));
+  const weekNumber =
+    todaysWorkoutWeekNumber !== null
+      ? todaysWorkoutWeekNumber
+      : getWeekNumber(daysElapsed, plan.num_weeks, plan.plan_type);
 
   // Calculate if workout is late
   const daysLate = calculateDaysSinceScheduled(scheduledDate);
@@ -163,6 +173,13 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
               className="mb-4"
               style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
             >
+              {/* Week Schedule - Above titles */}
+              <WeekSchedule
+                plan={plan}
+                weekNumber={weekNumber}
+                dayInWeek={dayInWeek}
+              />
+
               {/* Plan Name */}
               <Text className="text-sm font-medium text-gray-600 mb-2 text-center">
                 {plan.name}
@@ -178,57 +195,6 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
                   </Text>
                 )}
               </Text>
-
-              {/* Week/Day Info - Block Style */}
-              {weekNumber !== null && (
-                <View className="mb-4">
-                  <Text className="text-sm font-medium text-gray-600 mb-2 text-center">
-                    Week {weekNumber + 1}
-                  </Text>
-                  <View className="flex-row flex-wrap justify-center">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                      (dayName, dayIndex) => {
-                        const isToday = dayIndex === dayInWeek;
-                        const dayWorkout =
-                          plan.schedule[weekNumber]?.[dayIndex];
-                        const isRest = dayWorkout?.toLowerCase() === "rest";
-
-                        return (
-                          <View
-                            key={dayIndex}
-                            className={`rounded-lg px-3 py-2 mr-2 mb-2 ${
-                              isToday
-                                ? "bg-blue-600"
-                                : isRest
-                                  ? "bg-gray-200"
-                                  : "bg-green-100"
-                            }`}
-                          >
-                            <Text
-                              className={`text-xs mb-1 ${
-                                isToday ? "text-blue-100" : "text-gray-600"
-                              }`}
-                            >
-                              {dayName}
-                            </Text>
-                            <Text
-                              className={`text-sm font-semibold ${
-                                isToday
-                                  ? "text-white"
-                                  : isRest
-                                    ? "text-gray-600"
-                                    : "text-green-700"
-                              }`}
-                            >
-                              {dayWorkout || "-"}
-                            </Text>
-                          </View>
-                        );
-                      }
-                    )}
-                  </View>
-                </View>
-              )}
 
               {/* Late Warning */}
               {lateMessage && (
@@ -292,6 +258,13 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
             className="mb-1"
             style={{ maxWidth: 672, alignSelf: "center", width: "100%" }}
           >
+            {/* Week Schedule - Above titles */}
+            <WeekSchedule
+              plan={plan}
+              weekNumber={weekNumber}
+              dayInWeek={dayInWeek}
+            />
+
             {/* Plan Name */}
             <Text className="text-sm font-medium text-gray-600 mb-2 text-center">
               {plan.name}
@@ -308,56 +281,6 @@ const TodaysWorkout: React.FC<TodaysWorkoutProps> = ({ plan }) => {
                   </Text>
                 )}
             </Text>
-
-            {/* Week/Day Info - Block Style */}
-            {weekNumber !== null && (
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-600 mb-2 text-center">
-                  Week {weekNumber + 1}
-                </Text>
-                <View className="flex-row flex-wrap justify-center">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                    (dayName, dayIndex) => {
-                      const isToday = dayIndex === dayInWeek;
-                      const dayWorkout = plan.schedule[weekNumber]?.[dayIndex];
-                      const isRest = dayWorkout?.toLowerCase() === "rest";
-
-                      return (
-                        <View
-                          key={dayIndex}
-                          className={`rounded-lg px-3 py-2 mr-2 mb-2 ${
-                            isToday
-                              ? "bg-blue-600"
-                              : isRest
-                                ? "bg-gray-200"
-                                : "bg-green-100"
-                          }`}
-                        >
-                          <Text
-                            className={`text-xs mb-1 ${
-                              isToday ? "text-blue-100" : "text-gray-600"
-                            }`}
-                          >
-                            {dayName}
-                          </Text>
-                          <Text
-                            className={`text-sm font-semibold ${
-                              isToday
-                                ? "text-white"
-                                : isRest
-                                  ? "text-gray-600"
-                                  : "text-green-700"
-                            }`}
-                          >
-                            {dayWorkout || "-"}
-                          </Text>
-                        </View>
-                      );
-                    }
-                  )}
-                </View>
-              </View>
-            )}
 
             {/* Late Warning */}
             {lateMessage && (

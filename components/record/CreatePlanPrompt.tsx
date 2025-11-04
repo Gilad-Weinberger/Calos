@@ -110,8 +110,8 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
       setUploadProgress(100);
       setIsAnalyzing(false);
 
-      // Navigate to edit page in validation mode
-      router.push(`/plan/edit/${createdPlan.plan_id}?isNew=true` as any);
+      // Navigate to plan page
+      router.push("/plan" as any);
     } catch (error) {
       console.error("Error creating plan:", error);
       setIsUploading(false);
