@@ -35,10 +35,9 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   // Check if PostHog should be enabled (not in production)
-  const isProduction =
-    Constants.expoConfig?.extra?.eas?.projectId &&
-    (Constants.expoConfig?.extra?.eas?.channel === "production" ||
-      process.env.NODE_ENV === "production");
+  // Only disable PostHog in production builds, enable it in development and preview
+  const easChannel = Constants.expoConfig?.extra?.eas?.channel;
+  const isProduction = easChannel === "production";
 
   const shouldUsePostHog = !isProduction && posthog;
 

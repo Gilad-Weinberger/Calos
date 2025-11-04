@@ -11,6 +11,7 @@ import {
 import FullPageTopBar from "../../components/layout/FullPageTopBar";
 import { useAuth } from "../../lib/context/AuthContext";
 import { updatePrivacySettings } from "../../lib/functions/userFunctions";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -115,7 +116,7 @@ const Settings = () => {
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <FullPageTopBar title="Settings" />
 
       <ScrollView className="flex-1">
@@ -179,7 +180,7 @@ const Settings = () => {
           <SettingItem title="Log out" onPress={handleLogout} isDestructive />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

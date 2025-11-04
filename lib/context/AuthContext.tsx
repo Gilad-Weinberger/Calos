@@ -198,6 +198,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               session.user.email!
             );
             setUser(userProfile);
+
+            // Identify and track app_open event for PostHog (for weekly active users)
+            if (posthog && session.user.id) {
+              try {
+                posthog.identify(session.user.id, {
+                  email: session.user.email || undefined,
+                  last_seen: new Date().toISOString(),
+                });
+
+                posthog.capture("app_open", {
+                  email: session.user.email || undefined,
+                  user_id: session.user.id,
+                  event_type: "session_restored",
+                  timestamp: new Date().toISOString(),
+                });
+              } catch (error) {
+                console.warn(
+                  "PostHog analytics error during auth initialization:",
+                  error
+                );
+              }
+            }
           } else {
             setAuthUser(null);
             setUser(null);
@@ -249,11 +271,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             session.user.email!
           );
           setUser(userProfile);
+
+          // Identify user in PostHog when auth state changes (sign in, app load, etc.)
+          if (posthog && session.user.id) {
+            try {
+              posthog.identify(session.user.id, {
+                email: session.user.email || undefined,
+                last_seen: new Date().toISOString(),
+              });
+
+              // Capture app_open event to mark user as active (for weekly active users)
+              // Only capture if this is not a TOKEN_REFRESHED event (to avoid spam)
+              if (event !== "TOKEN_REFRESHED") {
+                posthog.capture("app_open", {
+                  email: session.user.email || undefined,
+                  user_id: session.user.id,
+                  event_type: event,
+                  timestamp: new Date().toISOString(),
+                });
+              }
+            } catch (error) {
+              console.warn(
+                "PostHog analytics error during auth state change:",
+                error
+              );
+            }
+          }
         }
       } else {
         setAuthUser(null);
         setUser(null);
         lastProcessedUserIdRef.current = null;
+
+        // Reset PostHog user when signing out
+        if (posthog) {
+          try {
+            posthog.reset();
+          } catch (error) {
+            console.warn("PostHog reset error:", error);
+          }
+        }
       }
     });
 
@@ -347,13 +404,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
         return { error };
+      }
+
+      // Identify user in PostHog after sign in
+      if (data.user?.id && posthog) {
+        try {
+          posthog.identify(data.user.id, {
+            email: email,
+            last_signin: new Date().toISOString(),
+          });
+
+          // Capture signin event to mark user as active
+          posthog.capture("signin", {
+            email: email,
+            user_id: data.user.id,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.warn("PostHog analytics error during signin:", error);
+        }
       }
 
       return { error: null };
@@ -368,12 +444,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
       console.log("[AuthContext] Starting sign out process");
+
+      // Reset PostHog user before signing out
+      if (posthog) {
+        try {
+          posthog.reset();
+        } catch (error) {
+          console.warn("PostHog reset error:", error);
+        }
+      }
+
       await supabase.auth.signOut();
       console.log("[AuthContext] Sign out completed");
 
       // Explicitly clear the user state
       setAuthUser(null);
       setUser(null);
+      lastProcessedUserIdRef.current = null;
 
       // Navigate to index page
       router.replace("/");

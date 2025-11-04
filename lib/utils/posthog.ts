@@ -36,14 +36,14 @@ const createNoOpClient = () => ({
 });
 
 // Conditionally initialize PostHog based on environment
-const isProduction =
-  Constants.expoConfig?.extra?.eas?.projectId &&
-  (Constants.expoConfig?.extra?.eas?.channel === "production" ||
-    process.env.NODE_ENV === "production");
+// Only disable PostHog in production builds, enable it in development and preview
+const easChannel = Constants.expoConfig?.extra?.eas?.channel;
+const isProduction = easChannel === "production";
+const posthogApiKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "";
 
 export const posthog = isProduction
   ? (createNoOpClient() as any)
-  : new PostHog(process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "", {
+  : new PostHog(posthogApiKey, {
       host: "https://us.i.posthog.com",
     });
 

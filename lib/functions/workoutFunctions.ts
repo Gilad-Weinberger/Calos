@@ -235,16 +235,24 @@ export const saveCompleteWorkout = async (
     const uniqueExerciseTypes = [...new Set(exerciseTypes)];
 
     // Track workout creation in PostHog
-    posthog.capture("workout_created", {
-      workout_id: workout.workout_id,
-      user_id: userId,
-      exercise_count: workoutData.exercises.length,
-      total_sets: totalSets,
-      total_reps: totalReps,
-      exercise_types: uniqueExerciseTypes,
-      exercises: workoutData.exercises.map((ex) => ex.exercise_name),
-      timestamp: new Date().toISOString(),
-    });
+    // Ensure user is identified before tracking
+    if (posthog && userId) {
+      try {
+        posthog.identify(userId);
+        posthog.capture("workout_created", {
+          workout_id: workout.workout_id,
+          user_id: userId,
+          exercise_count: workoutData.exercises.length,
+          total_sets: totalSets,
+          total_reps: totalReps,
+          exercise_types: uniqueExerciseTypes,
+          exercises: workoutData.exercises.map((ex) => ex.exercise_name),
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.warn("PostHog analytics error during workout creation:", error);
+      }
+    }
 
     return { workout_id: workout.workout_id };
   } catch (error) {
