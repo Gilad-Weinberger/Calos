@@ -49,11 +49,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="maps"
+        name="groups"
         options={{
-          title: "Exercises",
+          title: "Groups",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="barbell" size={size} color={color} />
+            <Ionicons name="people" size={size} color={color} />
           ),
         }}
       />
