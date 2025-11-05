@@ -2,15 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CreatePlanPrompt from "../../components/record/CreatePlanPrompt";
 import TodaysWorkout from "../../components/record/TodaysWorkout";
 import WorkoutForm from "../../components/record/WorkoutForm";
 import { useAuth } from "../../lib/context/AuthContext";
@@ -21,7 +14,6 @@ const Record = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [showManualWorkout, setShowManualWorkout] = useState(false);
 
   const loadActivePlan = useCallback(async () => {
@@ -57,13 +49,12 @@ const Record = () => {
     }, [loadActivePlan])
   );
 
-  const handlePlanCreated = () => {
-    loadActivePlan();
-  };
-
   const handleManualWorkoutClose = () => {
     setShowManualWorkout(false);
-    setMenuVisible(false);
+  };
+
+  const handleCreateNewPlan = () => {
+    router.push("/(tabs)/plan/create" as any);
   };
 
   // Show manual workout form modal
@@ -95,120 +86,72 @@ const Record = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Header with Menu */}
+      {/* Header with Calendar */}
       {activePlan && (
         <View className="px-4 py-3 border-b border-gray-200 bg-white flex-row items-center justify-between">
-          <Text className="text-xl font-bold text-gray-900">Record</Text>
+          <Text className="text-2xl font-bold text-gray-900">Record</Text>
           <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
+            onPress={() => router.push("/(tabs)/plan" as any)}
             className="p-2"
           >
-            <Ionicons name="ellipsis-vertical" size={24} color="#374151" />
+            <Ionicons name="calendar-outline" size={24} color="#374151" />
           </TouchableOpacity>
         </View>
       )}
 
       {/* Main Content */}
       {!activePlan ? (
-        <CreatePlanPrompt onPlanCreated={handlePlanCreated} />
-      ) : (
-        <TodaysWorkout plan={activePlan} />
-      )}
+        <View className="flex-1 items-center justify-center p-6">
+          <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
+            Get Started
+          </Text>
+          <Text className="text-base text-gray-600 text-center mb-8 px-4">
+            Create a workout plan or record a standalone workout
+          </Text>
 
-      {/* Options Menu Modal */}
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
-          className="flex-1 bg-black/50 justify-end"
-        >
-          <View className="bg-white rounded-t-3xl p-6">
-            <Text className="text-lg font-bold text-gray-900 mb-4">
-              Options
-            </Text>
-
-            {/* Create Workout Manually */}
-            <TouchableOpacity
-              onPress={() => {
-                setShowManualWorkout(true);
-                setMenuVisible(false);
-              }}
-              className="flex-row items-center py-4 border-b border-gray-200"
-            >
-              <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-                <Ionicons name="create" size={20} color="#2563eb" />
+          {/* Create Workout Manually Option */}
+          <TouchableOpacity
+            onPress={() => setShowManualWorkout(true)}
+            className="w-full max-w-sm bg-white rounded-2xl p-6 mb-4 shadow-lg border border-gray-200"
+          >
+            <View className="flex-row items-center mb-3">
+              <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
+                <Ionicons name="create" size={24} color="#2563eb" />
               </View>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-gray-900">
+                <Text className="text-lg font-bold text-gray-900">
                   Create Workout Manually
                 </Text>
-                <Text className="text-sm text-gray-600">
+                <Text className="text-sm text-gray-600 mt-1">
                   Add a custom workout with video or manual entry
                 </Text>
               </View>
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
 
-            {/* Edit Plan Details */}
-            <TouchableOpacity
-              onPress={() => {
-                if (activePlan) {
-                  router.push(`/plan/edit/${activePlan.plan_id}` as any);
-                }
-                setMenuVisible(false);
-              }}
-              className="flex-row items-center py-4 border-b border-gray-200"
-            >
-              <View className="w-10 h-10 rounded-full bg-purple-100 items-center justify-center mr-3">
-                <Ionicons name="create-outline" size={20} color="#9333ea" />
+          {/* Create New Plan Option */}
+          <TouchableOpacity
+            onPress={handleCreateNewPlan}
+            className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-lg border border-gray-200"
+          >
+            <View className="flex-row items-center mb-3">
+              <View className="w-12 h-12 rounded-full bg-green-100 items-center justify-center mr-4">
+                <Ionicons name="document-text" size={24} color="#10b981" />
               </View>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-gray-900">
-                  Manage Plan
-                </Text>
-                <Text className="text-sm text-gray-600">
-                  Modify workouts, exercises, and schedule
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Create New Plan */}
-            <TouchableOpacity
-              onPress={() => {
-                setActivePlan(null);
-                setMenuVisible(false);
-              }}
-              className="flex-row items-center py-4"
-            >
-              <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center mr-3">
-                <Ionicons name="document-text" size={20} color="#10b981" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold text-gray-900">
+                <Text className="text-lg font-bold text-gray-900">
                   Create New Plan
                 </Text>
-                <Text className="text-sm text-gray-600">
-                  Upload a new PDF workout plan
+                <Text className="text-sm text-gray-600 mt-1">
+                  Upload a PDF workout plan and let AI analyze it
                 </Text>
               </View>
-            </TouchableOpacity>
-
-            {/* Cancel */}
-            <TouchableOpacity
-              onPress={() => setMenuVisible(false)}
-              className="mt-4 bg-gray-100 rounded-lg py-3"
-            >
-              <Text className="text-center text-gray-700 font-semibold">
-                Cancel
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+            </View>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TodaysWorkout plan={activePlan} />
+      )}
     </SafeAreaView>
   );
 };

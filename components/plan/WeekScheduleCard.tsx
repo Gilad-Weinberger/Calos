@@ -1,5 +1,6 @@
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import type { Plan } from "../../lib/functions/planFunctions";
 import { getWeekWorkoutProgress } from "../../lib/functions/planFunctions";
 import ProgressBars from "../ui/ProgressBars";
@@ -185,9 +186,17 @@ const WeekScheduleCard: React.FC<WeekScheduleCardProps> = ({
   today.setHours(0, 0, 0, 0);
   const isCurrentWeek = today >= weekStart && today <= weekEnd;
 
+  const handlePress = () => {
+    router.push({
+      pathname: "/plan/overview/[weekIndex]",
+      params: { weekIndex: weekIndex.toString() },
+    });
+  };
+
   return (
-    <View
-      className={`bg-white rounded-lg p-4 mb-4 ${isCurrentWeek ? "border-3 border-black" : ""}`}
+    <Pressable
+      onPress={handlePress}
+      className={`bg-white rounded-lg p-4 mb-4 ${isCurrentWeek ? "border-2 border-black" : ""}`}
     >
       {/* Header */}
       <View className="mb-3">
@@ -261,7 +270,7 @@ const WeekScheduleCard: React.FC<WeekScheduleCardProps> = ({
           );
         })}
       </View>
-    </View>
+    </Pressable>
   );
 };
 

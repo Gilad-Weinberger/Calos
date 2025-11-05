@@ -2,15 +2,16 @@ import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import TopBar from "../../components/layout/TopBar";
-import PlanCardHeader from "../../components/plan/PlanCardHeader";
-import WeekScheduleCard from "../../components/plan/WeekScheduleCard";
-import { useAuth } from "../../lib/context/AuthContext";
+import TopBar from "../../../components/layout/TopBar";
+import PlanCardHeader from "../../../components/plan/PlanCardHeader";
+import WeekScheduleCard from "../../../components/plan/WeekScheduleCard";
+import CreatePlanPrompt from "../../../components/record/CreatePlanPrompt";
+import { useAuth } from "../../../lib/context/AuthContext";
 import {
   getActivePlan,
   getPlanProgress,
   type Plan as PlanType,
-} from "../../lib/functions/planFunctions";
+} from "../../../lib/functions/planFunctions";
 
 interface PlanProgress {
   completedWorkouts: number;
@@ -39,7 +40,7 @@ const Plan = () => {
       if (plan) {
         // Check and create next week workouts if needed (for recurring plans)
         const { checkAndCreateNextWeekWorkouts } = await import(
-          "../../lib/functions/planFunctions"
+          "../../../lib/functions/planFunctions"
         );
         await checkAndCreateNextWeekWorkouts(plan, user.user_id);
 
@@ -65,6 +66,11 @@ const Plan = () => {
     }, [loadActivePlan])
   );
 
+  const handlePlanCreated = useCallback(() => {
+    // Reload the plan after creation
+    loadActivePlan();
+  }, [loadActivePlan]);
+
   if (isLoading) {
     return (
       <View className="flex-1 bg-white">
@@ -85,11 +91,7 @@ const Plan = () => {
       <TopBar title="Your Plan" icons={[]} />
       <SafeAreaView className="flex-1 bg-gray-50" edges={["left", "right"]}>
         {!activePlan ? (
-          <View className="flex-1 items-center justify-center p-4">
-            <Text className="text-gray-600 text-center">
-              No active plan found. Create a plan to get started.
-            </Text>
-          </View>
+          <CreatePlanPrompt onPlanCreated={handlePlanCreated} />
         ) : (
           <ScrollView className="flex-1 p-4">
             {planProgress && (

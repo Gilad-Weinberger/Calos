@@ -810,8 +810,10 @@ export const createWorkoutRecordsForPlan = async (
         await createWorkoutsForWeek(plan, userId, weekIndex, startDate);
       }
     } else {
-      // For "repeat" plans, create workouts for the first cycle (week 0)
-      await createWorkoutsForWeek(plan, userId, 0, startDate);
+      // For "repeat" plans, create workouts for the first cycle (all weeks)
+      for (let weekIndex = 0; weekIndex < plan.num_weeks; weekIndex++) {
+        await createWorkoutsForWeek(plan, userId, weekIndex, startDate);
+      }
     }
   } catch (error) {
     console.error("Error in createWorkoutRecordsForPlan:", error);
@@ -1094,4 +1096,120 @@ export const getPlanProgress = async (
     completedWeeks,
     endDate,
   };
+};
+
+/**
+ * Get workouts for a specific week with all details
+ * @param plan - Plan object
+ * @param weekStartDate - Start date of the week
+ * @param weekEndDate - End date of the week
+ * @param weekIndex - Week index (0-indexed)
+ * @param userId - User ID to check completion status
+ * @returns Array of workout details for the week
+ */
+export const getWeekWorkoutsWithDetails = async (
+  plan: Plan,
+  weekStartDate: Date,
+  weekEndDate: Date,
+  weekIndex: number,
+  userId: string
+): Promise<
+  {
+    workoutLetter: string;
+    workoutName: string;
+    scheduledDate: Date;
+    dayName: string;
+    dayIndex: number;
+    isCompleted: boolean;
+    exerciseCount: number;
+  }[]
+> => {
+  try {
+    const weekSchedule = plan.schedule[weekIndex] || [];
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    // Get completed workouts for this week from database
+    const { data: completedWorkouts, error } = await supabase
+      .from("workouts")
+      .select("scheduled_date, plan_workout_letter, done")
+      .eq("plan_id", plan.plan_id)
+      .eq("user_id", userId)
+      .gte("scheduled_date", weekStartDate.toISOString())
+      .lte("scheduled_date", weekEndDate.toISOString())
+      .not("plan_workout_letter", "is", null);
+
+    if (error) {
+      console.error("Error fetching week's workouts:", error);
+    }
+
+    // Create a map of completed workouts by scheduled date and workout letter
+    const completedMap = new Map<string, boolean>();
+    completedWorkouts?.forEach((workout) => {
+      if (workout.scheduled_date && workout.plan_workout_letter) {
+        const dateKey = new Date(workout.scheduled_date)
+          .toISOString()
+          .split("T")[0];
+        const key = `${dateKey}-${workout.plan_workout_letter}`;
+        if (workout.done) {
+          completedMap.set(key, true);
+        }
+      }
+    });
+
+    const workouts: {
+      workoutLetter: string;
+      workoutName: string;
+      scheduledDate: Date;
+      dayName: string;
+      dayIndex: number;
+      isCompleted: boolean;
+      exerciseCount: number;
+    }[] = [];
+
+    weekSchedule.forEach((workoutLetter, dayIndex) => {
+      if (
+        !workoutLetter ||
+        workoutLetter.toLowerCase().trim() === "rest" ||
+        workoutLetter.trim() === ""
+      ) {
+        return; // Skip rest days
+      }
+
+      const workout = plan.workouts[workoutLetter];
+      if (!workout) {
+        return;
+      }
+
+      const scheduledDate = new Date(weekStartDate);
+      scheduledDate.setDate(weekStartDate.getDate() + dayIndex);
+      scheduledDate.setHours(0, 0, 0, 0);
+
+      const dateKey = scheduledDate.toISOString().split("T")[0];
+      const completionKey = `${dateKey}-${workoutLetter}`;
+      const isCompleted = completedMap.get(completionKey) || false;
+
+      workouts.push({
+        workoutLetter,
+        workoutName: workout.name,
+        scheduledDate,
+        dayName: dayNames[dayIndex],
+        dayIndex,
+        isCompleted,
+        exerciseCount: workout.exercises.length,
+      });
+    });
+
+    return workouts;
+  } catch (error) {
+    console.error("Error in getWeekWorkoutsWithDetails:", error);
+    throw error;
+  }
 };

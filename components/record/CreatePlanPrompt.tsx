@@ -138,8 +138,8 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
       // Small delay to show success message
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Navigate to plan page
-      router.push("/plan" as any);
+      // Call onPlanCreated callback to notify parent
+      onPlanCreated();
     } catch (error) {
       console.error("Error creating plan:", error);
       setIsAnalyzing(false);
