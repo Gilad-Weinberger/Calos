@@ -19,7 +19,7 @@ export default {
     slug: "Calos",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/logo.png",
     scheme: "calos",
     userInterfaceStyle: "automatic",
     owner: "calos-org",
@@ -41,14 +41,14 @@ export default {
     web: {
       bundler: "metro",
       output: "static",
-      favicon: "./assets/images/favicon.png",
+      favicon: "./assets/images/logo.png",
     },
     plugins: [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
+          image: "./assets/images/logo.png",
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff",
