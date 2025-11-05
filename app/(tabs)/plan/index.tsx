@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import TopBar from "../../../components/layout/TopBar";
 import PlanCardHeader from "../../../components/plan/PlanCardHeader";
 import WeekScheduleCard from "../../../components/plan/WeekScheduleCard";
-import CreatePlanPrompt from "../../../components/record/CreatePlanPrompt";
+import CreatePlanPrompt from "../../../components/record/shared/CreatePlanPrompt";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   getActivePlan,

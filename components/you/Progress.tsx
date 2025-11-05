@@ -9,7 +9,7 @@ const Progress: React.FC = () => {
           Progress Overview
         </Text>
         <Text className="text-base text-gray-600 text-center">
-          Track your fitness journey and see your improvements over time
+          Coming soon
         </Text>
       </View>
     </View>

@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -11,12 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAuth } from "../../lib/context/AuthContext";
+import { useAuth } from "../../../lib/context/AuthContext";
 import {
   analyzePlanPdf,
   createPlanFromAnalysis,
   uploadPlanPdf,
-} from "../../lib/functions/planFunctions";
+} from "../../../lib/functions/planFunctions";
 
 interface CreatePlanPromptProps {
   onPlanCreated: () => void;
@@ -26,7 +25,6 @@ const CreatePlanPrompt: React.FC<CreatePlanPromptProps> = ({
   onPlanCreated,
 }) => {
   const { user } = useAuth();
-  const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);

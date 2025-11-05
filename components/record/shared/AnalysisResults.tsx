@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { VideoAnalysisResult } from "../../lib/functions/videoFunctions";
-import { WorkoutExercise } from "../../lib/functions/workoutFunctions";
+import { VideoAnalysisResult } from "../../../lib/functions/videoFunctions";
+import { WorkoutExercise } from "../../../lib/functions/workoutFunctions";
 
 interface AnalysisResultsProps {
   results: VideoAnalysisResult[];

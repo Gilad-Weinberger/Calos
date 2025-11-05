@@ -1,14 +1,14 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CreatePlanPrompt from "../../../components/record/CreatePlanPrompt";
+import CreatePlanPrompt from "../../../components/record/shared/CreatePlanPrompt";
 
 const CreatePlan = () => {
   const router = useRouter();
 
   const handlePlanCreated = () => {
     // Navigate back to plan index after plan is created
-    router.push("/(tabs)/plan");
+    router.push("/(tabs)/plan" as any);
   };
 
   return (
@@ -19,4 +19,3 @@ const CreatePlan = () => {
 };
 
 export default CreatePlan;
-

@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { Video as VideoCompressor } from "react-native-compressor";
-import { uploadWorkoutVideo } from "../../lib/functions/videoFunctions";
+import { uploadWorkoutVideo } from "../../../lib/functions/videoFunctions";
 
 // Maximum video size (20MB for compressed videos)
 const MAX_VIDEO_SIZE_BYTES = 20 * 1024 * 1024;

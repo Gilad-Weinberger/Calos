@@ -10,7 +10,7 @@ import {
 import {
   Exercise,
   getAllExercises,
-} from "../../lib/functions/workoutFunctions";
+} from "../../../lib/functions/workoutFunctions";
 
 interface ExerciseSelectorProps {
   onExerciseSelect: (exercise: Exercise) => void;

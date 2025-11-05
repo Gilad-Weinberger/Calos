@@ -4,10 +4,11 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import TodaysWorkout from "../../components/record/TodaysWorkout";
-import WorkoutForm from "../../components/record/WorkoutForm";
+import WorkoutForm from "../../components/record/manual-workout-form/WorkoutForm";
+import DayWorkoutView from "../../components/record/workout-display/DayWorkoutView";
 import { useAuth } from "../../lib/context/AuthContext";
 import { getActivePlan, Plan } from "../../lib/functions/planFunctions";
+import { getDaysElapsed, getWeekNumber } from "../../lib/utils/schedule";
 
 const Record = () => {
   const { user } = useAuth();
@@ -15,6 +16,8 @@ const Record = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [showManualWorkout, setShowManualWorkout] = useState(false);
+  const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
   const loadActivePlan = useCallback(async () => {
     if (!user) {
@@ -33,6 +36,23 @@ const Record = () => {
           "../../lib/functions/planFunctions"
         );
         await checkAndCreateNextWeekWorkouts(plan, user.user_id);
+
+        // Set current week based on today
+        const daysElapsed = getDaysElapsed(new Date(plan.start_date));
+        const weekNumber = getWeekNumber(
+          daysElapsed,
+          plan.num_weeks,
+          plan.plan_type
+        );
+        if (weekNumber !== null) {
+          setCurrentWeekIndex(weekNumber);
+          // Set selected day to today
+          const today = new Date();
+          const planStart = new Date(plan.start_date);
+          planStart.setHours(0, 0, 0, 0);
+          const daysSinceStart = getDaysElapsed(planStart, today);
+          setSelectedDayIndex(daysSinceStart % 7);
+        }
       }
     } catch (error) {
       console.error("Error loading active plan:", error);
@@ -55,6 +75,61 @@ const Record = () => {
 
   const handleCreateNewPlan = () => {
     router.push("/(tabs)/plan/create" as any);
+  };
+
+  const handleDaySelect = (dayIndex: number) => {
+    setSelectedDayIndex(dayIndex);
+  };
+
+  const handleGoToToday = () => {
+    if (!activePlan) return;
+
+    const daysElapsed = getDaysElapsed(new Date(activePlan.start_date));
+    const weekNumber = getWeekNumber(
+      daysElapsed,
+      activePlan.num_weeks,
+      activePlan.plan_type
+    );
+    if (weekNumber !== null) {
+      setCurrentWeekIndex(weekNumber);
+      // Set selected day to today
+      const today = new Date();
+      const planStart = new Date(activePlan.start_date);
+      planStart.setHours(0, 0, 0, 0);
+      const daysSinceStart = getDaysElapsed(planStart, today);
+      setSelectedDayIndex(daysSinceStart % 7);
+    }
+  };
+
+  // Get today's date for display
+  const getTodayDate = (): string => {
+    const today = new Date();
+    return today.getDate().toString();
+  };
+
+  // Check if user is currently viewing today
+  const isViewingToday = (): boolean => {
+    if (!activePlan) return false;
+
+    const daysElapsed = getDaysElapsed(new Date(activePlan.start_date));
+    const currentWeekNumber = getWeekNumber(
+      daysElapsed,
+      activePlan.num_weeks,
+      activePlan.plan_type
+    );
+
+    if (currentWeekNumber === null) return false;
+
+    const today = new Date();
+    const planStart = new Date(activePlan.start_date);
+    planStart.setHours(0, 0, 0, 0);
+    const daysSinceStart = getDaysElapsed(planStart, today);
+    const currentDayIndex = daysSinceStart % 7;
+
+    return (
+      currentWeekIndex === currentWeekNumber &&
+      selectedDayIndex === currentDayIndex
+    );
   };
 
   // Show manual workout form modal
@@ -86,16 +161,34 @@ const Record = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Header with Calendar */}
+      {/* Header with Week Indicator */}
       {activePlan && (
         <View className="px-4 py-3 border-b border-gray-200 bg-white flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-gray-900">Record</Text>
-          <TouchableOpacity
-            onPress={() => router.push("/(tabs)/plan" as any)}
-            className="p-2"
-          >
-            <Ionicons name="calendar-outline" size={24} color="#374151" />
-          </TouchableOpacity>
+          <Text className="text-2xl font-bold text-gray-900 mr-2">Record</Text>
+          <Text className="text-sm text-gray-600">
+            Week {currentWeekIndex + 1}/{activePlan.num_weeks}
+          </Text>
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={handleGoToToday}
+              className="p-2 ml-2 flex-row items-center"
+            >
+              <Ionicons
+                name={isViewingToday() ? "calendar" : "calendar-outline"}
+                size={20}
+                color="#374151"
+              />
+              <Text className="text-sm font-semibold text-gray-900 ml-1">
+                {getTodayDate()}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/plan" as any)}
+              className="p-2 ml-2"
+            >
+              <Ionicons name="calendar-outline" size={24} color="#374151" />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -150,7 +243,12 @@ const Record = () => {
           </TouchableOpacity>
         </View>
       ) : (
-        <TodaysWorkout plan={activePlan} />
+        <DayWorkoutView
+          plan={activePlan}
+          weekIndex={currentWeekIndex}
+          selectedDayIndex={selectedDayIndex}
+          onDaySelect={handleDaySelect}
+        />
       )}
     </SafeAreaView>
   );

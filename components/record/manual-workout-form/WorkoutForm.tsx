@@ -10,20 +10,20 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "../../lib/context/AuthContext";
+import { useAuth } from "../../../lib/context/AuthContext";
 import {
   analyzeWorkoutVideos,
   VideoAnalysisResult,
-} from "../../lib/functions/videoFunctions";
+} from "../../../lib/functions/videoFunctions";
 import {
   Exercise,
   saveCompleteWorkout,
   WorkoutExercise,
-} from "../../lib/functions/workoutFunctions";
-import AnalysisResults from "./AnalysisResults";
+} from "../../../lib/functions/workoutFunctions";
+import AnalysisResults from "../shared/AnalysisResults";
+import VideoUploadMode from "../shared/VideoUploadMode";
 import ExerciseSelector from "./ExerciseSelector";
 import ExerciseSetInput from "./ExerciseSetInput";
-import VideoUploadMode from "./VideoUploadMode";
 
 type WorkoutMode = "manual" | "video" | "analyzing" | "results";
 
