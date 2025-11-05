@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface PlanOverviewWorkoutCardProps {
   workout: {
@@ -40,8 +41,11 @@ const PlanOverviewWorkoutCard: React.FC<PlanOverviewWorkoutCardProps> = ({
   return (
     <View className="bg-white rounded-2xl mb-3 shadow-sm flex-row items-center">
       {/* Left: Vertical bar */}
-      <View
-        className="mr-3 absolute left-0 top-0 w-4 h-full bg-blue-600"
+      <LinearGradient
+        colors={["#2563eb", "#3b82f6", "#60a5fa"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className="mr-3 absolute left-0 top-0 w-4 h-full"
         style={{ borderTopLeftRadius: 20, borderBottomLeftRadius: 20 }}
       />
 

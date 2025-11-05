@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Text, TouchableOpacity, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Plan } from "../../../lib/functions/planFunctions";
 
 interface WeekScheduleProps {
@@ -123,12 +124,14 @@ const WeekSchedule: React.FC<WeekScheduleProps> = ({
                 style={{ minHeight: 10 }}
               >
                 {!isRest && workoutLetter && (
-                  <View
+                  <LinearGradient
+                    colors={["#3b82f6", "#60a5fa", "#93c5fd"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
                     style={{
                       width: 10,
                       height: 10,
                       borderRadius: 2,
-                      backgroundColor: "#3b82f6",
                     }}
                   />
                 )}
