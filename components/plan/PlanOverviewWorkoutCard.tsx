@@ -39,7 +39,19 @@ const PlanOverviewWorkoutCard: React.FC<PlanOverviewWorkoutCardProps> = ({
   };
 
   return (
-    <View className="bg-white rounded-2xl mb-3 shadow-sm flex-row items-center">
+    <View
+      className="bg-white rounded-2xl mb-3 flex-row items-center"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      }}
+    >
       {/* Left: Vertical bar */}
       <LinearGradient
         colors={["#2563eb", "#3b82f6", "#60a5fa"]}

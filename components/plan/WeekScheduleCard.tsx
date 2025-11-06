@@ -198,6 +198,16 @@ const WeekScheduleCard: React.FC<WeekScheduleCardProps> = ({
     <Pressable
       onPress={handlePress}
       className={`bg-white rounded-lg p-4 mb-4 ${isCurrentWeek ? "border-2 border-black" : ""}`}
+      style={{
+        shadowColor: "#000",
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      }}
     >
       {/* Header */}
       <View className="mb-3">

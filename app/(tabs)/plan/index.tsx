@@ -1,5 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TopBar from "../../../components/layout/TopBar";
@@ -89,7 +89,7 @@ const Plan = () => {
   return (
     <View className="flex-1 bg-white">
       <TopBar title="Your Plan" icons={[]} />
-      <SafeAreaView className="flex-1 bg-gray-50" edges={["left", "right"]}>
+      <SafeAreaView className="flex-1 bg-gray-100" edges={["left", "right"]}>
         {!activePlan ? (
           <CreatePlanPrompt onPlanCreated={handlePlanCreated} />
         ) : (
