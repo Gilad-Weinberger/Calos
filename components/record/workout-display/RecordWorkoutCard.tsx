@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { Text, View } from "react-native";
 
@@ -62,29 +63,41 @@ const RecordWorkoutCard: React.FC<RecordWorkoutCardProps> = ({ workout }) => {
   };
 
   return (
-    <View className="bg-white rounded-2xl mb-4 shadow-sm flex-row items-center overflow-hidden">
+    <View
+      className="bg-white rounded-2xl mb-4 flex-row items-center overflow-hidden"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: {
+          width: 0,
+          height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      }}
+    >
       {/* Left: Color bar */}
-      <View
-        className="w-1 h-full"
-        style={{
-          backgroundColor: "#3b82f6",
-        }}
+      <LinearGradient
+        colors={["#1e40af", "#2563eb", "#3b82f6"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className="w-4 h-full"
+        style={{ borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }}
       />
 
       {/* Center: Workout details */}
       <View className="flex-1 p-4">
-        <Text className="text-gray-500 text-xs font-medium mb-1">
-          {formatDate(workout.scheduledDate)} • {getDurationRange()}
+        <Text className="text-gray-500 text-sm font-medium mb-1">
+          {formatDate(workout.scheduledDate)} •{" "}
+          <Text className="font-normal">{getDurationRange()}</Text>
         </Text>
-        <Text className="text-gray-900 text-lg font-bold mb-2">
+        <Text className="text-gray-900 text-xl font-bold mb-3">
           {workout.workoutName}
         </Text>
         <Text className="text-gray-500 text-sm">
-          <>
-            <Text className="font-semibold">Strength</Text> ·{" "}
-            {workout.exerciseCount}{" "}
-            {workout.exerciseCount === 1 ? "exercise" : "exercises"}
-          </>
+          <Text className="font-semibold">Strength</Text> ·{" "}
+          {workout.exerciseCount}{" "}
+          {workout.exerciseCount === 1 ? "exercise" : "exercises"}
         </Text>
       </View>
 

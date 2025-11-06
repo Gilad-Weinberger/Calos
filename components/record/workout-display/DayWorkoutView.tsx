@@ -14,8 +14,9 @@ import {
 import {
   calculateDaysSinceScheduled,
   getLateworkoutMessage,
+  getWeekStartDateForIndex,
 } from "../../../lib/utils/schedule";
-import WeekSchedule from "../schedule/WeekSchedule";
+import WeekSlider from "../schedule/WeekSlider";
 import RecordWorkoutCard from "./RecordWorkoutCard";
 
 interface DayWorkoutViewProps {
@@ -23,6 +24,7 @@ interface DayWorkoutViewProps {
   weekIndex: number;
   selectedDayIndex: number;
   onDaySelect: (dayIndex: number) => void;
+  onWeekChange: (weekIndex: number) => void;
 }
 
 const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
@@ -30,6 +32,7 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
   weekIndex,
   selectedDayIndex,
   onDaySelect,
+  onWeekChange,
 }) => {
   const router = useRouter();
   const { user } = useAuth();
@@ -47,35 +50,22 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
   const [completedWorkout, setCompletedWorkout] =
     useState<DatabaseWorkout | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const isInitialMount = React.useRef(true);
 
-  // Calculate week start date (memoized to prevent infinite loops)
+  // Calculate week start date using absolute week index
   const weekStartDate = useMemo(() => {
-    let effectiveStartDate = new Date(plan.start_date);
+    const planStart = new Date(plan.start_date);
+    planStart.setHours(0, 0, 0, 0);
+    return getWeekStartDateForIndex(planStart, weekIndex);
+  }, [plan.start_date, weekIndex]);
 
+  // Get the schedule index for this week (for recurring plans, use modulo)
+  const weekScheduleIndex = useMemo(() => {
     if (plan.plan_type === "repeat") {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const planStart = new Date(plan.start_date);
-      planStart.setHours(0, 0, 0, 0);
-
-      const daysElapsed = Math.floor(
-        (today.getTime() - planStart.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      const cycleLength = plan.num_weeks * 7;
-      const currentCycle = Math.floor(daysElapsed / cycleLength);
-
-      effectiveStartDate = new Date(planStart);
-      effectiveStartDate.setDate(
-        planStart.getDate() + currentCycle * cycleLength
-      );
+      return weekIndex % plan.num_weeks;
     }
-
-    const weekStartDate = new Date(effectiveStartDate);
-    weekStartDate.setDate(effectiveStartDate.getDate() + weekIndex * 7);
-    weekStartDate.setHours(0, 0, 0, 0);
-    return weekStartDate;
-  }, [plan.start_date, plan.plan_type, plan.num_weeks, weekIndex]);
+    return weekIndex;
+  }, [plan.plan_type, plan.num_weeks, weekIndex]);
 
   // Get selected day workout
   const selectedDayWorkout = weekWorkouts.find(
@@ -84,19 +74,23 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
 
   const isRestDay =
     !selectedDayWorkout ||
-    !plan.schedule[weekIndex]?.[selectedDayIndex] ||
-    plan.schedule[weekIndex][selectedDayIndex].toLowerCase() === "rest";
+    !plan.schedule[weekScheduleIndex]?.[selectedDayIndex] ||
+    plan.schedule[weekScheduleIndex][selectedDayIndex].toLowerCase() === "rest";
 
   // Load week workouts
   useEffect(() => {
     const loadWeekWorkouts = async () => {
       if (!user) {
         setIsLoading(false);
+        isInitialMount.current = false;
         return;
       }
 
       try {
-        setIsLoading(true);
+        // Only show loading on initial mount, not when switching weeks
+        if (isInitialMount.current) {
+          setIsLoading(true);
+        }
         const weekEndDate = new Date(weekStartDate);
         weekEndDate.setDate(weekStartDate.getDate() + 6);
         weekEndDate.setHours(23, 59, 59, 999);
@@ -105,7 +99,7 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
           plan,
           weekStartDate,
           weekEndDate,
-          weekIndex,
+          weekScheduleIndex,
           user.user_id
         );
         setWeekWorkouts(workouts);
@@ -113,11 +107,12 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
         console.error("Error loading week workouts:", error);
       } finally {
         setIsLoading(false);
+        isInitialMount.current = false;
       }
     };
 
     loadWeekWorkouts();
-  }, [user, plan, weekIndex, weekStartDate]);
+  }, [user, plan, weekIndex, weekStartDate, weekScheduleIndex]);
 
   // Check if selected day workout has been completed
   useEffect(() => {
@@ -183,7 +178,7 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
   // If workout is completed, show the completed workout card
   if (completedWorkout && !isRestDay && selectedDayWorkout) {
     return (
-      <View className="flex-1 bg-gray-50">
+      <View className="flex-1 bg-gray-100">
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
@@ -191,12 +186,12 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
         >
           <View className="p-4">
             {/* Week Schedule */}
-            <WeekSchedule
+            <WeekSlider
               plan={plan}
-              weekNumber={weekIndex}
+              initialWeekIndex={weekIndex}
               selectedDayIndex={selectedDayIndex}
               onDaySelect={onDaySelect}
-              weekStartDate={weekStartDate}
+              onWeekChange={onWeekChange}
             />
 
             {/* Workout Complete Banner */}
@@ -223,19 +218,19 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
 
   // Default view
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-100">
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Week Schedule */}
-        <WeekSchedule
+        <WeekSlider
           plan={plan}
-          weekNumber={weekIndex}
+          initialWeekIndex={weekIndex}
           selectedDayIndex={selectedDayIndex}
           onDaySelect={onDaySelect}
-          weekStartDate={weekStartDate}
+          onWeekChange={onWeekChange}
         />
 
         <View className="p-4">
@@ -256,6 +251,9 @@ const DayWorkoutView: React.FC<DayWorkoutViewProps> = ({
           ) : selectedDayWorkout ? (
             /* Workout Day Content */
             <>
+              <Text className="text-gray-900 text-md font-bold mb-5 mt-1">
+                Workouts
+              </Text>
               {/* Workout Card */}
               <RecordWorkoutCard
                 workout={{

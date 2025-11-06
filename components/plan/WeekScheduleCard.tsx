@@ -1,7 +1,7 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import type { Plan } from "../../lib/functions/planFunctions";
 import { getWeekWorkoutProgress } from "../../lib/functions/planFunctions";
 import ProgressBars from "../ui/ProgressBars";
@@ -265,21 +265,12 @@ const WeekScheduleCard: React.FC<WeekScheduleCardProps> = ({
           return (
             <View key={dayIndex} className="flex-row items-center mb-2">
               {/* Color indicator */}
-              {isRunning ? (
-                <LinearGradient
-                  colors={["#22c55e", "#4ade80", "#86efac"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="w-4 h-4 rounded mr-3"
-                />
-              ) : (
-                <LinearGradient
-                  colors={["#3b82f6", "#60a5fa", "#93c5fd"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  className="w-4 h-4 rounded mr-3"
-                />
-              )}
+              <LinearGradient
+                colors={["#3b82f6", "#60a5fa", "#93c5fd"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                className="w-4 h-4 rounded mr-3"
+              />
               {/* Day and workout */}
               <View className="flex-1">
                 <Text className="text-gray-900 text-sm">

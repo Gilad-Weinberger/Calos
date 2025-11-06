@@ -1,14 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import WorkoutForm from "../../components/record/manual-workout-form/WorkoutForm";
 import DayWorkoutView from "../../components/record/workout-display/DayWorkoutView";
 import { useAuth } from "../../lib/context/AuthContext";
 import { getActivePlan, Plan } from "../../lib/functions/planFunctions";
-import { getDaysElapsed, getWeekNumber } from "../../lib/utils/schedule";
+import {
+  getAbsoluteWeekNumber,
+  getDaysElapsed,
+} from "../../lib/utils/schedule";
 
 const Record = () => {
   const { user } = useAuth();
@@ -37,22 +40,15 @@ const Record = () => {
         );
         await checkAndCreateNextWeekWorkouts(plan, user.user_id);
 
-        // Set current week based on today
-        const daysElapsed = getDaysElapsed(new Date(plan.start_date));
-        const weekNumber = getWeekNumber(
-          daysElapsed,
-          plan.num_weeks,
-          plan.plan_type
-        );
-        if (weekNumber !== null) {
-          setCurrentWeekIndex(weekNumber);
-          // Set selected day to today
-          const today = new Date();
-          const planStart = new Date(plan.start_date);
-          planStart.setHours(0, 0, 0, 0);
-          const daysSinceStart = getDaysElapsed(planStart, today);
-          setSelectedDayIndex(daysSinceStart % 7);
-        }
+        // Set current week based on today (use absolute week for slider)
+        const planStart = new Date(plan.start_date);
+        planStart.setHours(0, 0, 0, 0);
+        const absoluteWeekNumber = getAbsoluteWeekNumber(planStart);
+        setCurrentWeekIndex(absoluteWeekNumber);
+        // Set selected day to today
+        const today = new Date();
+        const daysSinceStart = getDaysElapsed(planStart, today);
+        setSelectedDayIndex(daysSinceStart % 7);
       }
     } catch (error) {
       console.error("Error loading active plan:", error);
@@ -84,21 +80,18 @@ const Record = () => {
   const handleGoToToday = () => {
     if (!activePlan) return;
 
-    const daysElapsed = getDaysElapsed(new Date(activePlan.start_date));
-    const weekNumber = getWeekNumber(
-      daysElapsed,
-      activePlan.num_weeks,
-      activePlan.plan_type
-    );
-    if (weekNumber !== null) {
-      setCurrentWeekIndex(weekNumber);
-      // Set selected day to today
-      const today = new Date();
-      const planStart = new Date(activePlan.start_date);
-      planStart.setHours(0, 0, 0, 0);
-      const daysSinceStart = getDaysElapsed(planStart, today);
-      setSelectedDayIndex(daysSinceStart % 7);
-    }
+    const planStart = new Date(activePlan.start_date);
+    planStart.setHours(0, 0, 0, 0);
+    const absoluteWeekNumber = getAbsoluteWeekNumber(planStart);
+    setCurrentWeekIndex(absoluteWeekNumber);
+    // Set selected day to today
+    const today = new Date();
+    const daysSinceStart = getDaysElapsed(planStart, today);
+    setSelectedDayIndex(daysSinceStart % 7);
+  };
+
+  const handleWeekChange = (weekIndex: number) => {
+    setCurrentWeekIndex(weekIndex);
   };
 
   // Get today's date for display
@@ -111,31 +104,38 @@ const Record = () => {
   const isViewingToday = (): boolean => {
     if (!activePlan) return false;
 
-    const daysElapsed = getDaysElapsed(new Date(activePlan.start_date));
-    const currentWeekNumber = getWeekNumber(
-      daysElapsed,
-      activePlan.num_weeks,
-      activePlan.plan_type
-    );
-
-    if (currentWeekNumber === null) return false;
-
-    const today = new Date();
     const planStart = new Date(activePlan.start_date);
     planStart.setHours(0, 0, 0, 0);
+    const absoluteWeekNumber = getAbsoluteWeekNumber(planStart);
+    const today = new Date();
     const daysSinceStart = getDaysElapsed(planStart, today);
     const currentDayIndex = daysSinceStart % 7;
 
     return (
-      currentWeekIndex === currentWeekNumber &&
+      currentWeekIndex === absoluteWeekNumber &&
       selectedDayIndex === currentDayIndex
     );
+  };
+
+  // Get week display text
+  const getWeekDisplayText = (): string => {
+    if (!activePlan) return "";
+
+    if (activePlan.plan_type === "repeat") {
+      // For recurring plans, show the cycle week number (1-indexed)
+      const cycleWeekNumber = (currentWeekIndex % activePlan.num_weeks) + 1;
+      return `Week ${cycleWeekNumber}`;
+    } else {
+      // For non-recurring plans, show current week / total weeks
+      const displayWeek = Math.min(currentWeekIndex + 1, activePlan.num_weeks);
+      return `Week ${displayWeek}/${activePlan.num_weeks}`;
+    }
   };
 
   // Show manual workout form modal
   if (showManualWorkout) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-gray-100">
         {/* Header */}
         <View className="px-4 py-3 border-b border-gray-200 bg-white flex-row items-center justify-between">
           <Text className="text-xl font-bold text-gray-900">
@@ -152,7 +152,7 @@ const Record = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-gray-100 items-center justify-center">
         <ActivityIndicator size="large" color="#2563eb" />
         <Text className="text-gray-600 mt-4">Loading...</Text>
       </SafeAreaView>
@@ -160,14 +160,12 @@ const Record = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header with Week Indicator */}
       {activePlan && (
         <View className="px-4 py-3 border-b border-gray-200 bg-white flex-row items-center justify-between">
           <Text className="text-2xl font-bold text-gray-900 mr-2">Record</Text>
-          <Text className="text-sm text-gray-600">
-            Week {currentWeekIndex + 1}/{activePlan.num_weeks}
-          </Text>
+          <Text className="text-sm text-gray-600">{getWeekDisplayText()}</Text>
           <View className="flex-row items-center">
             <TouchableOpacity
               onPress={handleGoToToday}
@@ -248,6 +246,7 @@ const Record = () => {
           weekIndex={currentWeekIndex}
           selectedDayIndex={selectedDayIndex}
           onDaySelect={handleDaySelect}
+          onWeekChange={handleWeekChange}
         />
       )}
     </SafeAreaView>

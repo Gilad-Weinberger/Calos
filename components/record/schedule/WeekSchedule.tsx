@@ -125,7 +125,7 @@ const WeekSchedule: React.FC<WeekScheduleProps> = ({
               >
                 {!isRest && workoutLetter && (
                   <LinearGradient
-                    colors={["#3b82f6", "#60a5fa", "#93c5fd"]}
+                    colors={["#2563eb", "#3b82f6", "#60a5fa"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={{

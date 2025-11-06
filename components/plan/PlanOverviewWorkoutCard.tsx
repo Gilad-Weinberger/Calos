@@ -54,7 +54,7 @@ const PlanOverviewWorkoutCard: React.FC<PlanOverviewWorkoutCardProps> = ({
     >
       {/* Left: Vertical bar */}
       <LinearGradient
-        colors={["#2563eb", "#3b82f6", "#60a5fa"]}
+        colors={["#1e40af", "#2563eb", "#3b82f6"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         className="mr-3 absolute left-0 top-0 w-4 h-full"

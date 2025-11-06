@@ -288,3 +288,49 @@ export const formatWeekDay = (
 ): string => {
   return `Week ${weekNumber + 1}, Day ${dayInWeek + 1}`;
 };
+
+/**
+ * Get the absolute week number from plan start (for recurring plans)
+ * @param startDate - When the plan was activated
+ * @param targetDate - The date to calculate for (defaults to today)
+ * @returns Absolute week number (0-indexed, can be any positive number)
+ */
+export const getAbsoluteWeekNumber = (
+  startDate: Date,
+  targetDate: Date = new Date()
+): number => {
+  const daysElapsed = getDaysElapsed(startDate, targetDate);
+  return Math.floor(daysElapsed / 7);
+};
+
+/**
+ * Get the week start date for a given absolute week index
+ * @param startDate - When the plan was activated (should be a Sunday)
+ * @param weekIndex - Absolute week index (0-indexed)
+ * @returns Week start date (Sunday of that week)
+ */
+export const getWeekStartDateForIndex = (
+  startDate: Date,
+  weekIndex: number
+): Date => {
+  const weekStartDate = new Date(startDate);
+  weekStartDate.setDate(startDate.getDate() + weekIndex * 7);
+  weekStartDate.setHours(0, 0, 0, 0);
+  return weekStartDate;
+};
+
+/**
+ * Get the maximum week index for non-recurring plans
+ * @param numWeeks - Total number of weeks in the plan
+ * @param planType - 'repeat' or 'once'
+ * @returns Maximum week index (0-indexed) or null for recurring plans
+ */
+export const getMaxWeekIndex = (
+  numWeeks: number,
+  planType: "repeat" | "once"
+): number | null => {
+  if (planType === "repeat") {
+    return null; // No limit for recurring plans
+  }
+  return numWeeks - 1; // 0-indexed, so max is num_weeks - 1
+};
