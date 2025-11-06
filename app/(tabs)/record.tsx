@@ -4,8 +4,8 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import WorkoutForm from "../../components/record/manual-workout-form/WorkoutForm";
-import DayWorkoutView from "../../components/record/workout-display/DayWorkoutView";
+import ManualWorkoutForm from "../../components/workout/create/ManualWorkoutForm";
+import RecordDayWorkoutView from "../../components/workout/display/RecordDayWorkoutView";
 import { useAuth } from "../../lib/context/AuthContext";
 import { getActivePlan, Plan } from "../../lib/functions/planFunctions";
 import {
@@ -145,7 +145,7 @@ const Record = () => {
             <Ionicons name="close" size={24} color="#374151" />
           </TouchableOpacity>
         </View>
-        <WorkoutForm />
+        <ManualWorkoutForm />
       </SafeAreaView>
     );
   }
@@ -241,7 +241,7 @@ const Record = () => {
           </TouchableOpacity>
         </View>
       ) : (
-        <DayWorkoutView
+        <RecordDayWorkoutView
           plan={activePlan}
           weekIndex={currentWeekIndex}
           selectedDayIndex={selectedDayIndex}

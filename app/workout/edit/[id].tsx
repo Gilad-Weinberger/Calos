@@ -12,12 +12,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FullPageTopBar from "../../../components/layout/FullPageTopBar";
-import MediaUploadInput from "../../../components/workout-edit/MediaUploadInput";
-import VisibilitySelector from "../../../components/workout-edit/VisibilitySelector";
-import WorkoutEditActions from "../../../components/workout-edit/WorkoutEditActions";
-import WorkoutEditExerciseList from "../../../components/workout-edit/WorkoutEditExerciseList";
-import WorkoutMetadataForm from "../../../components/workout-edit/WorkoutMetadataForm";
-import WorkoutStatsSummary from "../../../components/workout-edit/WorkoutStatsSummary";
+import WorkoutMediaUploadInput from "../../../components/workout/edit/WorkoutMediaUploadInput";
+import WorkoutVisibilitySelector from "../../../components/workout/edit/WorkoutVisibilitySelector";
+import WorkoutEditActionButtons from "../../../components/workout/edit/WorkoutEditActionButtons";
+import WorkoutEditExerciseList from "../../../components/workout/edit/WorkoutEditExerciseList";
+import WorkoutMetadataForm from "../../../components/workout/edit/WorkoutMetadataForm";
+import WorkoutStatsSummary from "../../../components/workout/edit/WorkoutStatsSummary";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   calculateTotalReps,
@@ -283,13 +283,13 @@ const WorkoutEditScreen: React.FC = () => {
             />
 
             {/* Visibility Selector */}
-            <VisibilitySelector
+            <WorkoutVisibilitySelector
               visibility={visibility}
               onChange={setVisibility}
             />
 
             {/* Media Upload */}
-            <MediaUploadInput
+            <WorkoutMediaUploadInput
               onMediaChange={setMediaItems}
               initialMedia={mediaItems}
               maxItems={10}
@@ -305,7 +305,7 @@ const WorkoutEditScreen: React.FC = () => {
         </ScrollView>
 
         {/* Action Buttons */}
-        <WorkoutEditActions
+        <WorkoutEditActionButtons
           onSave={handleSave}
           onDiscard={handleDiscard}
           isSaving={isSaving}

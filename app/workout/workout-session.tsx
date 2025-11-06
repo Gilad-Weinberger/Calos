@@ -8,14 +8,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CountdownScreen from "../../components/workout-session/CountdownScreen";
-import ExerciseSetScreen from "../../components/workout-session/ExerciseSetScreen";
-import HoldTimerScreen from "../../components/workout-session/HoldTimerScreen";
-import ManualDurationInputModal from "../../components/workout-session/ManualDurationInputModal";
-import ReadyPromptScreen from "../../components/workout-session/ReadyPromptScreen";
-import RestTimerScreen from "../../components/workout-session/RestTimerScreen";
-import { useWorkoutSession } from "../../components/workout-session/useWorkoutSession";
-import WorkoutSessionHeader from "../../components/workout-session/WorkoutSessionHeader";
+import WorkoutCountdownScreen from "../../components/workout/session/WorkoutCountdownScreen";
+import WorkoutExerciseSetScreen from "../../components/workout/session/WorkoutExerciseSetScreen";
+import WorkoutHoldTimerScreen from "../../components/workout/session/WorkoutHoldTimerScreen";
+import WorkoutManualDurationInputModal from "../../components/workout/session/WorkoutManualDurationInputModal";
+import WorkoutReadyPromptScreen from "../../components/workout/session/WorkoutReadyPromptScreen";
+import WorkoutRestTimerScreen from "../../components/workout/session/WorkoutRestTimerScreen";
+import { useWorkoutSession } from "../../components/workout/session/useWorkoutSession";
+import WorkoutSessionHeader from "../../components/workout/session/WorkoutSessionHeader";
 
 const WorkoutSession = () => {
   const {
@@ -97,7 +97,7 @@ const WorkoutSession = () => {
         >
           <View className="flex-1 p-6">
             {isResting ? (
-              <RestTimerScreen
+              <WorkoutRestTimerScreen
                 restDuration={restDuration}
                 restTimeLeft={restTimeLeft}
                 isRestTimerRunning={isRestTimerRunning}
@@ -105,17 +105,17 @@ const WorkoutSession = () => {
                 onSkipRest={skipRest}
               />
             ) : showReadyPrompt ? (
-              <ReadyPromptScreen
+              <WorkoutReadyPromptScreen
                 currentSetIndex={currentSetIndex}
                 onStartSet={skipRest}
               />
             ) : showCountdown ? (
-              <CountdownScreen
+              <WorkoutCountdownScreen
                 countdownValue={countdownValue}
                 duration={currentExercise?.duration || 0}
               />
             ) : isHolding ? (
-              <HoldTimerScreen
+              <WorkoutHoldTimerScreen
                 holdDuration={holdDuration}
                 currentExercise={currentExercise!}
                 currentSetIndex={currentSetIndex}
@@ -124,7 +124,7 @@ const WorkoutSession = () => {
                 onComplete={handleStaticSetComplete}
               />
             ) : (
-              <ExerciseSetScreen
+              <WorkoutExerciseSetScreen
                 currentExercise={currentExercise!}
                 currentExerciseIndex={currentExerciseIndex}
                 totalExercises={totalExercises}
@@ -148,7 +148,7 @@ const WorkoutSession = () => {
 
       {/* Manual Duration Input Modal */}
       {currentExercise && (
-        <ManualDurationInputModal
+        <WorkoutManualDurationInputModal
           visible={showManualDurationInput}
           onSubmit={handleManualDurationSubmit}
           currentExercise={currentExercise}

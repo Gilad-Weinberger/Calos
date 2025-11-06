@@ -6,23 +6,20 @@ import {
   isToday,
   isYesterday,
 } from "date-fns";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, RefreshControl, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FullPageTopBar from "../../components/layout/FullPageTopBar";
-import MediaGrid from "../../components/profile/MediaGrid";
+import ProfileActionButtons from "../../components/profile/ProfileActionButtons";
+import ProfileErrorState from "../../components/profile/ProfileErrorState";
+import ProfileHeader from "../../components/profile/ProfileHeader";
+import ProfileLoadingState from "../../components/profile/ProfileLoadingState";
+import ProfileMediaGrid from "../../components/profile/ProfileMediaGrid";
+import ProfileSocialStats from "../../components/profile/ProfileSocialStats";
 import ProfileStats from "../../components/profile/ProfileStats";
+import ProfileWorkoutSection from "../../components/profile/ProfileWorkoutSection";
 import { useAuth } from "../../lib/context/AuthContext";
 import {
   followUser,
@@ -182,58 +179,15 @@ const ProfilePage = () => {
     }
   };
 
-  const handleViewWorkouts = () => {
-    router.push({
-      pathname: "/profile/workouts/[id]",
-      params: { id },
-    });
-  };
 
   const isOwnProfile = currentUser?.user_id === id;
 
   if (loading) {
-    return (
-      <View className="flex-1 bg-white">
-        <FullPageTopBar
-          title="Profile"
-          rightIcons={[
-            {
-              name: "share-social-outline",
-              onPress: handleShare,
-            },
-          ]}
-        />
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#0066FF" />
-          <Text className="text-gray-600 mt-2">Loading profile...</Text>
-        </View>
-      </View>
-    );
+    return <ProfileLoadingState />;
   }
 
   if (error) {
-    return (
-      <View className="flex-1 bg-white">
-        <FullPageTopBar
-          title="Profile"
-          rightIcons={[
-            {
-              name: "share-social-outline",
-              onPress: handleShare,
-            },
-          ]}
-        />
-        <View className="flex-1 items-center justify-center p-4">
-          <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
-          <Text className="text-lg font-semibold text-gray-800 mt-4 text-center">
-            {error}
-          </Text>
-          <Text className="text-gray-600 mt-2 text-center">
-            Please try again later
-          </Text>
-        </View>
-      </View>
-    );
+    return <ProfileErrorState error={error} onShare={handleShare} />;
   }
 
   if (!profileUser) {
@@ -267,107 +221,27 @@ const ProfilePage = () => {
       >
         <SafeAreaView className="flex-1" edges={["bottom", "left", "right"]}>
           {/* Media Grid Section */}
-          {recentMedia.length > 0 && <MediaGrid mediaItems={recentMedia} />}
+          {recentMedia.length > 0 && <ProfileMediaGrid mediaItems={recentMedia} />}
           {/* Profile Information Section */}
           <View className="p-6 pb-2">
-            <View className="mb-6">
-              <View className="flex-row items-center mb-4">
-                <View className="w-20 h-20 rounded-full bg-gray-200 items-center justify-center overflow-hidden mr-4">
-                  {profileUser.profile_image_url ? (
-                    <Image
-                      source={{ uri: profileUser.profile_image_url }}
-                      className="w-full h-full"
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Ionicons name="person" size={32} color="#9CA3AF" />
-                  )}
-                </View>
-                <View className="flex-1 h-10">
-                  <Text className="text-2xl font-bold text-gray-800">
-                    {profileUser.name || "Unknown User"}
-                  </Text>
-                </View>
-              </View>
+            <ProfileHeader
+              profileImageUrl={profileUser.profile_image_url}
+              name={profileUser.name}
+              description={profileUser.description}
+            />
 
-              {/* Bio/Description */}
-              {profileUser.description ? (
-                <Text className="text-sm text-gray-700 leading-5 mt-1">
-                  {profileUser.description}
-                </Text>
-              ) : (
-                <Text className="text-sm text-gray-500 italic mt-1">
-                  No description provided
-                </Text>
-              )}
-            </View>
+            <ProfileSocialStats
+              followingCount={followingCount}
+              followerCount={followerCount}
+            />
 
-            {/* Social Stats Section */}
-            <View>
-              <View className="flex-row items-center mb-4 gap-4">
-                <View className="flex-col items-start">
-                  <Text className="text-center text-sm text-gray-500">
-                    Following
-                  </Text>
-                  <Text className="text-center text-lg font-bold text-gray-800">
-                    {followingCount}
-                  </Text>
-                </View>
-                <View className="flex-col items-start">
-                  <Text className="text-center text-sm text-gray-500">
-                    Followers
-                  </Text>
-                  <Text className="text-center text-lg font-bold text-gray-800">
-                    {followerCount}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex-row items-center gap-2">
-                {!isOwnProfile && (
-                  <TouchableOpacity
-                    onPress={handleFollow}
-                    disabled={followingLoading}
-                    className={`h-8 rounded-lg flex-row items-center justify-center ${
-                      isFollowingUser
-                        ? "border border-blue-500 w-32"
-                        : "bg-blue-500 w-24"
-                    }`}
-                  >
-                    {followingLoading ? (
-                      <ActivityIndicator
-                        size="small"
-                        color={isFollowingUser ? "#6B7280" : "white"}
-                      />
-                    ) : (
-                      <>
-                        <Ionicons
-                          name={isFollowingUser ? "checkmark" : "add"}
-                          size={16}
-                          color={isFollowingUser ? "#0066FF" : "white"}
-                        />
-                        <Text
-                          className={`font-medium text-sm ml-2 ${
-                            isFollowingUser ? "text-blue-500" : "text-white"
-                          }`}
-                        >
-                          {isFollowingUser ? "Following" : "Follow"}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={() => router.push(`/profile/share/${id}`)}
-                  className="h-8 rounded-lg flex-row items-center justify-center bg-white border border-blue-500 w-32"
-                >
-                  <Ionicons name="qr-code-outline" size={16} color="#0066FF" />
-                  <Text className="font-medium text-sm ml-2 text-blue-500">
-                    Share QR
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <ProfileActionButtons
+              isOwnProfile={isOwnProfile}
+              isFollowing={isFollowingUser}
+              followingLoading={followingLoading}
+              userId={id}
+              onFollow={handleFollow}
+            />
           </View>
           <View className="h-px bg-gray-200 my-6" />
           {/* Workout Statistics Section */}
@@ -375,28 +249,12 @@ const ProfilePage = () => {
 
           <View className="h-px bg-gray-200 my-6" />
           <View className="px-6 py-2">
-            {/* Workouts Section */}
-            <View className="mb-6">
-              <TouchableOpacity
-                onPress={handleViewWorkouts}
-                className="flex-row items-center justify-between"
-              >
-                <View className="flex-row items-center gap-4">
-                  <Ionicons name="barbell-outline" size={26} color="#6B7280" />
-                  <View>
-                    <Text className="text-lg font-semibold text-gray-800">
-                      Workouts
-                    </Text>
-                    {workoutStats && workoutStats.totalWorkouts > 0 && lastWorkoutDate && (
-                      <Text className="text-sm text-gray-500">
-                        {getFriendlyDate(new Date(lastWorkoutDate))}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
-              </TouchableOpacity>
-            </View>
+            <ProfileWorkoutSection
+              userId={id}
+              totalWorkouts={workoutStats?.totalWorkouts || 0}
+              lastWorkoutDate={lastWorkoutDate}
+              getFriendlyDate={getFriendlyDate}
+            />
           </View>
         </SafeAreaView>
       </ScrollView>

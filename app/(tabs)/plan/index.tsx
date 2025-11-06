@@ -2,10 +2,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import TopBar from "../../../components/layout/TopBar";
-import PlanCardHeader from "../../../components/plan/PlanCardHeader";
-import WeekScheduleCard from "../../../components/plan/WeekScheduleCard";
-import CreatePlanPrompt from "../../../components/record/shared/CreatePlanPrompt";
+import AppTopBar from "../../../components/layout/AppTopBar";
+import PlanProgressHeader from "../../../components/plan/PlanProgressHeader";
+import PlanWeekScheduleCard from "../../../components/plan/PlanWeekScheduleCard";
+import PlanCreationPrompt from "../../../components/plan/PlanCreationPrompt";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   getActivePlan,
@@ -74,7 +74,7 @@ const Plan = () => {
   if (isLoading) {
     return (
       <View className="flex-1 bg-white">
-        <TopBar title="Your Plan" icons={[]} />
+        <AppTopBar title="Your Plan" icons={[]} />
         <SafeAreaView
           className="flex-1 items-center justify-center bg-gray-50"
           edges={["bottom", "left", "right"]}
@@ -91,11 +91,11 @@ const Plan = () => {
       <TopBar title="Your Plan" icons={[]} />
       <SafeAreaView className="flex-1 bg-gray-100" edges={["left", "right"]}>
         {!activePlan ? (
-          <CreatePlanPrompt onPlanCreated={handlePlanCreated} />
+          <PlanCreationPrompt onPlanCreated={handlePlanCreated} />
         ) : (
           <ScrollView className="flex-1 p-4">
             {planProgress && (
-              <PlanCardHeader
+              <PlanProgressHeader
                 plan={activePlan}
                 completedWorkouts={planProgress.completedWorkouts}
                 totalWorkouts={planProgress.totalWorkouts}
@@ -107,7 +107,7 @@ const Plan = () => {
               <>
                 {Array.from({ length: activePlan.num_weeks }).map(
                   (_, weekIndex) => (
-                    <WeekScheduleCard
+                    <PlanWeekScheduleCard
                       key={weekIndex}
                       plan={activePlan}
                       weekIndex={weekIndex}

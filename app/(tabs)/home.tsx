@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import TopBar from "../../components/layout/TopBar";
+import AppTopBar from "../../components/layout/AppTopBar";
 import WorkoutCard from "../../components/you/workouts/WorkoutCard";
 import { useAuth } from "../../lib/context/AuthContext";
 import {
@@ -146,7 +146,7 @@ const Home = () => {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <TopBar
+      <AppTopBar
         title="Home"
         icons={[
           {

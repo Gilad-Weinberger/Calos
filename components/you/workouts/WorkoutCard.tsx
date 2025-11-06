@@ -1,20 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
-import { ResizeMode, Video } from "expo-av";
 import { router } from "expo-router";
 import React, { memo, useMemo, useState } from "react";
-import {
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, Text, View } from "react-native";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
-  calculateTotalReps,
   calculateTotalSets,
   calculateWorkoutDuration,
   deleteWorkout,
@@ -22,10 +10,14 @@ import {
   getBestAchievement,
   WorkoutExercise,
 } from "../../../lib/functions/workoutFunctions";
-import { groupExercisesBySuperset } from "../../../lib/utils/superset";
 import { formatDuration } from "../../../lib/utils/timer";
-import AchievementIcon from "../../ui/AchievementIcon";
 import VideoPlayerModal from "../../ui/VideoPlayerModal";
+import WorkoutCardAchievement from "./WorkoutCardAchievement";
+import WorkoutCardExerciseCarousel from "./WorkoutCardExerciseCarousel";
+import WorkoutCardHeader from "./WorkoutCardHeader";
+import WorkoutCardMenu from "./WorkoutCardMenu";
+import WorkoutCardStats from "./WorkoutCardStats";
+import WorkoutCardVideoCarousel from "./WorkoutCardVideoCarousel";
 
 interface WorkoutCardProps {
   workout: {
@@ -239,86 +231,22 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
 
     return (
       <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
-        {/* Header Section */}
-        <View className="flex-row items-center mb-3">
-          <TouchableOpacity
-            onPress={handleUserPress}
-            disabled={!userId}
-            className="flex-row items-center flex-1"
-            activeOpacity={userId ? 0.7 : 1}
-          >
-            <View className="w-12 h-12 rounded-full bg-blue-500 items-center justify-center overflow-hidden mr-3">
-              {userProfileImage ? (
-                <Image
-                  source={{ uri: userProfileImage }}
-                  className="w-full h-full"
-                  resizeMode="cover"
-                />
-              ) : (
-                <Ionicons name="person" size={24} color="white" />
-              )}
-            </View>
-            <View className="flex-1">
-              <Text className="text-base font-semibold text-gray-800">
-                {userName}
-              </Text>
-              <View className="flex-row items-center">
-                <Ionicons name="barbell" size={14} color="#6B7280" />
-                <Text className="text-sm text-gray-600 ml-1">
-                  {formattedDate}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
+        <WorkoutCardHeader
+          userName={userName}
+          userProfileImage={userProfileImage}
+          formattedDate={formattedDate}
+          userId={userId}
+          onUserPress={handleUserPress}
+          onMenuPress={() => setMenuVisible(true)}
+        />
 
-          {/* Menu Button */}
-          <TouchableOpacity
-            onPress={() => setMenuVisible(true)}
-            className="p-2"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Menu Modal */}
-        <Modal
+        <WorkoutCardMenu
           visible={menuVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setMenuVisible(false)}
-        >
-          <Pressable
-            className="flex-1 bg-black/50"
-            onPress={() => setMenuVisible(false)}
-          >
-            <View className="flex-1 justify-center items-center p-4">
-              <View className="bg-white rounded-2xl w-64 overflow-hidden">
-                <TouchableOpacity
-                  onPress={handleEditPress}
-                  className="flex-row items-center p-4 border-b border-gray-200"
-                >
-                  <Ionicons name="create-outline" size={24} color="#3B82F6" />
-                  <Text className="text-base font-medium text-gray-900 ml-3">
-                    Edit Workout
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleDeletePress}
-                  className="flex-row items-center p-4"
-                  disabled={isDeleting}
-                  style={{ opacity: isDeleting ? 0.5 : 1 }}
-                >
-                  <Ionicons name="trash-outline" size={24} color="#EF4444" />
-                  <Text className="text-base font-medium text-red-600 ml-3">
-                    {isDeleting ? "Deleting..." : "Delete Workout"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Pressable>
-        </Modal>
+          isDeleting={isDeleting}
+          onClose={() => setMenuVisible(false)}
+          onEdit={handleEditPress}
+          onDelete={handleDeletePress}
+        />
 
         {/* Title Section */}
         <Text className="text-xl font-bold text-gray-800 flex-1 mt-1">
@@ -332,239 +260,28 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
           </Text>
         )}
 
-        {/* Stats Section */}
-        <View className="flex-row justify-between mb-4 mt-4">
-          {/* <View className="flex-1">
-            <Text className="text-sm text-gray-500 mb-1">Total Reps</Text>
-            <Text className="text-lg font-semibold text-gray-800">
-              {totalReps}
-            </Text>
-          </View> */}
-          <View className="flex-1">
-            <Text className="text-sm text-gray-500 mb-1">Exercises</Text>
-            <Text className="text-lg font-semibold text-gray-800">
-              {totalExercises}
-            </Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm text-gray-500 mb-1">Total Sets</Text>
-            <Text className="text-lg font-semibold text-gray-800">
-              {totalSets}
-            </Text>
-          </View>
-          {durationText && (
-            <View className="flex-1">
-              <Text className="text-sm text-gray-500 mb-1">Duration</Text>
-              <Text className="text-lg font-semibold text-gray-800">
-                {durationText}
-              </Text>
-            </View>
-          )}
-          {achievements && achievements.length > 0 && (
-            <View className="flex-1">
-              <Text className="text-sm text-gray-500 mb-1">Achievements</Text>
-              <View className="flex-row items-center">
-                <Ionicons name="trophy" size={18} color="#F59E0B" />
-                <Text className="text-lg font-semibold text-gray-800 ml-1">
-                  {achievements.length}
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
+        <WorkoutCardStats
+          totalExercises={totalExercises}
+          totalSets={totalSets}
+          durationText={durationText}
+          achievementCount={achievements?.length || 0}
+        />
 
-        {/* Congrats Section */}
         {bestAchievement && (
-          <Pressable
+          <WorkoutCardAchievement
+            achievement={bestAchievement}
             onPress={handleCongratsPress}
-            className="bg-[#f2f2f0] rounded-lg p-4 mb-4 border border-orange-200"
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.8 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-            })}
-          >
-            <View className="flex-row items-center">
-              <View className="w-12 h-12 bg-white rounded-full items-center justify-center mr-4 shadow-sm">
-                <AchievementIcon
-                  type={bestAchievement.icon as "trophy" | "medal"}
-                  rank={bestAchievement.rank}
-                  size={24}
-                />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm text-orange-700 font-medium">
-                  {bestAchievement.message}
-                </Text>
-              </View>
-            </View>
-          </Pressable>
+          />
         )}
 
         {/* Video Carousel or Exercise Carousel Section */}
         {hasVideos ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="flex-row"
-            contentContainerStyle={{ paddingRight: 16 }}
-          >
-            {videosWithContext.map((video, index) => (
-              <TouchableOpacity
-                key={`${video.url}-${index}`}
-                onPress={() => handleVideoPress(video)}
-                activeOpacity={0.8}
-                className="mr-3 rounded-xl overflow-hidden"
-                style={{ width: 160, height: 240 }}
-              >
-                <View className="w-full h-full">
-                  <Video
-                    source={{ uri: video.url }}
-                    style={{ width: "100%", height: "100%" }}
-                    resizeMode={ResizeMode.COVER}
-                    shouldPlay={false}
-                    isLooping={false}
-                    isMuted
-                  />
-                  {/* Dark overlay with exercise name */}
-                  <View className="absolute bottom-0 left-0 right-0 bg-black/70 p-3">
-                    <Text
-                      className="text-white text-sm font-semibold"
-                      numberOfLines={2}
-                    >
-                      {video.exerciseName}
-                    </Text>
-                  </View>
-                  {/* Play icon overlay */}
-                  <View className="absolute inset-0 items-center justify-center">
-                    <View className="bg-black/40 rounded-full p-3">
-                      <Ionicons name="play" size={32} color="white" />
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <WorkoutCardVideoCarousel
+            videos={videosWithContext}
+            onVideoPress={handleVideoPress}
+          />
         ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="flex-row"
-            contentContainerStyle={{ paddingRight: 16 }}
-          >
-            {groupExercisesBySuperset(exercises).map((group, groupIndex) => {
-              if (group.isSuperset) {
-                return (
-                  <View
-                    key={`superset-${groupIndex}`}
-                    className="bg-blue-50 rounded-xl p-4 mr-2 border-2 border-blue-200"
-                    style={{ width: 160, minHeight: 180 }}
-                  >
-                    {/* Superset Badge */}
-                    <View className="bg-blue-600 rounded-full px-2 py-1 self-start mb-2">
-                      <Text className="text-xs font-bold text-white">
-                        SUPERSET
-                      </Text>
-                    </View>
-
-                    {/* Exercises in Superset */}
-                    {group.exercises.map((exercise, exIndex) => {
-                      // Cast to WorkoutExercise since we're in workout history
-                      const workoutEx = exercise as WorkoutExercise;
-                      return (
-                        <View key={exIndex} className="mb-2">
-                          <Text
-                            className="text-sm font-semibold text-gray-800"
-                            numberOfLines={1}
-                          >
-                            {workoutEx.exercise_name}
-                          </Text>
-                          <Text className="text-xs text-gray-600">
-                            {workoutEx.sets}×
-                            {(() => {
-                              const allSame = workoutEx.reps.every(
-                                (rep: number) => rep === workoutEx.reps[0]
-                              );
-                              const unit =
-                                workoutEx.exercise_type === "static" ? "s" : "";
-                              if (allSame) {
-                                return `${workoutEx.reps[0]}${unit}`;
-                              }
-                              return workoutEx.reps.join("-") + unit;
-                            })()}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                    <Text className="text-xs text-blue-600 mt-1 italic">
-                      No rest between
-                    </Text>
-                  </View>
-                );
-              } else {
-                // Cast to WorkoutExercise since we're in workout history
-                const workoutEx: WorkoutExercise = group
-                  .exercises[0] as WorkoutExercise;
-                return (
-                  <View
-                    key={`${workoutEx.exercise_id}-${groupIndex}`}
-                    className="bg-gray-50 rounded-xl p-4 mr-2"
-                    style={{ width: 140, minHeight: 180 }}
-                  >
-                    {/* Exercise Type Icon */}
-                    <View
-                      className={`w-10 h-10 rounded-full items-center justify-center mb-3 ${workoutEx.exercise_type === "dynamic" ? "bg-blue-100" : "bg-green-100"}`}
-                    >
-                      <Ionicons
-                        name={
-                          workoutEx.exercise_type === "dynamic"
-                            ? "flash"
-                            : "time"
-                        }
-                        size={20}
-                        color={
-                          workoutEx.exercise_type === "dynamic"
-                            ? "#3B82F6"
-                            : "#22C55E"
-                        }
-                      />
-                    </View>
-
-                    {/* Exercise Name */}
-                    <Text
-                      className="text-base font-semibold text-gray-800 mb-2"
-                      numberOfLines={2}
-                    >
-                      {workoutEx.exercise_name}
-                    </Text>
-
-                    {/* Sets and Reps */}
-                    <View className="flex-1 justify-end">
-                      <Text className="text-xs text-gray-500 mb-1">
-                        {workoutEx.sets} {workoutEx.sets === 1 ? "set" : "sets"}
-                      </Text>
-                      <Text className="text-sm font-medium text-gray-700">
-                        {(() => {
-                          const allSame = workoutEx.reps.every(
-                            (rep: number) => rep === workoutEx.reps[0]
-                          );
-                          const unit =
-                            workoutEx.exercise_type === "static"
-                              ? "seconds"
-                              : "reps";
-
-                          if (allSame && workoutEx.reps.length > 1) {
-                            return `${workoutEx.sets} × ${workoutEx.reps[0]} ${unit}`;
-                          } else {
-                            return `${workoutEx.reps.join(", ")} ${unit}`;
-                          }
-                        })()}
-                      </Text>
-                    </View>
-                  </View>
-                );
-              }
-            })}
-          </ScrollView>
+          <WorkoutCardExerciseCarousel exercises={exercises} />
         )}
         {/* Video Player Modal */}
         {selectedVideo && (

@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import CreatePlanPrompt from "../../../components/record/shared/CreatePlanPrompt";
+import PlanCreationPrompt from "../../../components/plan/PlanCreationPrompt";
 
 const CreatePlan = () => {
   const router = useRouter();
@@ -13,7 +13,7 @@ const CreatePlan = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <CreatePlanPrompt onPlanCreated={handlePlanCreated} />
+      <PlanCreationPrompt onPlanCreated={handlePlanCreated} />
     </SafeAreaView>
   );
 };

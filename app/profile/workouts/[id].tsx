@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import TopBar from "../../../components/layout/TopBar";
+import AppTopBar from "../../../components/layout/AppTopBar";
 import WorkoutCard from "../../../components/you/workouts/WorkoutCard";
 import { useAuth } from "../../../lib/context/AuthContext";
 import { getUserProfile } from "../../../lib/functions/userFunctions";
@@ -88,7 +88,7 @@ const UserWorkoutsPage = () => {
   if (loading) {
     return (
       <View className="flex-1 bg-white">
-        <TopBar
+        <AppTopBar
           title="Workouts"
           icons={[
             {
@@ -108,7 +108,7 @@ const UserWorkoutsPage = () => {
   if (error) {
     return (
       <View className="flex-1 bg-white">
-        <TopBar
+        <AppTopBar
           title="Workouts"
           icons={[
             {
