@@ -111,3 +111,4 @@ const CompletedWorkoutCard: React.FC<CompletedWorkoutCardProps> = ({ workout }) 
 
 export default CompletedWorkoutCard;
 
+

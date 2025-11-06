@@ -63,3 +63,4 @@ const WorkoutCardHeader: React.FC<WorkoutCardHeaderProps> = ({
 
 export default WorkoutCardHeader;
 
+

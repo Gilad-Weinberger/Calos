@@ -302,3 +302,4 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
 
 export default RecordDayWorkoutView;
 
+

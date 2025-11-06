@@ -63,3 +63,4 @@ const WorkoutCardExerciseItem: React.FC<WorkoutCardExerciseItemProps> = ({
 
 export default WorkoutCardExerciseItem;
 
+

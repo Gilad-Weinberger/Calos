@@ -115,3 +115,4 @@ const WorkoutManualDurationInputModal: React.FC<
 };
 
 export default WorkoutManualDurationInputModal;
+

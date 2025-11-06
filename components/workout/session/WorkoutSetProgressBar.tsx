@@ -37,3 +37,4 @@ const WorkoutSetProgressBar: React.FC<WorkoutSetProgressBarProps> = ({
 
 export default WorkoutSetProgressBar;
 
+

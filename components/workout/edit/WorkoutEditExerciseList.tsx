@@ -111,3 +111,4 @@ const WorkoutEditExerciseList: React.FC<WorkoutEditExerciseListProps> = ({
 
 export default WorkoutEditExerciseList;
 
+

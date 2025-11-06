@@ -52,3 +52,4 @@ const WorkoutCardStats: React.FC<WorkoutCardStatsProps> = ({
 
 export default WorkoutCardStats;
 
+

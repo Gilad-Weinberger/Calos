@@ -68,3 +68,4 @@ const WorkoutCardVideoCarousel: React.FC<WorkoutCardVideoCarouselProps> = ({
 
 export default WorkoutCardVideoCarousel;
 
+

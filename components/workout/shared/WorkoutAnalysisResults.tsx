@@ -273,3 +273,4 @@ const WorkoutAnalysisResults: React.FC<WorkoutAnalysisResultsProps> = ({
 
 export default WorkoutAnalysisResults;
 
+

@@ -27,3 +27,4 @@ const WorkoutTitleInput: React.FC<WorkoutTitleInputProps> = ({
 
 export default WorkoutTitleInput;
 
+

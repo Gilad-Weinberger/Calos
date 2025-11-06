@@ -18,3 +18,4 @@ const SupersetBadge: React.FC<SupersetBadgeProps> = ({ index, total }) => {
 
 export default SupersetBadge;
 
+

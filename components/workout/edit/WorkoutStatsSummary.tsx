@@ -39,3 +39,4 @@ const WorkoutStatsSummary: React.FC<WorkoutStatsSummaryProps> = ({
 
 export default WorkoutStatsSummary;
 
+

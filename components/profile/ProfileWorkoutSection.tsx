@@ -48,3 +48,4 @@ const ProfileWorkoutSection: React.FC<ProfileWorkoutSectionProps> = ({
 
 export default ProfileWorkoutSection;
 
+

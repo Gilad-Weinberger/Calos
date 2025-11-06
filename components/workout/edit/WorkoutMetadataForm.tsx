@@ -45,3 +45,4 @@ const WorkoutMetadataForm: React.FC<WorkoutMetadataFormProps> = ({
 
 export default WorkoutMetadataForm;
 
+

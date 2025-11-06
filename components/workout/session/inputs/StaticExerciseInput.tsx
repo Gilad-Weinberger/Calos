@@ -29,3 +29,4 @@ const StaticExerciseInput: React.FC<StaticExerciseInputProps> = ({
 
 export default StaticExerciseInput;
 
+

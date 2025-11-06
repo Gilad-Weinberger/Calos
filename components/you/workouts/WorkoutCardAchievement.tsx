@@ -46,3 +46,4 @@ const WorkoutCardAchievement: React.FC<WorkoutCardAchievementProps> = ({
 
 export default WorkoutCardAchievement;
 
+

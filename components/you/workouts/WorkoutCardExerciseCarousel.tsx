@@ -46,3 +46,4 @@ const WorkoutCardExerciseCarousel: React.FC<WorkoutCardExerciseCarouselProps> = 
 
 export default WorkoutCardExerciseCarousel;
 
+

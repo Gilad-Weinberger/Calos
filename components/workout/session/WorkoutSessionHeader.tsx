@@ -44,3 +44,4 @@ const WorkoutSessionHeader: React.FC<WorkoutSessionHeaderProps> = ({
 
 export default WorkoutSessionHeader;
 
+
