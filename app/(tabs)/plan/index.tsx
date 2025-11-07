@@ -88,7 +88,7 @@ const Plan = () => {
 
   return (
     <View className="flex-1 bg-white">
-      <TopBar title="Your Plan" icons={[]} />
+      <AppTopBar title="Your Plan" icons={[]} />
       <SafeAreaView className="flex-1 bg-gray-100" edges={["left", "right"]}>
         {!activePlan ? (
           <PlanCreationPrompt onPlanCreated={handlePlanCreated} />

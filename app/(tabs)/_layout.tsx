@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -61,12 +60,7 @@ export default function TabLayout() {
         options={{
           title: "Record",
           tabBarIcon: ({ color, size }) => (
-            <View
-              className="w-8 h-8 rounded-lg justify-center items-center"
-              style={{ backgroundColor: color }}
-            >
-              <Ionicons name="add" size={size * 0.7} color="white" />
-            </View>
+            <Ionicons name="scan-circle" size={size + 2} color={color} />
           ),
         }}
       />

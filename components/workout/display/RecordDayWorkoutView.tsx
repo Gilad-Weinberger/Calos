@@ -18,6 +18,7 @@ import {
 } from "../../../lib/utils/schedule";
 import PlanWeekSlider from "../../plan/schedule/PlanWeekSlider";
 import RecordWorkoutCard from "./RecordWorkoutCard";
+import WeekOverviewCard from "./WeekOverviewCard";
 
 interface RecordDayWorkoutViewProps {
   plan: Plan;
@@ -265,6 +266,15 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
                   exerciseCount: selectedDayWorkout.exerciseCount,
                 }}
               />
+
+              {/* Week Overview Card */}
+              {weekWorkouts.length > 0 && (
+                <WeekOverviewCard
+                  plan={plan}
+                  weekIndex={weekIndex}
+                  weekWorkouts={weekWorkouts}
+                />
+              )}
 
               {/* Late Warning */}
               {lateMessage && (
