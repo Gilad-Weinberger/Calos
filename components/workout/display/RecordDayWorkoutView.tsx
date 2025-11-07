@@ -17,7 +17,7 @@ import {
   getWeekStartDateForIndex,
 } from "../../../lib/utils/schedule";
 import PlanWeekSlider from "../../plan/schedule/PlanWeekSlider";
-import CompletedWorkoutCard from "./CompletedWorkoutCard";
+import RecordWorkoutCard from "./RecordWorkoutCard";
 
 interface RecordDayWorkoutViewProps {
   plan: Plan;
@@ -255,7 +255,7 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
                 Workouts
               </Text>
               {/* Workout Card */}
-              <CompletedWorkoutCard
+              <RecordWorkoutCard
                 workout={{
                   workoutLetter: selectedDayWorkout.workoutLetter,
                   workoutName: selectedDayWorkout.workoutName,

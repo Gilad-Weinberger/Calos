@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { Text, View } from "react-native";
 
-interface CompletedWorkoutCardProps {
+interface RecordWorkoutCardProps {
   workout: {
     workoutLetter: string;
     workoutName: string;
@@ -13,7 +13,7 @@ interface CompletedWorkoutCardProps {
   };
 }
 
-const CompletedWorkoutCard: React.FC<CompletedWorkoutCardProps> = ({ workout }) => {
+const RecordWorkoutCard: React.FC<RecordWorkoutCardProps> = ({ workout }) => {
   // Format date
   const formatDate = (date: Date): string => {
     const months = [
@@ -109,6 +109,6 @@ const CompletedWorkoutCard: React.FC<CompletedWorkoutCardProps> = ({ workout }) 
   );
 };
 
-export default CompletedWorkoutCard;
+export default RecordWorkoutCard;
 
 
