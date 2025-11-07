@@ -3,9 +3,7 @@ import React from "react";
 import { Text, View } from "react-native";
 
 interface PlanWorkoutStatsProps {
-  totalSets: number;
   totalExercises: number;
-  totalSupersets: number;
   scheduledLabel: string;
 }
 
@@ -28,17 +26,13 @@ const StatPill: React.FC<{
 );
 
 const PlanWorkoutStats: React.FC<PlanWorkoutStatsProps> = ({
-  totalSets,
   totalExercises,
-  totalSupersets,
   scheduledLabel,
 }) => {
   return (
     <View className="flex-row flex-wrap gap-3">
       <StatPill icon="calendar" label="Scheduled" value={scheduledLabel} />
       <StatPill icon="barbell" label="Exercises" value={`${totalExercises}`} />
-      <StatPill icon="repeat" label="Supersets" value={`${totalSupersets}`} />
-      <StatPill icon="list" label="Total Sets" value={`${totalSets}`} />
     </View>
   );
 };

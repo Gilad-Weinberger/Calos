@@ -2,14 +2,11 @@ import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { ScrollView, Share, Text, View } from "react-native";
 import PlanWorkoutCTA from "./PlanWorkoutCTA";
+import PlanWorkoutDescriptionCard from "./PlanWorkoutDescriptionCard";
 import PlanWorkoutHeader from "./PlanWorkoutHeader";
 import PlanWorkoutStats from "./PlanWorkoutStats";
 import PlanWorkoutExerciseGroups from "./exercises/PlanWorkoutExerciseGroups";
-import PlanWorkoutDescriptionCard from "./PlanWorkoutDescriptionCard";
-import {
-  createWorkoutBlocks,
-  formatBlocksForText,
-} from "./exercises/grouping";
+import { createWorkoutBlocks, formatBlocksForText } from "./exercises/grouping";
 import { PlanWorkoutViewModel } from "./types";
 
 interface PlanWorkoutScreenProps {
@@ -103,7 +100,7 @@ const PlanWorkoutScreen: React.FC<PlanWorkoutScreenProps> = ({
   }, [scheduledLabel, viewModel.planName, viewModel.title, workoutBlocks]);
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-100">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -119,9 +116,7 @@ const PlanWorkoutScreen: React.FC<PlanWorkoutScreenProps> = ({
 
         <View className="-mt-12 px-4">
           <PlanWorkoutStats
-            totalSets={viewModel.totalSets}
             totalExercises={viewModel.totalExercises}
-            totalSupersets={viewModel.totalSupersets}
             scheduledLabel={scheduledLabel}
           />
 
