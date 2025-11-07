@@ -1,6 +1,7 @@
-import React from "react";
-import { Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface PlanOverviewWorkoutCardProps {
   workout: {
@@ -11,12 +12,15 @@ interface PlanOverviewWorkoutCardProps {
     dayIndex: number;
     isCompleted: boolean;
     exerciseCount: number;
+    workoutId?: string | null;
   };
 }
 
 const PlanOverviewWorkoutCard: React.FC<PlanOverviewWorkoutCardProps> = ({
   workout,
 }) => {
+  const router = useRouter();
+
   // Format date
   const formatDate = (date: Date): string => {
     const months = [
@@ -38,8 +42,22 @@ const PlanOverviewWorkoutCard: React.FC<PlanOverviewWorkoutCardProps> = ({
     return `${month} ${day}`;
   };
 
+  const handlePress = () => {
+    if (!workout.workoutId) {
+      return;
+    }
+
+    router.push({
+      pathname: "/plan/workout/[id]",
+      params: { id: workout.workoutId },
+    });
+  };
+
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={workout.workoutId ? 0.9 : 1}
+      onPress={handlePress}
+      disabled={!workout.workoutId}
       className="bg-white rounded-2xl mb-3 flex-row items-center"
       style={{
         shadowColor: "#000",
@@ -75,7 +93,7 @@ const PlanOverviewWorkoutCard: React.FC<PlanOverviewWorkoutCardProps> = ({
           {workout.exerciseCount === 1 ? "exercise" : "exercises"}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

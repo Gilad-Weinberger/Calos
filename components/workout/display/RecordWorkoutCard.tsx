@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface RecordWorkoutCardProps {
   workout: {
@@ -10,10 +11,13 @@ interface RecordWorkoutCardProps {
     dayName: string;
     dayIndex: number;
     exerciseCount: number;
+    workoutId?: string | null;
   };
 }
 
 const RecordWorkoutCard: React.FC<RecordWorkoutCardProps> = ({ workout }) => {
+  const router = useRouter();
+
   // Format date
   const formatDate = (date: Date): string => {
     const months = [
@@ -62,8 +66,21 @@ const RecordWorkoutCard: React.FC<RecordWorkoutCardProps> = ({ workout }) => {
     return `${minMinutes}m - ${maxMinutes}m`;
   };
 
+  const handlePress = () => {
+    if (!workout.workoutId) {
+      return;
+    }
+
+    router.push({
+      pathname: "/plan/workout/[id]",
+      params: { id: workout.workoutId },
+    });
+  };
+
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={workout.workoutId ? 0.9 : 1}
+      onPress={handlePress}
       className="bg-white rounded-2xl mb-4 flex-row items-center overflow-hidden"
       style={{
         shadowColor: "#000",
@@ -105,10 +122,8 @@ const RecordWorkoutCard: React.FC<RecordWorkoutCardProps> = ({ workout }) => {
       <View className="mr-4">
         <View className="w-6 h-6 rounded border-2 border-gray-300" />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 export default RecordWorkoutCard;
-
-

@@ -758,11 +758,32 @@ const createWorkoutsForWeek = async (
             return null;
           }
 
+          // Convert reps/duration to array format
+          // For static exercises: use duration (in seconds) for each set
+          // For dynamic exercises: use reps for each set
+          let repsArray: number[];
+          if (exercise.type === "static") {
+            // Static exercise: use duration value repeated for each set
+            const durationValue = exDef.duration || 30; // Default 30 seconds
+            repsArray = new Array(exDef.sets).fill(durationValue);
+          } else {
+            // Dynamic exercise: use reps value repeated for each set
+            // Handle both single number and array formats
+            if (Array.isArray(exDef.reps)) {
+              repsArray = exDef.reps;
+            } else if (typeof exDef.reps === "number") {
+              repsArray = new Array(exDef.sets).fill(exDef.reps);
+            } else {
+              // Default to 0 if no reps specified
+              repsArray = new Array(exDef.sets).fill(0);
+            }
+          }
+
           return {
             workout_id: workout.workout_id,
             exercise_id: exercise.exercise_id,
             sets: exDef.sets,
-            reps: exDef.reps || new Array(exDef.sets).fill(0),
+            reps: repsArray,
             order_index: index + 1,
             rest_seconds: exDef.rest_seconds || 0,
             superset_group: exDef.superset_group || null,
@@ -1122,6 +1143,7 @@ export const getWeekWorkoutsWithDetails = async (
     dayIndex: number;
     isCompleted: boolean;
     exerciseCount: number;
+    workoutId?: string | null;
   }[]
 > => {
   try {
@@ -1139,7 +1161,7 @@ export const getWeekWorkoutsWithDetails = async (
     // Get completed workouts for this week from database
     const { data: completedWorkouts, error } = await supabase
       .from("workouts")
-      .select("scheduled_date, plan_workout_letter, done")
+      .select("workout_id, scheduled_date, plan_workout_letter, done")
       .eq("plan_id", plan.plan_id)
       .eq("user_id", userId)
       .gte("scheduled_date", weekStartDate.toISOString())
@@ -1152,6 +1174,7 @@ export const getWeekWorkoutsWithDetails = async (
 
     // Create a map of completed workouts by scheduled date and workout letter
     const completedMap = new Map<string, boolean>();
+    const workoutIdMap = new Map<string, string>();
     completedWorkouts?.forEach((workout) => {
       if (workout.scheduled_date && workout.plan_workout_letter) {
         const dateKey = new Date(workout.scheduled_date)
@@ -1160,6 +1183,9 @@ export const getWeekWorkoutsWithDetails = async (
         const key = `${dateKey}-${workout.plan_workout_letter}`;
         if (workout.done) {
           completedMap.set(key, true);
+        }
+        if (workout.workout_id) {
+          workoutIdMap.set(key, workout.workout_id);
         }
       }
     });
@@ -1172,6 +1198,7 @@ export const getWeekWorkoutsWithDetails = async (
       dayIndex: number;
       isCompleted: boolean;
       exerciseCount: number;
+      workoutId?: string | null;
     }[] = [];
 
     weekSchedule.forEach((workoutLetter, dayIndex) => {
@@ -1195,6 +1222,7 @@ export const getWeekWorkoutsWithDetails = async (
       const dateKey = scheduledDate.toISOString().split("T")[0];
       const completionKey = `${dateKey}-${workoutLetter}`;
       const isCompleted = completedMap.get(completionKey) || false;
+      const workoutId = workoutIdMap.get(completionKey) || null;
 
       workouts.push({
         workoutLetter,
@@ -1204,6 +1232,7 @@ export const getWeekWorkoutsWithDetails = async (
         dayIndex,
         isCompleted,
         exerciseCount: workout.exercises.length,
+        workoutId,
       });
     });
 

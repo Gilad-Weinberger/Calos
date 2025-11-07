@@ -24,6 +24,7 @@ interface WeekWorkout {
   dayIndex: number;
   isCompleted: boolean;
   exerciseCount: number;
+  workoutId?: string | null;
 }
 
 const PlanWeekOverview = () => {

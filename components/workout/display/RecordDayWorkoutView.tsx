@@ -46,6 +46,7 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
       dayIndex: number;
       isCompleted: boolean;
       exerciseCount: number;
+      workoutId?: string | null;
     }[]
   >([]);
   const [completedWorkout, setCompletedWorkout] =
@@ -264,6 +265,7 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
                   dayName: selectedDayWorkout.dayName,
                   dayIndex: selectedDayWorkout.dayIndex,
                   exerciseCount: selectedDayWorkout.exerciseCount,
+                  workoutId: selectedDayWorkout.workoutId,
                 }}
               />
 
