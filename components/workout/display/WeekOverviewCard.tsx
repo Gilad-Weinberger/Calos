@@ -55,7 +55,7 @@ const WeekOverviewCard: React.FC<WeekOverviewCardProps> = ({
   // Navigate to plan overview page
   const handlePress = () => {
     router.push({
-      pathname: "/(tabs)/plan/overview/[weekIndex]",
+      pathname: "/(tabs)/plan/week-overview",
       params: { weekIndex: weekIndex.toString() },
     } as any);
   };

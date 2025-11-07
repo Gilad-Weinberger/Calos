@@ -54,13 +54,19 @@ export default function TabLayout() {
             <Ionicons name="document-text" size={size} color={color} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (event) => {
+            event.preventDefault();
+            navigation.navigate("plan", { screen: "index" });
+          },
+        })}
       />
       <Tabs.Screen
         name="record"
         options={{
           title: "Record",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="scan-circle" size={size + 2} color={color} />
+            <Ionicons name="scan-circle" size={size + 5} color={color} />
           ),
         }}
       />

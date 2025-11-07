@@ -189,7 +189,7 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
 
   const handlePress = () => {
     router.push({
-      pathname: "/plan/overview/[weekIndex]",
+      pathname: "/plan/week-overview",
       params: { weekIndex: weekIndex.toString() },
     });
   };
