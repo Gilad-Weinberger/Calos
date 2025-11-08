@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   getWeekWorkoutsWithDetails,
@@ -16,6 +16,7 @@ import {
   getLateworkoutMessage,
   getWeekStartDateForIndex,
 } from "../../../lib/utils/schedule";
+import PlanWorkoutCTA from "../../plan-workout/PlanWorkoutCTA";
 import RecordWorkoutCard from "./RecordWorkoutCard";
 import PlanWeekSlider from "./schedule/PlanWeekSlider";
 import WeekOverviewCard from "./WeekOverviewCard";
@@ -294,19 +295,11 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
 
       {/* Fixed Record Workout Button - Only show for workout days */}
       {!isRestDay && selectedDayWorkout && (
-        <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-4 pb-8">
-          <TouchableOpacity
-            onPress={handleStartWorkout}
-            className="bg-black rounded-2xl py-4 px-6 shadow-lg"
-          >
-            <View className="flex-row items-center justify-center">
-              <Ionicons name="play" size={20} color="white" />
-              <Text className="text-white font-bold text-lg ml-2">
-                Record workout
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+        <PlanWorkoutCTA
+          onStart={handleStartWorkout}
+          disabled={!!completedWorkout}
+          label="Start Workout"
+        />
       )}
     </View>
   );
