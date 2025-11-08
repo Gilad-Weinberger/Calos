@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Dimensions, FlatList, View } from "react-native";
-import { Plan } from "../../../lib/functions/planFunctions";
+import { Plan } from "../../../../lib/functions/planFunctions";
 import {
-  getAbsoluteWeekNumber,
   getMaxWeekIndex,
   getWeekStartDateForIndex,
-} from "../../../lib/utils/schedule";
+} from "../../../../lib/utils/schedule";
 import PlanWeekSchedule from "./PlanWeekSchedule";
 
 interface PlanWeekSliderProps {
@@ -155,5 +154,3 @@ const PlanWeekSlider: React.FC<PlanWeekSliderProps> = ({
 };
 
 export default PlanWeekSlider;
-
-

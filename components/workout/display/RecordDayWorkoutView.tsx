@@ -16,8 +16,8 @@ import {
   getLateworkoutMessage,
   getWeekStartDateForIndex,
 } from "../../../lib/utils/schedule";
-import PlanWeekSlider from "../../plan/schedule/PlanWeekSlider";
 import RecordWorkoutCard from "./RecordWorkoutCard";
+import PlanWeekSlider from "./schedule/PlanWeekSlider";
 import WeekOverviewCard from "./WeekOverviewCard";
 
 interface RecordDayWorkoutViewProps {
@@ -313,5 +313,3 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
 };
 
 export default RecordDayWorkoutView;
-
-
