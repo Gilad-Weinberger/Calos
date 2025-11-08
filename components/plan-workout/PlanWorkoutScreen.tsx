@@ -1,10 +1,9 @@
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { ScrollView, Share, Text, View } from "react-native";
+import { ScrollView, Share, View } from "react-native";
 import PlanWorkoutCTA from "./PlanWorkoutCTA";
 import PlanWorkoutDescriptionCard from "./PlanWorkoutDescriptionCard";
 import PlanWorkoutHeader from "./PlanWorkoutHeader";
-import PlanWorkoutStats from "./PlanWorkoutStats";
 import PlanWorkoutExerciseGroups from "./exercises/PlanWorkoutExerciseGroups";
 import { createWorkoutBlocks, formatBlocksForText } from "./exercises/grouping";
 import { PlanWorkoutViewModel } from "./types";
@@ -114,21 +113,12 @@ const PlanWorkoutScreen: React.FC<PlanWorkoutScreenProps> = ({
           weekLabel={weekLabel}
         />
 
-        <View className="-mt-12 px-4">
-          <PlanWorkoutStats
-            totalExercises={viewModel.totalExercises}
-            scheduledLabel={scheduledLabel}
-          />
-
+        <View className=" px-4">
           <PlanWorkoutDescriptionCard
             description={viewModel.description}
             copyText={copyText}
           />
-
-          <View className="mt-6 mb-4">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
-              Workout Blocks
-            </Text>
+          <View className="mt-6 mb-4 px-1">
             <PlanWorkoutExerciseGroups blocks={workoutBlocks} />
           </View>
         </View>

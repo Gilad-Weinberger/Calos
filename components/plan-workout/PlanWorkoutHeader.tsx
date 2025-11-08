@@ -56,29 +56,17 @@ const PlanWorkoutHeader: React.FC<PlanWorkoutHeaderProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-        <View className="space-y-2 px-6 pb-16 pt-6">
-          <Text className="text-xs uppercase text-black/70 font-semibold tracking-widest">
-            {weekLabel}
+        <View className="px-6 pb-16 pt-6">
+          <Text className="text-xs uppercase text-black/70 font-semibold tracking-widest mb-3">
+            {scheduledLabel}
           </Text>
-          <Text className="text-3xl font-bold text-gray-900">
+          <Text className="text-3xl font-bold text-gray-900 mb-3">
             {viewModel.title}
           </Text>
-          <Text className="text-base text-gray-800/80">
-            {viewModel.planName || "Plan Workout"} • {scheduledLabel}
+          <Text className="text-sm text-black/70 font-semibold tracking-widest mb-3">
+            {viewModel.totalExercises}{" "}
+            {viewModel.totalExercises === 1 ? "Exercise" : "Exercises"}
           </Text>
-          {!viewModel.isCompleted ? (
-            <View className="self-start mt-4 rounded-full bg-black/80 px-3 py-1">
-              <Text className="text-white text-xs font-semibold uppercase">
-                Upcoming
-              </Text>
-            </View>
-          ) : (
-            <View className="self-start mt-4 rounded-full bg-white/80 px-3 py-1">
-              <Text className="text-black text-xs font-semibold uppercase">
-                Completed
-              </Text>
-            </View>
-          )}
         </View>
       </LinearGradient>
     </SafeAreaView>
