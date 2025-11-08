@@ -33,13 +33,7 @@ const Record = () => {
       const plan = await getActivePlan(user.user_id);
       setActivePlan(plan);
 
-      // Check and create next week workouts if needed (for recurring plans)
       if (plan) {
-        const { checkAndCreateNextWeekWorkouts } = await import(
-          "../../lib/functions/planFunctions"
-        );
-        await checkAndCreateNextWeekWorkouts(plan, user.user_id);
-
         // Set current week based on today (use absolute week for slider)
         const planStart = new Date(plan.start_date);
         planStart.setHours(0, 0, 0, 0);

@@ -3,9 +3,9 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppTopBar from "../../../components/layout/AppTopBar";
+import PlanCreationPrompt from "../../../components/plan/PlanCreationPrompt";
 import PlanProgressHeader from "../../../components/plan/PlanProgressHeader";
 import PlanWeekScheduleCard from "../../../components/plan/PlanWeekScheduleCard";
-import PlanCreationPrompt from "../../../components/plan/PlanCreationPrompt";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   getActivePlan,
@@ -38,12 +38,6 @@ const Plan = () => {
       setActivePlan(plan);
 
       if (plan) {
-        // Check and create next week workouts if needed (for recurring plans)
-        const { checkAndCreateNextWeekWorkouts } = await import(
-          "../../../lib/functions/planFunctions"
-        );
-        await checkAndCreateNextWeekWorkouts(plan, user.user_id);
-
         // Load plan progress statistics
         const progress = await getPlanProgress(plan);
         setPlanProgress(progress);
