@@ -247,16 +247,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         `[AuthContext] Auth state change: ${event}, user: ${session?.user?.id}`
       );
 
-      // Skip TOKEN_REFRESHED events if user hasn't changed
-      if (
-        event === "TOKEN_REFRESHED" &&
-        lastProcessedUserIdRef.current === session?.user?.id
-      ) {
-        console.log(`[AuthContext] Skipping TOKEN_REFRESHED for same user`);
-        return;
-      }
-
       if (session?.user) {
+        // Always update authUser with the refreshed session (contains new token)
         setAuthUser(session.user);
 
         // Only fetch profile if user changed or on initial sign in

@@ -10,129 +10,129 @@ interface PlanWorkoutExerciseGroupsProps {
   blocks?: WorkoutBlock[];
 }
 
-const ExerciseRow: React.FC<{ exercise: PlanWorkoutExercise }> = ({
-  exercise,
-}) => {
+const ExerciseRow: React.FC<{
+  exercise: PlanWorkoutExercise;
+  isInSuperset?: boolean;
+  isLastInGroup?: boolean;
+}> = ({ exercise, isInSuperset = false, isLastInGroup = false }) => {
   const detail = useMemo(() => {
     if (exercise.type === "static") {
-      if (exercise.duration) {
-        const minutes = Math.floor(exercise.duration / 60);
-        const seconds = exercise.duration % 60;
-        const formattedSeconds = seconds.toString().padStart(2, "0");
-        return minutes > 0
-          ? `${minutes}m ${formattedSeconds}s`
-          : `${formattedSeconds}s`;
+      const seconds = exercise.reps[0] || 0;
+      if (seconds >= 60) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        if (remainingSeconds === 0) {
+          return `${minutes} mins`;
+        }
+        return `${minutes} min ${remainingSeconds} sec`;
       }
-      return "Hold";
+      return `${seconds} sec`;
+    } else {
+      // Dynamic exercise - show reps
+      return `${exercise.reps[0] || 0}`;
     }
+  }, [exercise.type, exercise.reps]);
 
-    const filteredReps = exercise.reps.filter((rep) => typeof rep === "number");
-    if (filteredReps.length === 0) {
-      return `${exercise.sets} sets`;
-    }
-
-    const unique = Array.from(new Set(filteredReps));
-    if (unique.length === 1) {
-      return `${exercise.sets} x ${unique[0]}`;
-    }
-
-    return `${exercise.sets} sets`;
-  }, [exercise]);
-
-  const unilateralLabel = useMemo(() => {
-    if (!exercise.unilateralType) {
-      return null;
-    }
-
-    const formatted = exercise.unilateralType.replace(/_/g, " ");
-    return exercise.alternating ? `${formatted} · alternating` : formatted;
-  }, [exercise.alternating, exercise.unilateralType]);
+  // Reduce padding for exercises in supersets
+  const paddingClass = isInSuperset
+    ? isLastInGroup
+      ? "pt-2 pb-2"
+      : "py-2"
+    : "py-3";
 
   return (
-    <View className="flex-row items-center justify-between py-3">
+    <View
+      className={`w-full flex-row items-center justify-between ${paddingClass}`}
+    >
       <View className="flex-1 pr-3">
-        <Text className="text-base font-semibold text-gray-900">
-          {exercise.name}
+        <Text className="text-sm font-medium text-gray-900">
+          {detail} {exercise.name}
         </Text>
-        <View className="flex-row items-center mt-1 space-x-3">
-          <Text className="text-sm text-gray-500">
-            {exercise.type === "static" ? detail : `${exercise.sets} sets`}
-          </Text>
-          {exercise.type === "dynamic" && (
-            <Text className="text-sm text-gray-500">{detail}</Text>
-          )}
-          {unilateralLabel && (
-            <View className="flex-row items-center">
-              <Ionicons name="swap-horizontal" size={14} color="#6b7280" />
-              <Text className="text-sm text-gray-500 ml-1">
-                {unilateralLabel}
-              </Text>
-            </View>
-          )}
-        </View>
       </View>
-      <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-        <Ionicons
-          name={exercise.type === "static" ? "stopwatch" : "barbell"}
-          size={18}
-          color="#111827"
-        />
-      </View>
+      <Ionicons
+        name={exercise.type === "dynamic" ? "flash" : "time"}
+        size={16}
+        color={exercise.type === "dynamic" ? "#3B82F6" : "#22C55E"}
+      />
     </View>
   );
 };
 
-const BlockPill: React.FC<{ block: WorkoutBlock; index: number }> = ({
-  block,
-  index,
-}) => {
+const BlockPill: React.FC<{ block: WorkoutBlock }> = ({ block }) => {
+  const setsCount = block.exercises[0]?.sets || 0;
+  const restSeconds = block.exercises[0]?.restSeconds || 0;
+
+  const formatRestTime = (seconds: number): string => {
+    if (seconds === 0) return "";
+    if (seconds < 60) return `${seconds}s rest`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (remainingSeconds === 0) {
+      return `${minutes}min rest`;
+    }
+    return `${minutes}min ${remainingSeconds}s rest`;
+  };
+
+  const restText = formatRestTime(restSeconds);
+  const restDisplay = restText ? `  ·  ${restText}` : "";
+
   if (block.isSuperset) {
     return (
       <LinearGradient
-        colors={["#facc15", "#f97316"]}
+        colors={["#9333EA", "#7C3AED"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="px-4 py-2 rounded-full"
+        className="px-4 py-1"
+        style={{ borderTopRightRadius: 10, borderTopLeftRadius: 10 }}
       >
-        <Text className="text-sm font-semibold text-black">
-          {`Superset ${block.supersetLabel ?? String(index + 1)}`}
+        <Text className="text-sm font-semibold text-white">
+          {`Superset (x${setsCount}${restDisplay})`}
         </Text>
       </LinearGradient>
     );
   }
 
   return (
-    <View className="px-4 py-2 rounded-full bg-black">
+    <LinearGradient
+      colors={["#3B82F6", "#2563EB"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      className="px-4 py-1"
+      style={{ borderTopRightRadius: 10, borderTopLeftRadius: 10 }}
+    >
       <Text className="text-sm font-semibold text-white">
-        {`Block ${index + 1}`}
+        {`Exercise (x${setsCount}${restDisplay})`}
       </Text>
-    </View>
+    </LinearGradient>
   );
 };
 
 const BlockCard: React.FC<{
   block: WorkoutBlock;
-  index: number;
-}> = ({ block, index }) => {
+  blockNumber: number;
+}> = ({ block, blockNumber }) => {
   return (
-    <View className="rounded-3xl bg-white shadow-sm p-5">
-      <View className="flex-row items-center justify-between mb-4">
-        <BlockPill block={block} index={index} />
-        <Text className="text-sm text-gray-500">
-          {block.exercises.length}{" "}
-          {block.exercises.length === 1 ? "exercise" : "exercises"}
-        </Text>
-      </View>
+    <View className="bg-white shadow-sm mb-4" style={{ borderRadius: 10 }}>
+      <BlockPill block={block} />
 
-      <View>
-        {block.exercises.map((exercise, idx) => (
-          <React.Fragment key={`${block.key}-${exercise.exerciseId}`}>
-            <ExerciseRow exercise={exercise} />
-            {idx < block.exercises.length - 1 && (
-              <View className="h-px bg-gray-100" />
-            )}
-          </React.Fragment>
-        ))}
+      <View className="px-4 flex flex-row items-center">
+        <Text className="text-3xl font-medium text-gray-600 mr-4 py-2">
+          {blockNumber}
+        </Text>
+        <View className="flex-1">
+          {block.exercises.map((exercise, idx) => (
+            <React.Fragment key={`${block.key}-${exercise.exerciseId}`}>
+              <ExerciseRow
+                exercise={exercise}
+                isInSuperset={block.isSuperset}
+                isLastInGroup={idx === block.exercises.length - 1}
+              />
+              {idx < block.exercises.length - 1 && !block.isSuperset && (
+                <View className="h-px bg-gray-100" />
+              )}
+            </React.Fragment>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -162,7 +162,7 @@ const PlanWorkoutExerciseGroups: React.FC<PlanWorkoutExerciseGroupsProps> = ({
   return (
     <View className="space-y-4">
       {blocks.map((block, index) => (
-        <BlockCard key={block.key} block={block} index={index} />
+        <BlockCard key={block.key} block={block} blockNumber={index + 1} />
       ))}
     </View>
   );
