@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 import PostHog from "posthog-react-native";
 
-// Create a no-op PostHog client for production
+// Create a no-op PostHog client for non-production environments
 const createNoOpClient = () => ({
   identify: () => {},
   capture: () => {},
@@ -35,16 +35,36 @@ const createNoOpClient = () => ({
   },
 });
 
+// Check if we're in a Node.js environment (during export/SSR)
+// This prevents PostHog from initializing during build/export where window is not available
+const isNodeEnvironment =
+  typeof process !== "undefined" && process.versions && process.versions.node;
+
 // Conditionally initialize PostHog based on environment
-// Only disable PostHog in production builds, enable it in development and preview
+// Only enable PostHog in production builds, disable it in development and preview
+// Also disable during SSR/export (Node.js environment)
 const easChannel = Constants.expoConfig?.extra?.eas?.channel;
 const isProduction = easChannel === "production";
 const posthogApiKey = process.env.EXPO_PUBLIC_POSTHOG_API_KEY || "";
 
-export const posthog = isProduction
-  ? (createNoOpClient() as any)
-  : new PostHog(posthogApiKey, {
+// Initialize PostHog only in production client environments (not during export/SSR)
+let posthogInstance: any;
+
+if (isNodeEnvironment || !isProduction) {
+  // Use no-op client during export/SSR or in non-production environments
+  posthogInstance = createNoOpClient();
+} else {
+  try {
+    // Try to initialize PostHog in production client environment
+    posthogInstance = new PostHog(posthogApiKey, {
       host: "https://us.i.posthog.com",
     });
+  } catch (error) {
+    // Fallback to no-op if initialization fails
+    console.warn("PostHog initialization failed, using no-op client:", error);
+    posthogInstance = createNoOpClient();
+  }
+}
 
+export const posthog = posthogInstance;
 export default posthog;
