@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import PlanCreationPrompt from "../../../components/plan/PlanCreationPrompt";
+import PlanCreationPrompt from "../../components/plan/PlanCreationPrompt";
 
-const CreatePlan = () => {
+const CreatePlanPDF = () => {
   const router = useRouter();
 
   const handlePlanCreated = () => {
@@ -18,4 +18,4 @@ const CreatePlan = () => {
   );
 };
 
-export default CreatePlan;
+export default CreatePlanPDF;

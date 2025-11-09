@@ -64,7 +64,7 @@ const Record = () => {
   };
 
   const handleCreateNewPlan = () => {
-    router.push("/(tabs)/plan/create" as any);
+    router.push("/(tabs)/plan" as any);
   };
 
   const handleDaySelect = (dayIndex: number) => {

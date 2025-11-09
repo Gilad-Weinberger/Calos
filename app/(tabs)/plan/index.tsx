@@ -1,9 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppTopBar from "../../../components/layout/AppTopBar";
-import PlanCreationPrompt from "../../../components/plan/PlanCreationPrompt";
 import PlanProgressHeader from "../../../components/plan/PlanProgressHeader";
 import PlanWeekScheduleCard from "../../../components/plan/PlanWeekScheduleCard";
 import { useAuth } from "../../../lib/context/AuthContext";
@@ -22,6 +29,7 @@ interface PlanProgress {
 
 const Plan = () => {
   const { user } = useAuth();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [activePlan, setActivePlan] = useState<PlanType | null>(null);
   const [planProgress, setPlanProgress] = useState<PlanProgress | null>(null);
@@ -60,10 +68,19 @@ const Plan = () => {
     }, [loadActivePlan])
   );
 
-  const handlePlanCreated = useCallback(() => {
-    // Reload the plan after creation
-    loadActivePlan();
-  }, [loadActivePlan]);
+  const handleCreatePlanWithPDF = () => {
+    router.push("/plan/create-pdf" as any);
+  };
+
+  const handleCreatePlanWithAI = () => {
+    router.push("/plan/create-ai" as any);
+  };
+
+  const handleManagePlan = () => {
+    // TODO: Navigate to manage plan page when created
+    // For now, show placeholder
+    router.push(`/plan/manage/${activePlan?.plan_id}` as any);
+  };
 
   if (isLoading) {
     return (
@@ -85,7 +102,55 @@ const Plan = () => {
       <AppTopBar title="Your Plan" icons={[]} />
       <SafeAreaView className="flex-1 bg-gray-100" edges={["left", "right"]}>
         {!activePlan ? (
-          <PlanCreationPrompt onPlanCreated={handlePlanCreated} />
+          <View className="flex-1 items-center justify-center p-6">
+            <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
+              Create Your Workout Plan
+            </Text>
+            <Text className="text-base text-gray-600 text-center mb-8 px-4">
+              Choose how you&apos;d like to create your personalized workout
+              plan
+            </Text>
+
+            {/* Create Plan by Uploading PDF Option */}
+            <TouchableOpacity
+              onPress={handleCreatePlanWithPDF}
+              className="w-full max-w-sm bg-white rounded-2xl p-6 mb-4 shadow-lg border border-gray-200"
+            >
+              <View className="flex-row items-center mb-3">
+                <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
+                  <Ionicons name="document-text" size={24} color="#2563eb" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-lg font-bold text-gray-900">
+                    Create Plan by Uploading PDF
+                  </Text>
+                  <Text className="text-sm text-gray-600 mt-1">
+                    Upload a PDF workout plan and let AI analyze it
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Create Plan with AI Option */}
+            <TouchableOpacity
+              onPress={handleCreatePlanWithAI}
+              className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-lg border border-gray-200"
+            >
+              <View className="flex-row items-center mb-3">
+                <View className="w-12 h-12 rounded-full bg-purple-100 items-center justify-center mr-4">
+                  <Ionicons name="sparkles" size={24} color="#9333ea" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-lg font-bold text-gray-900">
+                    Create Plan with AI
+                  </Text>
+                  <Text className="text-sm text-gray-600 mt-1">
+                    Let AI generate a custom workout plan for you
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
         ) : (
           <ScrollView className="flex-1 p-4">
             {planProgress && (
@@ -99,6 +164,27 @@ const Plan = () => {
             )}
             {activePlan && (
               <>
+                {/* Manage Plan Button */}
+                <TouchableOpacity
+                  onPress={handleManagePlan}
+                  className="w-full bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-200 flex-row items-center justify-between"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-3">
+                      <Ionicons
+                        name="settings-outline"
+                        size={20}
+                        color="#374151"
+                      />
+                    </View>
+                    <Text className="text-base font-semibold text-gray-900">
+                      Manage Plan
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+
+                {/* Week Schedule Cards */}
                 {Array.from({ length: activePlan.num_weeks }).map(
                   (_, weekIndex) => (
                     <PlanWeekScheduleCard
