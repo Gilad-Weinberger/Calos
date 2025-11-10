@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import PlanCreationPrompt from "../../components/plan/PlanCreationPrompt";
+import { PlanCreationPrompt } from "../../components/plan/upload";
 
 const CreatePlanPDF = () => {
   const router = useRouter();

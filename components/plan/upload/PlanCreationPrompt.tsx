@@ -1,12 +1,12 @@
 import * as DocumentPicker from "expo-document-picker";
 import React, { useState } from "react";
-import { Alert, View } from "react-native";
-import { useAuth } from "../../lib/context/AuthContext";
+import { Alert } from "react-native";
+import { useAuth } from "../../../lib/context/AuthContext";
 import {
   analyzePlanPdf,
   createPlanFromAnalysis,
   uploadPlanPdf,
-} from "../../lib/functions/planFunctions";
+} from "../../../lib/functions/planFunctions";
 import PlanUploadInitialState from "./PlanUploadInitialState";
 import PlanUploadProgressState from "./PlanUploadProgressState";
 import PlanUploadSuccessState from "./PlanUploadSuccessState";

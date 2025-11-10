@@ -35,4 +35,3 @@ const PlanUploadProgressState: React.FC<PlanUploadProgressStateProps> = ({
 
 export default PlanUploadProgressState;
 
-

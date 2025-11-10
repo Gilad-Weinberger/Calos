@@ -526,6 +526,193 @@ export const updatePlan = async (
 };
 
 /**
+ * Validate plan data structure
+ * @param plan - Plan object to validate
+ * @returns Validation result with errors if any
+ */
+export const validatePlanData = (
+  plan: Plan
+): {
+  valid: boolean;
+  errors: string[];
+} => {
+  const errors: string[] = [];
+
+  // Check plan name
+  if (!plan.name || plan.name.trim() === "") {
+    errors.push("Plan name is required");
+  }
+
+  // Check schedule has correct number of weeks
+  if (!plan.schedule || plan.schedule.length !== plan.num_weeks) {
+    errors.push(
+      `Schedule must have ${plan.num_weeks} weeks, but has ${plan.schedule?.length || 0}`
+    );
+  }
+
+  // Check each week has 7 days
+  if (plan.schedule) {
+    plan.schedule.forEach((week, weekIndex) => {
+      if (!week || week.length !== 7) {
+        errors.push(
+          `Week ${weekIndex + 1} must have 7 days, but has ${week?.length || 0}`
+        );
+      }
+    });
+  }
+
+  // Check all workout letters in schedule exist in workouts object
+  if (plan.schedule && plan.workouts) {
+    const workoutLetters = new Set(Object.keys(plan.workouts));
+    const scheduleLetters = new Set<string>();
+
+    plan.schedule.forEach((week) => {
+      week.forEach((day) => {
+        const dayLower = day?.toLowerCase().trim();
+        if (dayLower && dayLower !== "rest" && dayLower !== "") {
+          scheduleLetters.add(day.toUpperCase());
+        }
+      });
+    });
+
+    scheduleLetters.forEach((letter) => {
+      if (!workoutLetters.has(letter)) {
+        errors.push(
+          `Workout "${letter}" is referenced in schedule but not defined in workouts`
+        );
+      }
+    });
+  }
+
+  // Check for orphaned workouts (workouts not in schedule)
+  if (plan.workouts && plan.schedule) {
+    const scheduleLetters = new Set<string>();
+    plan.schedule.forEach((week) => {
+      week.forEach((day) => {
+        const dayLower = day?.toLowerCase().trim();
+        if (dayLower && dayLower !== "rest" && dayLower !== "") {
+          scheduleLetters.add(day.toUpperCase());
+        }
+      });
+    });
+
+    Object.keys(plan.workouts).forEach((letter) => {
+      if (!scheduleLetters.has(letter)) {
+        errors.push(
+          `Workout "${letter}" is defined but never used in the schedule`
+        );
+      }
+    });
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+};
+
+/**
+ * Recreate undone workouts for a plan after editing
+ * @param planId - Plan ID
+ * @param userId - User ID
+ * @param plan - Updated plan object
+ */
+export const recreateUndoneWorkoutsForPlan = async (
+  planId: string,
+  userId: string,
+  plan: Plan
+): Promise<void> => {
+  try {
+    // Delete all undone workouts
+    await deleteUndoneWorkoutsForPlan(planId);
+
+    const startDate = new Date(plan.start_date);
+    startDate.setHours(0, 0, 0, 0);
+
+    if (plan.plan_type === "once") {
+      // For "once" plans: Create all workouts for all weeks
+      for (let weekIndex = 0; weekIndex < plan.num_weeks; weekIndex++) {
+        await createWorkoutsForWeek(plan, userId, weekIndex, startDate);
+      }
+    } else {
+      // For "repeat" plans: Create workouts for current cycle and next 1-2 cycles
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const daysElapsed = Math.floor(
+        (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // Calculate current cycle
+      const cycleLength = plan.num_weeks * 7;
+      const currentCycle = Math.floor(daysElapsed / cycleLength);
+
+      // Create workouts for current cycle and next 2 cycles (as buffer)
+      const cyclesToCreate = [currentCycle, currentCycle + 1, currentCycle + 2];
+
+      for (const cycle of cyclesToCreate) {
+        const cycleStartDate = new Date(startDate);
+        cycleStartDate.setDate(startDate.getDate() + cycle * cycleLength);
+
+        // Create workouts for all weeks in this cycle
+        for (let weekIndex = 0; weekIndex < plan.num_weeks; weekIndex++) {
+          await createWorkoutsForWeek(plan, userId, weekIndex, cycleStartDate);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error in recreateUndoneWorkoutsForPlan:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update a plan and recreate undone workouts
+ * @param planId - Plan ID
+ * @param userId - User ID (for security)
+ * @param updates - Fields to update
+ * @returns Updated plan
+ */
+export const updatePlanWithWorkoutRecreation = async (
+  planId: string,
+  userId: string,
+  updates: Partial<
+    Omit<Plan, "plan_id" | "user_id" | "created_at" | "updated_at">
+  >
+): Promise<Plan> => {
+  try {
+    // First, get the current plan to merge updates
+    const currentPlan = await getPlanById(planId, userId);
+    if (!currentPlan) {
+      throw new Error("Plan not found");
+    }
+
+    // Merge updates with current plan
+    const updatedPlan: Plan = {
+      ...currentPlan,
+      ...updates,
+    };
+
+    // Validate the updated plan
+    const validation = validatePlanData(updatedPlan);
+    if (!validation.valid) {
+      throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
+    }
+
+    // Update plan in database
+    const plan = await updatePlan(planId, userId, updates);
+
+    // Recreate undone workouts with the updated plan data
+    await recreateUndoneWorkoutsForPlan(planId, userId, updatedPlan);
+
+    return plan;
+  } catch (error) {
+    console.error("Error in updatePlanWithWorkoutRecreation:", error);
+    throw error;
+  }
+};
+
+/**
  * Calculate total workouts from schedule (count non-rest days)
  * @param plan - Plan object
  * @returns Total number of workout days

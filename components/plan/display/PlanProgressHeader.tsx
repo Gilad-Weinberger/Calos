@@ -1,8 +1,8 @@
 import React from "react";
 import { Text, View } from "react-native";
-import type { Plan } from "../../lib/functions/planFunctions";
-import { getDaysElapsed } from "../../lib/utils/schedule";
-import ProgressBars from "../ui/ProgressBars";
+import type { Plan } from "../../../lib/functions/planFunctions";
+import { getDaysElapsed } from "../../../lib/utils/schedule";
+import ProgressBars from "../../ui/ProgressBars";
 
 interface PlanProgressHeaderProps {
   plan: Plan;
@@ -112,5 +112,4 @@ const PlanProgressHeader: React.FC<PlanProgressHeaderProps> = ({
 };
 
 export default PlanProgressHeader;
-
 

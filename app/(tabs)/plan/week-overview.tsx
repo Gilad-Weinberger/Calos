@@ -4,7 +4,7 @@ import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FullPageTopBar from "../../../components/layout/FullPageTopBar";
-import PlanWeekOverviewContent from "../../../components/plan/PlanWeekOverviewContent";
+import { PlanWeekOverviewContent } from "../../../components/plan/week-overview";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   getActivePlan,

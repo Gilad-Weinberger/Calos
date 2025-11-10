@@ -11,8 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AppTopBar from "../../../components/layout/AppTopBar";
-import PlanProgressHeader from "../../../components/plan/PlanProgressHeader";
-import PlanWeekScheduleCard from "../../../components/plan/PlanWeekScheduleCard";
+import {
+  PlanProgressHeader,
+  PlanWeekScheduleCard,
+} from "../../../components/plan/display";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   getActivePlan,
@@ -77,9 +79,14 @@ const Plan = () => {
   };
 
   const handleManagePlan = () => {
-    // TODO: Navigate to manage plan page when created
-    // For now, show placeholder
-    router.push(`/plan/manage/${activePlan?.plan_id}` as any);
+    if (!activePlan?.plan_id) {
+      console.error("Cannot navigate: plan_id is missing");
+      return;
+    }
+    router.push({
+      pathname: "/plan/manage/[id]",
+      params: { id: activePlan.plan_id },
+    });
   };
 
   if (isLoading) {

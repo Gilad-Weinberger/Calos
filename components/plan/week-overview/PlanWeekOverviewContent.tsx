@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { type Plan as PlanType } from "../../lib/functions/planFunctions";
-import ProgressBars from "../ui/ProgressBars";
+import { type Plan as PlanType } from "../../../lib/functions/planFunctions";
+import ProgressBars from "../../ui/ProgressBars";
 import PlanOverviewWorkoutCard from "./PlanOverviewWorkoutCard";
 
 interface WeekWorkout {
@@ -110,3 +110,4 @@ const PlanWeekOverviewContent: React.FC<PlanWeekOverviewContentProps> = ({
 };
 
 export default PlanWeekOverviewContent;
+

@@ -2,9 +2,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import type { Plan } from "../../lib/functions/planFunctions";
-import { getWeekWorkoutProgress } from "../../lib/functions/planFunctions";
-import ProgressBars from "../ui/ProgressBars";
+import type { Plan } from "../../../lib/functions/planFunctions";
+import { getWeekWorkoutProgress } from "../../../lib/functions/planFunctions";
+import ProgressBars from "../../ui/ProgressBars";
 
 interface PlanWeekScheduleCardProps {
   plan: Plan;
@@ -287,5 +287,4 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
 };
 
 export default PlanWeekScheduleCard;
-
 
