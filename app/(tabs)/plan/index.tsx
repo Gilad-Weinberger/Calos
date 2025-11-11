@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -124,8 +124,12 @@ const Plan = () => {
               className="w-full max-w-sm bg-white rounded-2xl p-6 mb-4 shadow-lg border border-gray-200"
             >
               <View className="flex-row items-center mb-3">
-                <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
-                  <Ionicons name="document-text" size={24} color="#2563eb" />
+                <View className="w-12 h-12 rounded-full bg-purple-100 items-center justify-center mr-4">
+                  <MaterialCommunityIcons
+                    name="file-pdf-box"
+                    size={26}
+                    color="#7c3aed"
+                  />
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-gray-900">
@@ -144,8 +148,8 @@ const Plan = () => {
               className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-lg border border-gray-200"
             >
               <View className="flex-row items-center mb-3">
-                <View className="w-12 h-12 rounded-full bg-purple-100 items-center justify-center mr-4">
-                  <Ionicons name="sparkles" size={24} color="#9333ea" />
+                <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
+                  <Ionicons name="sparkles" size={24} color="#2563eb" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-lg font-bold text-gray-900">

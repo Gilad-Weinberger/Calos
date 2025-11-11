@@ -260,6 +260,140 @@ export const createPlanFromAnalysis = async (
 };
 
 /**
+ * Form data interface for AI plan generation
+ */
+export interface AIPlanFormData {
+  planTarget: "calisthenics" | "specific_exercise" | null;
+  specificExercise: string;
+  maxReps: {
+    pushups: number;
+    pullups: number;
+    dips: number;
+    squats: number;
+  };
+  age: number | null;
+  height: number | null;
+  heightUnit: "cm" | "ft";
+  weight: number | null;
+  weightUnit: "kg" | "lbs";
+  activityLevel: "beginner" | "intermediate" | "advanced" | null;
+  currentWorkoutDays: number | null;
+  workoutsPerWeek: number | null;
+  availableDays: number[]; // Array of day indices (0=Sunday, 6=Saturday)
+  startDate: Date | null;
+}
+
+/**
+ * Generate a workout plan using AI based on form data
+ * @param formData - Form data from the multi-step form
+ * @param userId - User ID
+ * @returns Generated plan
+ */
+export const generateAIPlan = async (
+  formData: AIPlanFormData,
+  userId: string
+): Promise<Plan> => {
+  try {
+    console.log("🔄 Calling generate-ai-workout-plan edge function...");
+    console.log("Form Data:", formData);
+    console.log("User ID:", userId);
+
+    // Convert Date to ISO string for the Edge Function
+    const formDataForAPI = {
+      ...formData,
+      startDate: formData.startDate ? formData.startDate.toISOString() : null,
+    };
+
+    const { data, error } = await supabase.functions.invoke(
+      "generate-ai-workout-plan",
+      {
+        body: { formData: formDataForAPI, userId },
+      }
+    );
+
+    console.log("Edge function response:", { data, error });
+
+    if (error) {
+      console.error("❌ Error from edge function:", error);
+
+      // Extract detailed error message
+      let errorMessage = "Failed to generate plan. Please try again.";
+
+      // Check if error has context property (FunctionsHttpError)
+      if (error.context) {
+        console.error("Error context:", error.context);
+        errorMessage = JSON.stringify(error.context);
+      }
+
+      // Check if data contains error details
+      if (data && data.error) {
+        errorMessage = data.error;
+      }
+
+      // Provide user-friendly error messages
+      if (error.message?.includes("GEMINI_API_KEY")) {
+        errorMessage =
+          "AI plan generation service is not configured. Please contact support.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    if (!data) {
+      throw new Error("No data returned from AI plan generation");
+    }
+
+    console.log("✅ Plan generated successfully");
+
+    // The data returned matches PDFAnalysisResult structure
+    const analysisResult = data as PDFAnalysisResult;
+
+    // Deactivate any existing active plans first
+    await deactivateCurrentPlan(userId);
+
+    // Use the start date from form data, or default to Sunday of this week
+    const startDate = formData.startDate
+      ? getSundayOfWeek(formData.startDate)
+      : getSundayOfWeek(new Date());
+    const planType = formData.planTarget === "calisthenics" ? "repeat" : "once";
+
+    // Create new plan
+    const { data: planData, error: createError } = await supabase
+      .from("plans")
+      .insert({
+        user_id: userId,
+        name: analysisResult.name,
+        description: analysisResult.description,
+        is_active: true,
+        plan_type: planType,
+        num_weeks: analysisResult.num_weeks,
+        workouts: analysisResult.workouts,
+        schedule: analysisResult.schedule,
+        start_date: startDate.toISOString(),
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error("Error creating plan:", createError);
+      throw createError;
+    }
+
+    const plan = planData as Plan;
+
+    // Create workout records for the plan
+    await createWorkoutRecordsForPlan(plan, userId);
+
+    return plan;
+  } catch (error) {
+    console.error("Error in generateAIPlan:", error);
+    throw error;
+  }
+};
+
+/**
  * Get a specific plan by ID
  * @param planId - Plan ID
  * @param userId - User ID (for security)
