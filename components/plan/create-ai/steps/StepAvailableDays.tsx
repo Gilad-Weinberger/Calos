@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
 
 const StepAvailableDays: React.FC = () => {
-  const { formData, updateField, validateStep } = useCreatePlanAIForm();
+  const { formData, updateField } = useCreatePlanAIForm();
 
   const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
@@ -25,10 +25,7 @@ const StepAvailableDays: React.FC = () => {
     return formData.availableDays.includes(dayIndex);
   };
 
-  const isValid = validateStep(6);
   const minDays = formData.workoutsPerWeek || 0;
-  const selectedCount = formData.availableDays.length;
-
   return (
     <View className="flex-1">
       <Text className="text-2xl font-bold text-gray-900 mb-2">
@@ -38,14 +35,8 @@ const StepAvailableDays: React.FC = () => {
         Select at least {minDays} day{minDays !== 1 ? "s" : ""} (matching your
         workouts per week)
       </Text>
-      {!isValid && selectedCount > 0 && (
-        <Text className="text-sm text-red-600 mb-4">
-          You must select at least {minDays} day{minDays !== 1 ? "s" : ""}{" "}
-          (matching your workouts per week)
-        </Text>
-      )}
 
-      <View className="gap-3 mb-6">
+      <View className="gap-3 mt-2">
         {dayNames.map((dayName, dayIndex) => {
           const selected = isDaySelected(dayIndex);
           return (
@@ -79,15 +70,6 @@ const StepAvailableDays: React.FC = () => {
           );
         })}
       </View>
-
-      {selectedCount > 0 && (
-        <View className="bg-gray-50 rounded-lg p-4">
-          <Text className="text-sm text-gray-600 text-center">
-            <Text className="font-semibold">{selectedCount}</Text> day
-            {selectedCount !== 1 ? "s" : ""} selected
-          </Text>
-        </View>
-      )}
     </View>
   );
 };

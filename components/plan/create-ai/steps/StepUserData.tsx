@@ -1,9 +1,360 @@
-import React from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import { format } from "date-fns";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Modal,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import PickerWheelNumber, {
+  type PickerOption,
+} from "../PickerWheelNumber";
 import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
+import {
+  calculateAgeFromDate,
+  shiftYearsFromToday,
+} from "../../../../lib/utils/date-helpers";
+
+const CM_HEIGHT_MIN = 140;
+const CM_HEIGHT_MAX = 210;
+const KG_WEIGHT_MIN = 40;
+const KG_WEIGHT_MAX = 160;
+const LBS_WEIGHT_MIN = 90;
+const LBS_WEIGHT_MAX = 350;
+
+const createHeightOptions = (unit: "cm" | "ft"): PickerOption[] => {
+  if (unit === "cm") {
+    return Array.from(
+      { length: CM_HEIGHT_MAX - CM_HEIGHT_MIN + 1 },
+      (_, index) => {
+        const value = CM_HEIGHT_MIN + index;
+        return {
+          label: `${value} cm`,
+          value,
+        };
+      }
+    );
+  }
+
+  const minInches = Math.round(CM_HEIGHT_MIN / 2.54);
+  const maxInches = Math.round(CM_HEIGHT_MAX / 2.54);
+  const options: PickerOption[] = [];
+
+  for (let totalInches = minInches; totalInches <= maxInches; totalInches++) {
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    const label = `${feet}' ${inches}"`;
+    const value = parseFloat((totalInches / 12).toFixed(2));
+    options.push({ label, value });
+  }
+
+  return options;
+};
+
+const createWeightOptions = (unit: "kg" | "lbs"): PickerOption[] => {
+  if (unit === "kg") {
+    return Array.from(
+      { length: KG_WEIGHT_MAX - KG_WEIGHT_MIN + 1 },
+      (_, index) => {
+        const value = KG_WEIGHT_MIN + index;
+        return {
+          label: `${value} kg`,
+          value,
+        };
+      }
+    );
+  }
+
+  return Array.from(
+    { length: LBS_WEIGHT_MAX - LBS_WEIGHT_MIN + 1 },
+    (_, index) => {
+      const value = LBS_WEIGHT_MIN + index;
+      return {
+        label: `${value} lbs`,
+        value,
+      };
+    }
+  );
+};
+
+const snapValueToOptions = (value: number, options: PickerOption[]): number => {
+  if (!options.length || Number.isNaN(value)) {
+    return value;
+  }
+
+  return options.reduce((closest, option) => {
+    const closestDiff = Math.abs(closest.value - value);
+    const optionDiff = Math.abs(option.value - value);
+    return optionDiff < closestDiff ? option : closest;
+  }).value;
+};
+
+const initializeDraftValue = (
+  currentValue: number | null,
+  options: PickerOption[]
+): number => {
+  if (!options.length) return 0;
+
+  if (currentValue !== null && !Number.isNaN(currentValue)) {
+    return snapValueToOptions(currentValue, options);
+  }
+
+  const middleIndex = Math.floor(options.length / 2);
+  return options[middleIndex]?.value ?? options[0].value;
+};
+
+const convertHeightValue = (
+  value: number,
+  from: "cm" | "ft",
+  to: "cm" | "ft"
+): number => {
+  if (from === to) return value;
+  if (from === "cm" && to === "ft") {
+    return parseFloat((value / 30.48).toFixed(2));
+  }
+  if (from === "ft" && to === "cm") {
+    return Math.round(value * 30.48);
+  }
+  return value;
+};
+
+const convertWeightValue = (
+  value: number,
+  from: "kg" | "lbs",
+  to: "kg" | "lbs"
+): number => {
+  if (from === to) return value;
+  if (from === "kg" && to === "lbs") {
+    return Math.round(value * 2.20462);
+  }
+  if (from === "lbs" && to === "kg") {
+    return Math.round(value / 2.20462);
+  }
+  return value;
+};
+
+const formatImperialHeight = (decimalFeet: number): string => {
+  const totalInches = Math.round(decimalFeet * 12);
+  const feet = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+  return `${feet}' ${inches}"`;
+};
 
 const StepUserData: React.FC = () => {
   const { formData, updateField } = useCreatePlanAIForm();
+  const [isBirthDatePickerVisible, setIsBirthDatePickerVisible] =
+    useState(false);
+  const [iosBirthDateDraft, setIosBirthDateDraft] = useState<Date>(
+    formData.birthDate ?? shiftYearsFromToday(-18)
+  );
+  const [isHeightPickerVisible, setIsHeightPickerVisible] = useState(false);
+  const [heightDraft, setHeightDraft] = useState<number>(() =>
+    initializeDraftValue(
+      formData.height,
+      createHeightOptions(formData.heightUnit)
+    )
+  );
+  const [isWeightPickerVisible, setIsWeightPickerVisible] = useState(false);
+  const [weightDraft, setWeightDraft] = useState<number>(() =>
+    initializeDraftValue(
+      formData.weight,
+      createWeightOptions(formData.weightUnit)
+    )
+  );
+
+  const maximumBirthDate = useMemo(() => shiftYearsFromToday(-18), []);
+  const minimumBirthDate = useMemo(() => shiftYearsFromToday(-100), []);
+  const heightOptions = useMemo(
+    () => createHeightOptions(formData.heightUnit),
+    [formData.heightUnit]
+  );
+  const weightOptions = useMemo(
+    () => createWeightOptions(formData.weightUnit),
+    [formData.weightUnit]
+  );
+
+  const birthDateLabel = useMemo(() => {
+    if (!formData.birthDate) {
+      return "Select your birth date";
+    }
+
+    const formattedDate = format(formData.birthDate, "MMMM d, yyyy");
+    const age = calculateAgeFromDate(formData.birthDate);
+
+    return `${formattedDate} • ${age} yrs`;
+  }, [formData.birthDate]);
+
+  const openBirthDatePicker = () => {
+    const initialDate = formData.birthDate ?? maximumBirthDate;
+
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: initialDate,
+        mode: "date",
+        maximumDate: maximumBirthDate,
+        minimumDate: minimumBirthDate,
+        onChange: (_event: DateTimePickerEvent, selectedDate?: Date) => {
+          if (selectedDate) {
+            updateField("birthDate", selectedDate);
+          }
+        },
+      });
+      return;
+    }
+
+    setIosBirthDateDraft(initialDate);
+    setIsBirthDatePickerVisible(true);
+  };
+
+  const handleIOSBirthDateChange = (
+    _event: DateTimePickerEvent,
+    selectedDate?: Date
+  ) => {
+    if (selectedDate) {
+      setIosBirthDateDraft(selectedDate);
+    }
+  };
+
+  const confirmIOSBirthDate = () => {
+    updateField("birthDate", iosBirthDateDraft);
+    setIsBirthDatePickerVisible(false);
+  };
+
+  const cancelIOSBirthDate = () => {
+    setIsBirthDatePickerVisible(false);
+  };
+
+  useEffect(() => {
+    setHeightDraft(
+      initializeDraftValue(formData.height, heightOptions)
+    );
+  }, [formData.height, heightOptions]);
+
+  useEffect(() => {
+    setWeightDraft(
+      initializeDraftValue(formData.weight, weightOptions)
+    );
+  }, [formData.weight, weightOptions]);
+
+  const heightLabel = useMemo(() => {
+    if (formData.height === null) {
+      return `Select your height (${formData.heightUnit})`;
+    }
+
+    const option = heightOptions.find(
+      (item) => item.value === formData.height
+    );
+
+    if (option) return option.label;
+
+    return formData.heightUnit === "cm"
+      ? `${Math.round(formData.height)} cm`
+      : formatImperialHeight(formData.height);
+  }, [formData.height, formData.heightUnit, heightOptions]);
+
+  const weightLabel = useMemo(() => {
+    if (formData.weight === null) {
+      return `Select your weight (${formData.weightUnit})`;
+    }
+
+    const option = weightOptions.find(
+      (item) => item.value === formData.weight
+    );
+    if (option) return option.label;
+
+    return formData.weightUnit === "kg"
+      ? `${Math.round(formData.weight)} kg`
+      : `${Math.round(formData.weight)} lbs`;
+  }, [formData.weight, formData.weightUnit, weightOptions]);
+
+  const handleHeightUnitChange = (unit: "cm" | "ft") => {
+    if (unit === formData.heightUnit) return;
+
+    const options = createHeightOptions(unit);
+    let convertedHeight: number | null = null;
+
+    if (formData.height !== null) {
+      const baseConverted = convertHeightValue(
+        formData.height,
+        formData.heightUnit,
+        unit
+      );
+      convertedHeight = snapValueToOptions(baseConverted, options);
+    }
+
+    const nextValue =
+      convertedHeight ?? initializeDraftValue(null, options);
+
+    updateField("heightUnit", unit);
+    updateField("height", nextValue);
+    setHeightDraft(nextValue);
+  };
+
+  const handleWeightUnitChange = (unit: "kg" | "lbs") => {
+    if (unit === formData.weightUnit) return;
+
+    const options = createWeightOptions(unit);
+    let convertedWeight: number | null = null;
+
+    if (formData.weight !== null) {
+      const baseConverted = convertWeightValue(
+        formData.weight,
+        formData.weightUnit,
+        unit
+      );
+      convertedWeight = snapValueToOptions(baseConverted, options);
+    }
+
+    const nextValue =
+      convertedWeight ?? initializeDraftValue(null, options);
+
+    updateField("weightUnit", unit);
+    updateField("weight", nextValue);
+    setWeightDraft(nextValue);
+  };
+
+  const openHeightPicker = () => {
+    setHeightDraft(
+      initializeDraftValue(formData.height, heightOptions)
+    );
+    setIsHeightPickerVisible(true);
+  };
+
+  const cancelHeightPicker = () => {
+    setHeightDraft(
+      initializeDraftValue(formData.height, heightOptions)
+    );
+    setIsHeightPickerVisible(false);
+  };
+
+  const confirmHeightPicker = () => {
+    updateField("height", heightDraft);
+    setIsHeightPickerVisible(false);
+  };
+
+  const openWeightPicker = () => {
+    setWeightDraft(
+      initializeDraftValue(formData.weight, weightOptions)
+    );
+    setIsWeightPickerVisible(true);
+  };
+
+  const cancelWeightPicker = () => {
+    setWeightDraft(
+      initializeDraftValue(formData.weight, weightOptions)
+    );
+    setIsWeightPickerVisible(false);
+  };
+
+  const confirmWeightPicker = () => {
+    updateField("weight", weightDraft);
+    setIsWeightPickerVisible(false);
+  };
 
   return (
     <View className="flex-1">
@@ -14,28 +365,36 @@ const StepUserData: React.FC = () => {
         This helps us create a personalized plan for you
       </Text>
 
-      {/* Age Input */}
+      {/* Birth Date Input */}
       <View className="mb-6">
-        <Text className="text-sm font-semibold text-gray-700 mb-2">Age</Text>
-        <TextInput
-          className="bg-white rounded-lg p-4 border border-gray-200 text-gray-900 text-lg"
-          placeholder="Enter your age"
-          placeholderTextColor="#9CA3AF"
-          value={formData.age?.toString() || ""}
-          onChangeText={(text) => {
-            const num = parseInt(text, 10);
-            updateField("age", isNaN(num) ? null : num);
-          }}
-          keyboardType="number-pad"
-        />
+        <Text className="text-sm font-semibold text-gray-700 mb-2">
+          Birth date
+        </Text>
+        <TouchableOpacity
+          className="bg-white rounded-lg p-4 border border-gray-200"
+          onPress={openBirthDatePicker}
+          activeOpacity={0.8}
+        >
+          <Text
+            className={`text-lg ${
+              formData.birthDate ? "text-gray-900" : "text-gray-400"
+            }`}
+          >
+            {birthDateLabel}
+          </Text>
+        </TouchableOpacity>
+        <Text className="text-xs text-gray-500 mt-2">
+          We use your age to tailor rest times, progressions, and recommended
+          volume.
+        </Text>
       </View>
 
       {/* Height Input with Unit Toggle */}
       <View className="mb-6">
         <Text className="text-sm font-semibold text-gray-700 mb-2">Height</Text>
-        <View className="flex-row gap-2 mb-2">
+        <View className="flex-row gap-2 mb-3">
           <TouchableOpacity
-            onPress={() => updateField("heightUnit", "cm")}
+            onPress={() => handleHeightUnitChange("cm")}
             className={`flex-1 py-3 rounded-lg ${
               formData.heightUnit === "cm" ? "bg-blue-600" : "bg-gray-200"
             }`}
@@ -49,7 +408,7 @@ const StepUserData: React.FC = () => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => updateField("heightUnit", "ft")}
+            onPress={() => handleHeightUnitChange("ft")}
             className={`flex-1 py-3 rounded-lg ${
               formData.heightUnit === "ft" ? "bg-blue-600" : "bg-gray-200"
             }`}
@@ -63,30 +422,30 @@ const StepUserData: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
-        <TextInput
-          className="bg-white rounded-lg p-4 border border-gray-200 text-gray-900 text-lg"
-          placeholder={`Enter your height (${formData.heightUnit})`}
-          placeholderTextColor="#9CA3AF"
-          value={formData.height?.toString() || ""}
-          onChangeText={(text) => {
-            const num = parseFloat(text);
-            updateField("height", isNaN(num) ? null : num);
-          }}
-          keyboardType="decimal-pad"
-        />
-        {formData.heightUnit === "ft" && (
-          <Text className="text-xs text-gray-500 mt-2">
-            Tip: Use decimal format (e.g., 5.9 for 5&apos;11&quot;)
+        <TouchableOpacity
+          onPress={openHeightPicker}
+          activeOpacity={0.85}
+          className="bg-white rounded-lg px-4 py-4 border border-gray-200"
+        >
+          <Text
+            className={`text-lg ${
+              formData.height ? "text-gray-900" : "text-gray-400"
+            }`}
+          >
+            {heightLabel}
           </Text>
-        )}
+        </TouchableOpacity>
+        <Text className="text-xs text-gray-500 mt-2">
+          Scroll to set your height accurately.
+        </Text>
       </View>
 
       {/* Weight Input with Unit Toggle */}
       <View>
         <Text className="text-sm font-semibold text-gray-700 mb-2">Weight</Text>
-        <View className="flex-row gap-2 mb-2">
+        <View className="flex-row gap-2 mb-3">
           <TouchableOpacity
-            onPress={() => updateField("weightUnit", "kg")}
+            onPress={() => handleWeightUnitChange("kg")}
             className={`flex-1 py-3 rounded-lg ${
               formData.weightUnit === "kg" ? "bg-blue-600" : "bg-gray-200"
             }`}
@@ -100,7 +459,7 @@ const StepUserData: React.FC = () => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => updateField("weightUnit", "lbs")}
+            onPress={() => handleWeightUnitChange("lbs")}
             className={`flex-1 py-3 rounded-lg ${
               formData.weightUnit === "lbs" ? "bg-blue-600" : "bg-gray-200"
             }`}
@@ -114,18 +473,125 @@ const StepUserData: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
-        <TextInput
-          className="bg-white rounded-lg p-4 border border-gray-200 text-gray-900 text-lg"
-          placeholder={`Enter your weight (${formData.weightUnit})`}
-          placeholderTextColor="#9CA3AF"
-          value={formData.weight?.toString() || ""}
-          onChangeText={(text) => {
-            const num = parseFloat(text);
-            updateField("weight", isNaN(num) ? null : num);
-          }}
-          keyboardType="decimal-pad"
-        />
+        <TouchableOpacity
+          onPress={openWeightPicker}
+          activeOpacity={0.85}
+          className="bg-white rounded-lg px-4 py-4 border border-gray-200"
+        >
+          <Text
+            className={`text-lg ${
+              formData.weight ? "text-gray-900" : "text-gray-400"
+            }`}
+          >
+            {weightLabel}
+          </Text>
+        </TouchableOpacity>
+        <Text className="text-xs text-gray-500 mt-2">
+          We use this to balance volume and recovery.
+        </Text>
       </View>
+
+      {/* iOS Birth Date Picker Modal */}
+      {Platform.OS === "ios" && (
+        <Modal
+          transparent
+          animationType="slide"
+          visible={isBirthDatePickerVisible}
+          onRequestClose={cancelIOSBirthDate}
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-3xl p-6">
+              <View className="flex-row justify-between items-center mb-4">
+                <TouchableOpacity onPress={cancelIOSBirthDate}>
+                  <Text className="text-blue-600 font-semibold text-lg">
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <Text className="text-lg font-semibold text-gray-900">
+                  Select birth date
+                </Text>
+                <TouchableOpacity onPress={confirmIOSBirthDate}>
+                  <Text className="text-blue-600 font-semibold text-lg">Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                mode="date"
+                display="spinner"
+                value={iosBirthDateDraft}
+                maximumDate={maximumBirthDate}
+                minimumDate={minimumBirthDate}
+                onChange={handleIOSBirthDateChange}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Height Picker Modal */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={isHeightPickerVisible}
+        onRequestClose={cancelHeightPicker}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl p-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <TouchableOpacity onPress={cancelHeightPicker}>
+                <Text className="text-blue-600 font-semibold text-lg">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-semibold text-gray-900">
+                Select height ({formData.heightUnit})
+              </Text>
+              <TouchableOpacity onPress={confirmHeightPicker}>
+                <Text className="text-blue-600 font-semibold text-lg">
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <PickerWheelNumber
+              values={heightOptions}
+              selectedValue={heightDraft}
+              onValueChange={setHeightDraft}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Weight Picker Modal */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={isWeightPickerVisible}
+        onRequestClose={cancelWeightPicker}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-3xl p-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <TouchableOpacity onPress={cancelWeightPicker}>
+                <Text className="text-blue-600 font-semibold text-lg">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-semibold text-gray-900">
+                Select weight ({formData.weightUnit})
+              </Text>
+              <TouchableOpacity onPress={confirmWeightPicker}>
+                <Text className="text-blue-600 font-semibold text-lg">
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <PickerWheelNumber
+              values={weightOptions}
+              selectedValue={weightDraft}
+              onValueChange={setWeightDraft}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

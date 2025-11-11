@@ -1,4 +1,4 @@
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
@@ -34,7 +34,11 @@ const StepPlanTarget: React.FC = () => {
         >
           <View className="flex-row items-center gap-4">
             <View className="w-14 h-14 rounded-full bg-blue-100 items-center justify-center">
-              <Ionicons name="fitness" size={28} color="#2563eb" />
+              <MaterialCommunityIcons
+                name="arm-flex-outline"
+                size={30}
+                color="#2563eb"
+              />
             </View>
             <View className="flex-1">
               <Text className="text-lg font-bold text-gray-900 mb-1">
@@ -58,7 +62,11 @@ const StepPlanTarget: React.FC = () => {
         >
           <View className="flex-row items-center gap-4">
             <View className="w-14 h-14 rounded-full bg-blue-100 items-center justify-center">
-              <Ionicons name="star" size={28} color="#2563eb" />
+              <MaterialCommunityIcons
+                name="bullseye-arrow"
+                size={30}
+                color="#2563eb"
+              />
             </View>
             <View className="flex-1">
               <Text className="text-lg font-bold text-gray-900 mb-1">

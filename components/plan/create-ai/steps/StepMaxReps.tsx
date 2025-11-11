@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
 
 interface ExerciseBlockProps {
@@ -9,6 +9,7 @@ interface ExerciseBlockProps {
   value: number;
   onIncrement: () => void;
   onDecrement: () => void;
+  onValuePress: () => void;
 }
 
 const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
@@ -17,6 +18,7 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
   value,
   onIncrement,
   onDecrement,
+  onValuePress,
 }) => {
   return (
     <View className="bg-white rounded-xl p-4 border border-gray-200 flex-1 min-w-[140px]">
@@ -26,9 +28,14 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
       <Text className="text-base font-semibold text-gray-900 mb-2 text-center">
         {name}
       </Text>
-      <Text className="text-3xl font-bold text-blue-600 mb-3 text-center">
-        {value}
-      </Text>
+      <TouchableOpacity onPress={onValuePress} activeOpacity={0.8}>
+        <Text className="text-3xl font-bold text-blue-600 text-center">
+          {value}
+        </Text>
+        <Text className="text-xs text-gray-400 text-center mt-1">
+          Tap to edit
+        </Text>
+      </TouchableOpacity>
       <View className="flex-row items-center justify-center gap-3">
         <TouchableOpacity
           onPress={onDecrement}
@@ -61,11 +68,26 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
   );
 };
 
+type ExerciseKey = "pushups" | "pullups" | "dips" | "squats";
+
+const EXERCISES: Array<{
+  key: ExerciseKey;
+  name: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}> = [
+  { key: "pushups", name: "Push-ups", icon: "body" },
+  { key: "pullups", name: "Pull-ups", icon: "arrow-up" },
+  { key: "dips", name: "Dips", icon: "arrow-down-circle" },
+  { key: "squats", name: "Squats", icon: "footsteps" },
+];
+
 const StepMaxReps: React.FC = () => {
   const { formData, updateField } = useCreatePlanAIForm();
+  const [activeExercise, setActiveExercise] = useState<ExerciseKey | null>(null);
+  const [modalValue, setModalValue] = useState<string>("0");
 
   const updateReps = (
-    exercise: "pushups" | "pullups" | "dips" | "squats",
+    exercise: ExerciseKey,
     delta: number
   ) => {
     const currentValue = formData.maxReps[exercise];
@@ -75,6 +97,41 @@ const StepMaxReps: React.FC = () => {
       [exercise]: newValue,
     });
   };
+
+  const openValueModal = (exercise: ExerciseKey) => {
+    setActiveExercise(exercise);
+    setModalValue(formData.maxReps[exercise].toString());
+  };
+
+  const closeModal = () => {
+    setActiveExercise(null);
+    setModalValue("0");
+  };
+
+  const handleModalSave = () => {
+    if (!activeExercise) return;
+
+    const parsed = parseInt(modalValue, 10);
+    const sanitized = Number.isNaN(parsed)
+      ? 0
+      : Math.max(0, Math.min(100, parsed));
+
+    updateField("maxReps", {
+      ...formData.maxReps,
+      [activeExercise]: sanitized,
+    });
+
+    closeModal();
+  };
+
+  const handleInputChange = (text: string) => {
+    const sanitized = text.replace(/[^0-9]/g, "");
+    setModalValue(sanitized);
+  };
+
+  const selectedExercise = activeExercise
+    ? EXERCISES.find((exercise) => exercise.key === activeExercise)
+    : null;
 
   return (
     <View className="flex-1">
@@ -86,35 +143,64 @@ const StepMaxReps: React.FC = () => {
       </Text>
 
       <View className="flex-row flex-wrap gap-4">
-        <ExerciseBlock
-          name="Push-ups"
-          icon="body"
-          value={formData.maxReps.pushups}
-          onIncrement={() => updateReps("pushups", 1)}
-          onDecrement={() => updateReps("pushups", -1)}
-        />
-        <ExerciseBlock
-          name="Pull-ups"
-          icon="arrow-up"
-          value={formData.maxReps.pullups}
-          onIncrement={() => updateReps("pullups", 1)}
-          onDecrement={() => updateReps("pullups", -1)}
-        />
-        <ExerciseBlock
-          name="Dips"
-          icon="arrow-down-circle"
-          value={formData.maxReps.dips}
-          onIncrement={() => updateReps("dips", 1)}
-          onDecrement={() => updateReps("dips", -1)}
-        />
-        <ExerciseBlock
-          name="Squats"
-          icon="footsteps"
-          value={formData.maxReps.squats}
-          onIncrement={() => updateReps("squats", 1)}
-          onDecrement={() => updateReps("squats", -1)}
-        />
+        {EXERCISES.map(({ key, name, icon }) => (
+          <ExerciseBlock
+            key={key}
+            name={name}
+            icon={icon}
+            value={formData.maxReps[key]}
+            onIncrement={() => updateReps(key, 1)}
+            onDecrement={() => updateReps(key, -1)}
+            onValuePress={() => openValueModal(key)}
+          />
+        ))}
       </View>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={activeExercise !== null}
+        onRequestClose={closeModal}
+      >
+        <View className="flex-1 bg-black/50 items-center justify-center px-6">
+          <View className="w-full bg-white rounded-2xl p-6 shadow-lg">
+            <Text className="text-lg font-semibold text-gray-900 text-center mb-2">
+              Set max reps
+            </Text>
+            {selectedExercise && (
+              <Text className="text-sm text-gray-600 text-center mb-4">
+                {selectedExercise.name}
+              </Text>
+            )}
+            <TextInput
+              value={modalValue}
+              onChangeText={handleInputChange}
+              keyboardType="number-pad"
+              maxLength={3}
+              className="border border-gray-200 rounded-lg px-4 py-3 text-center text-2xl font-bold text-gray-900"
+              placeholder="0"
+              placeholderTextColor="#D1D5DB"
+            />
+            <Text className="text-xs text-gray-500 text-center mt-2">
+              Enter a value between 0 and 100 reps.
+            </Text>
+            <View className="flex-row gap-3 mt-6">
+              <TouchableOpacity
+                onPress={closeModal}
+                className="flex-1 border border-gray-200 rounded-lg py-3 items-center"
+              >
+                <Text className="text-gray-600 font-semibold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleModalSave}
+                className="flex-1 bg-blue-600 rounded-lg py-3 items-center"
+              >
+                <Text className="text-white font-semibold">Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

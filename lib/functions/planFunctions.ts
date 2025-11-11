@@ -271,6 +271,7 @@ export interface AIPlanFormData {
     dips: number;
     squats: number;
   };
+  birthDate: Date | null;
   age: number | null;
   height: number | null;
   heightUnit: "cm" | "ft";
@@ -301,6 +302,7 @@ export const generateAIPlan = async (
     // Convert Date to ISO string for the Edge Function
     const formDataForAPI = {
       ...formData,
+      birthDate: formData.birthDate ? formData.birthDate.toISOString() : null,
       startDate: formData.startDate ? formData.startDate.toISOString() : null,
     };
 

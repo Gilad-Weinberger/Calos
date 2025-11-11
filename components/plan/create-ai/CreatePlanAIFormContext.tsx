@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
+import { calculateAgeFromDate } from "../../../lib/utils/date-helpers";
 
 export interface FormData {
   planTarget: "calisthenics" | "specific_exercise" | null;
@@ -9,7 +10,7 @@ export interface FormData {
     dips: number;
     squats: number;
   };
-  age: number | null;
+  birthDate: Date | null;
   height: number | null;
   heightUnit: "cm" | "ft";
   weight: number | null;
@@ -43,7 +44,7 @@ const initialFormData: FormData = {
     dips: 0,
     squats: 0,
   },
-  age: null,
+  birthDate: null,
   height: null,
   heightUnit: "cm",
   weight: null,
@@ -115,10 +116,15 @@ export const CreatePlanAIFormProvider: React.FC<
 
         case 3:
           // Age required (18-100), height required (>0), weight required (>0)
+          if (!formData.birthDate) {
+            return false;
+          }
+
+          const age = calculateAgeFromDate(formData.birthDate);
+
           return (
-            formData.age !== null &&
-            formData.age >= 18 &&
-            formData.age <= 100 &&
+            age >= 18 &&
+            age <= 100 &&
             formData.height !== null &&
             formData.height > 0 &&
             formData.weight !== null &&
@@ -126,15 +132,18 @@ export const CreatePlanAIFormProvider: React.FC<
           );
 
         case 4:
-          // Activity level required, current workout days required (0-7)
+          // Activity level required
+          return formData.activityLevel !== null;
+
+        case 5:
+          // Current workout days required (0-7)
           return (
-            formData.activityLevel !== null &&
             formData.currentWorkoutDays !== null &&
             formData.currentWorkoutDays >= 0 &&
             formData.currentWorkoutDays <= 7
           );
 
-        case 5:
+        case 6:
           // Workouts per week required (1-7)
           return (
             formData.workoutsPerWeek !== null &&
@@ -142,7 +151,7 @@ export const CreatePlanAIFormProvider: React.FC<
             formData.workoutsPerWeek <= 7
           );
 
-        case 6:
+        case 7:
           // Must select at least workoutsPerWeek number of days
           if (!formData.workoutsPerWeek) return false;
           return (
@@ -150,7 +159,7 @@ export const CreatePlanAIFormProvider: React.FC<
             formData.availableDays.length > 0
           );
 
-        case 7:
+        case 8:
           // Start date required, must be today or future
           if (!formData.startDate) return false;
           const today = new Date();
@@ -167,13 +176,13 @@ export const CreatePlanAIFormProvider: React.FC<
   );
 
   const goToStep = useCallback((step: number) => {
-    if (step >= 1 && step <= 7) {
+    if (step >= 1 && step <= 8) {
       setCurrentStep(step);
     }
   }, []);
 
   const nextStep = useCallback(() => {
-    if (validateStep(currentStep) && currentStep < 7) {
+    if (validateStep(currentStep) && currentStep < 8) {
       setCurrentStep((prev) => prev + 1);
     }
   }, [currentStep, validateStep]);
@@ -196,7 +205,7 @@ export const CreatePlanAIFormProvider: React.FC<
       formData.maxReps.pullups > 0 ||
       formData.maxReps.dips > 0 ||
       formData.maxReps.squats > 0 ||
-      formData.age !== null ||
+      formData.birthDate !== null ||
       formData.height !== null ||
       formData.weight !== null ||
       formData.activityLevel !== null ||

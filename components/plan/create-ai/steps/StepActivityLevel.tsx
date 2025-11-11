@@ -64,38 +64,6 @@ const StepActivityLevel: React.FC = () => {
         onSelect={() => updateField("activityLevel", "advanced")}
       />
 
-      <View className="mt-6">
-        <Text className="text-lg font-semibold text-gray-900 mb-2">
-          How many days per week do you usually work out?
-        </Text>
-        <Text className="text-sm text-gray-600 mb-4">
-          Choose the number of workout days you already do consistently
-        </Text>
-        <View className="gap-3">
-          {Array.from({ length: 8 }, (_, index) => {
-            const isSelected = formData.currentWorkoutDays === index;
-            return (
-              <TouchableOpacity
-                key={index}
-                onPress={() => updateField("currentWorkoutDays", index)}
-                className={`w-full px-4 py-3 rounded-lg border-2 ${
-                  isSelected
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 bg-white"
-                }`}
-              >
-                <Text
-                  className={`text-sm font-semibold ${
-                    isSelected ? "text-blue-700" : "text-gray-700"
-                  }`}
-                >
-                  {index} day{index === 1 ? "" : "s"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
     </View>
   );
 };

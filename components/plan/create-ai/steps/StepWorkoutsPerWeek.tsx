@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
 
@@ -37,12 +37,6 @@ const StepWorkoutsPerWeek: React.FC = () => {
     []
   );
 
-  useEffect(() => {
-    if (!formData.workoutsPerWeek && recommendation) {
-      updateField("workoutsPerWeek", recommendation.suggested);
-    }
-  }, [formData.workoutsPerWeek, recommendation, updateField]);
-
   return (
     <View className="flex-1">
       <Text className="text-2xl font-bold text-gray-900 mb-2">
@@ -54,21 +48,10 @@ const StepWorkoutsPerWeek: React.FC = () => {
 
       {/* Recommendation */}
       {recommendation && (
-        <View className="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
-          <Text className="text-base text-gray-600 text-center">
-            We recommend{" "}
-            <Text className="font-semibold text-blue-600">
-              {recommendation.suggested} workouts per week
-            </Text>{" "}
-            based on your activity level.
+        <View className="self-start bg-blue-50 border border-blue-200 rounded-full px-4 py-2 mb-6">
+          <Text className="text-sm font-medium text-blue-700">
+            Suggested: {recommendation.suggested} workouts/week
           </Text>
-          {recommendation.currentDays > 0 && (
-            <Text className="text-sm text-blue-700 text-center mt-2">
-              You&apos;re currently training {recommendation.currentDays} day
-              {recommendation.currentDays === 1 ? "" : "s"} per week —
-              let&apos;s keep that momentum going!
-            </Text>
-          )}
         </View>
       )}
 
@@ -76,7 +59,6 @@ const StepWorkoutsPerWeek: React.FC = () => {
       <View className="gap-3">
         {workoutOptions.map((value) => {
           const isSelected = formData.workoutsPerWeek === value;
-          const isRecommended = recommendation?.suggested === value;
           return (
             <TouchableOpacity
               key={value}
@@ -95,11 +77,6 @@ const StepWorkoutsPerWeek: React.FC = () => {
                 >
                   {value} workout{value === 1 ? "" : "s"} per week
                 </Text>
-                {isRecommended && (
-                  <Text className="text-xs text-blue-600 mt-1">
-                    Recommended based on your activity level
-                  </Text>
-                )}
               </View>
               <Ionicons
                 name={isSelected ? "checkmark-circle" : "ellipse-outline"}

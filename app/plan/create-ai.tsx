@@ -18,6 +18,7 @@ import {
 import {
   StepActivityLevel,
   StepAvailableDays,
+  StepCurrentTrainingDays,
   StepMaxReps,
   StepPlanTarget,
   StepStartDate,
@@ -29,6 +30,7 @@ import {
   generateAIPlan,
   type AIPlanFormData,
 } from "../../lib/functions/planFunctions";
+import { calculateAgeFromDate } from "../../lib/utils/date-helpers";
 
 const CreatePlanAIContent: React.FC = () => {
   const router = useRouter();
@@ -44,7 +46,7 @@ const CreatePlanAIContent: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGeneratePlan = async () => {
-    if (!validateStep(7)) {
+    if (!validateStep(8)) {
       Alert.alert("Error", "Please complete all fields before generating.");
       return;
     }
@@ -62,7 +64,8 @@ const CreatePlanAIContent: React.FC = () => {
         planTarget: formData.planTarget,
         specificExercise: formData.specificExercise,
         maxReps: formData.maxReps,
-        age: formData.age,
+        birthDate: formData.birthDate,
+        age: formData.birthDate ? calculateAgeFromDate(formData.birthDate) : null,
         height: formData.height,
         heightUnit: formData.heightUnit,
         weight: formData.weight,
@@ -139,10 +142,12 @@ const CreatePlanAIContent: React.FC = () => {
       case 4:
         return <StepActivityLevel />;
       case 5:
-        return <StepWorkoutsPerWeek />;
+        return <StepCurrentTrainingDays />;
       case 6:
-        return <StepAvailableDays />;
+        return <StepWorkoutsPerWeek />;
       case 7:
+        return <StepAvailableDays />;
+      case 8:
         return <StepStartDate />;
       default:
         return null;
@@ -181,7 +186,7 @@ const CreatePlanAIContent: React.FC = () => {
               <Text className="text-gray-700 font-semibold text-lg">Back</Text>
             </TouchableOpacity>
           )}
-          {currentStep < 7 ? (
+          {currentStep < 8 ? (
             <TouchableOpacity
               onPress={handleNext}
               disabled={isGenerating || !validateStep(currentStep)}

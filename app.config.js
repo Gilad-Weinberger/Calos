@@ -17,7 +17,7 @@ export default {
   expo: {
     name: getAppName(),
     slug: "Calos",
-    version: "1.0.2",
+    version: "1.0.3",
     orientation: "portrait",
     icon: "./assets/images/logo.png",
     scheme: "calos",
