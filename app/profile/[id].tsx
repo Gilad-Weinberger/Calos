@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import {
   formatDistanceToNow,
   isThisWeek,
@@ -6,7 +5,7 @@ import {
   isToday,
   isYesterday,
 } from "date-fns";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, RefreshControl, ScrollView, View } from "react-native";
@@ -179,7 +178,6 @@ const ProfilePage = () => {
     }
   };
 
-
   const isOwnProfile = currentUser?.user_id === id;
 
   if (loading) {
@@ -221,7 +219,9 @@ const ProfilePage = () => {
       >
         <SafeAreaView className="flex-1" edges={["bottom", "left", "right"]}>
           {/* Media Grid Section */}
-          {recentMedia.length > 0 && <ProfileMediaGrid mediaItems={recentMedia} />}
+          {recentMedia.length > 0 && (
+            <ProfileMediaGrid mediaItems={recentMedia} />
+          )}
           {/* Profile Information Section */}
           <View className="p-6 pb-2">
             <ProfileHeader

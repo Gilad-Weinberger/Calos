@@ -1,10 +1,11 @@
 import React from "react";
 import { ActivityIndicator, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FullPageTopBar from "../layout/FullPageTopBar";
 
 const ProfileLoadingState: React.FC = () => {
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <FullPageTopBar
         title="Profile"
         rightIcons={[
@@ -18,10 +19,8 @@ const ProfileLoadingState: React.FC = () => {
         <ActivityIndicator size="large" color="#0066FF" />
         <Text className="text-gray-600 mt-2">Loading profile...</Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 export default ProfileLoadingState;
-
-

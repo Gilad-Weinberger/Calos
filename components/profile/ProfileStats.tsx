@@ -35,20 +35,45 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ stats }) => {
 
   // Get data based on selected activity type
   const getChartData = () => {
+    let data: number[] = [];
     switch (selectedActivityType) {
       case "sets":
-        return stats.weeklyData.map((week) => week.sets);
+        data = stats.weeklyData.map((week) => week.sets);
+        break;
       case "duration":
-        return stats.weeklyData.map((week) => Math.round(week.duration / 60)); // Convert to hours
+        data = stats.weeklyData.map((week) => Math.round(week.duration / 60)); // Convert to hours
+        break;
       default:
-        return stats.weeklyData.map((week) => week.workouts);
+        data = stats.weeklyData.map((week) => week.workouts);
     }
+
+    // Ensure data has at least 2 valid numbers and add 0 if all values are the same to avoid infinity
+    if (data.length === 0) {
+      return [0, 0];
+    }
+    if (data.length === 1) {
+      return [0, data[0]];
+    }
+    // If all values are the same, add a 0 to create variation
+    const allSame = data.every((val) => val === data[0]);
+    if (allSame && data[0] !== 0) {
+      return [0, ...data];
+    }
+    return data;
   };
 
   // Create chart data from weekly data with unique month labels
   const createChartLabels = (): string[] => {
     const labels: string[] = [];
     const seenMonths = new Set<string>();
+
+    // If we need to add a 0 at the beginning for variation
+    const chartDataArray = getChartData();
+    const needsExtraLabel = chartDataArray.length > stats.weeklyData.length;
+
+    if (needsExtraLabel) {
+      labels.push("");
+    }
 
     stats.weeklyData.forEach((week, index) => {
       const month = week.weekLabel.split(" ")[0];
@@ -214,28 +239,40 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ stats }) => {
       </View>
 
       {/* Chart */}
-      <View className="bg-white rounded-xl -ml-12">
-        <LineChart
-          data={chartData}
-          width={chartWidth}
-          height={200}
-          chartConfig={chartConfig}
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-          }}
-          bezier={true}
-          withDots={true}
-          withShadow={true}
-          withScrollableDot={false}
-          withInnerLines={true}
-          withOuterLines={true}
-          withHorizontalLabels={true}
-          withVerticalLabels={true}
-          fromZero={false}
-          segments={4}
-        />
-      </View>
+      {stats.weeklyData && stats.weeklyData.length > 0 ? (
+        <View className="bg-white rounded-xl -ml-12">
+          <LineChart
+            data={chartData}
+            width={chartWidth}
+            height={200}
+            chartConfig={chartConfig}
+            style={{
+              marginVertical: 8,
+              borderRadius: 16,
+            }}
+            bezier={true}
+            withDots={true}
+            withShadow={true}
+            withScrollableDot={false}
+            withInnerLines={true}
+            withOuterLines={true}
+            withHorizontalLabels={true}
+            withVerticalLabels={true}
+            fromZero={false}
+            segments={4}
+          />
+        </View>
+      ) : (
+        <View className="bg-gray-50 rounded-xl p-6 items-center">
+          <Ionicons name="bar-chart-outline" size={48} color="#9CA3AF" />
+          <Text className="text-gray-500 mt-2 text-center">
+            No workout history yet
+          </Text>
+          <Text className="text-gray-400 text-sm mt-1 text-center">
+            Complete workouts to see your progress
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
