@@ -70,11 +70,11 @@ const ExerciseBlock: React.FC<ExerciseBlockProps> = ({
 
 type ExerciseKey = "pushups" | "pullups" | "dips" | "squats";
 
-const EXERCISES: Array<{
+const EXERCISES: {
   key: ExerciseKey;
   name: string;
   icon: keyof typeof Ionicons.glyphMap;
-}> = [
+}[] = [
   { key: "pushups", name: "Push-ups", icon: "body" },
   { key: "pullups", name: "Pull-ups", icon: "arrow-up" },
   { key: "dips", name: "Dips", icon: "arrow-down-circle" },
@@ -83,13 +83,12 @@ const EXERCISES: Array<{
 
 const StepMaxReps: React.FC = () => {
   const { formData, updateField } = useCreatePlanAIForm();
-  const [activeExercise, setActiveExercise] = useState<ExerciseKey | null>(null);
+  const [activeExercise, setActiveExercise] = useState<ExerciseKey | null>(
+    null
+  );
   const [modalValue, setModalValue] = useState<string>("0");
 
-  const updateReps = (
-    exercise: ExerciseKey,
-    delta: number
-  ) => {
+  const updateReps = (exercise: ExerciseKey, delta: number) => {
     const currentValue = formData.maxReps[exercise];
     const newValue = Math.max(0, Math.min(100, currentValue + delta));
     updateField("maxReps", {

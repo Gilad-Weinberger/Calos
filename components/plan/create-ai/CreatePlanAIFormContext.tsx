@@ -35,25 +35,30 @@ interface CreatePlanAIFormContextType {
   resetForm: () => void;
 }
 
-const initialFormData: FormData = {
-  planTarget: null,
-  specificExercise: "",
-  maxReps: {
-    pushups: 0,
-    pullups: 0,
-    dips: 0,
-    squats: 0,
-  },
-  birthDate: null,
-  height: null,
-  heightUnit: "cm",
-  weight: null,
-  weightUnit: "kg",
-  activityLevel: null,
-  currentWorkoutDays: null,
-  workoutsPerWeek: null,
-  availableDays: [],
-  startDate: null,
+const getInitialFormData = (): FormData => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return {
+    planTarget: null,
+    specificExercise: "",
+    maxReps: {
+      pushups: 0,
+      pullups: 0,
+      dips: 0,
+      squats: 0,
+    },
+    birthDate: null,
+    height: null,
+    heightUnit: "cm",
+    weight: null,
+    weightUnit: "kg",
+    activityLevel: null,
+    currentWorkoutDays: null,
+    workoutsPerWeek: null,
+    availableDays: [],
+    startDate: today,
+  };
 };
 
 const CreatePlanAIFormContext = createContext<
@@ -78,7 +83,7 @@ export const CreatePlanAIFormProvider: React.FC<
   CreatePlanAIFormProviderProps
 > = ({ children }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formData, setFormData] = useState<FormData>(getInitialFormData);
 
   const updateField = useCallback(
     <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -101,17 +106,17 @@ export const CreatePlanAIFormProvider: React.FC<
           return true;
 
         case 2:
-          // All max reps required, min 0, max 100
+          // All max reps required, min 0, max 1000
           const { pushups, pullups, dips, squats } = formData.maxReps;
           return (
             pushups >= 0 &&
-            pushups <= 100 &&
+            pushups <= 1000 &&
             pullups >= 0 &&
-            pullups <= 100 &&
+            pullups <= 1000 &&
             dips >= 0 &&
-            dips <= 100 &&
+            dips <= 1000 &&
             squats >= 0 &&
-            squats <= 100
+            squats <= 1000
           );
 
         case 3:
@@ -136,14 +141,6 @@ export const CreatePlanAIFormProvider: React.FC<
           return formData.activityLevel !== null;
 
         case 5:
-          // Current workout days required (0-7)
-          return (
-            formData.currentWorkoutDays !== null &&
-            formData.currentWorkoutDays >= 0 &&
-            formData.currentWorkoutDays <= 7
-          );
-
-        case 6:
           // Workouts per week required (1-7)
           return (
             formData.workoutsPerWeek !== null &&
@@ -151,7 +148,7 @@ export const CreatePlanAIFormProvider: React.FC<
             formData.workoutsPerWeek <= 7
           );
 
-        case 7:
+        case 6:
           // Must select at least workoutsPerWeek number of days
           if (!formData.workoutsPerWeek) return false;
           return (
@@ -159,7 +156,7 @@ export const CreatePlanAIFormProvider: React.FC<
             formData.availableDays.length > 0
           );
 
-        case 8:
+        case 7:
           // Start date required, must be today or future
           if (!formData.startDate) return false;
           const today = new Date();
@@ -176,13 +173,13 @@ export const CreatePlanAIFormProvider: React.FC<
   );
 
   const goToStep = useCallback((step: number) => {
-    if (step >= 1 && step <= 8) {
+    if (step >= 1 && step <= 7) {
       setCurrentStep(step);
     }
   }, []);
 
   const nextStep = useCallback(() => {
-    if (validateStep(currentStep) && currentStep < 8) {
+    if (validateStep(currentStep) && currentStep < 7) {
       setCurrentStep((prev) => prev + 1);
     }
   }, [currentStep, validateStep]);
@@ -218,7 +215,7 @@ export const CreatePlanAIFormProvider: React.FC<
   }, [formData]);
 
   const resetForm = useCallback(() => {
-    setFormData(initialFormData);
+    setFormData(getInitialFormData());
     setCurrentStep(1);
   }, []);
 

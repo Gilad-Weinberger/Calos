@@ -44,26 +44,34 @@ const StepActivityLevel: React.FC = () => {
 
       <ActivityLevelCard
         title="Beginner"
-        description="I'm new to calisthenics or exercise regularly less than 3 months"
+        description="I exercise 0-1 times per week regularly"
         level="beginner"
         isSelected={formData.activityLevel === "beginner"}
-        onSelect={() => updateField("activityLevel", "beginner")}
+        onSelect={() => {
+          updateField("activityLevel", "beginner");
+          updateField("currentWorkoutDays", 1);
+        }}
       />
       <ActivityLevelCard
         title="Intermediate"
-        description="I've been exercising regularly for 3-12 months"
+        description="I exercise 2-3 times per week regularly"
         level="intermediate"
         isSelected={formData.activityLevel === "intermediate"}
-        onSelect={() => updateField("activityLevel", "intermediate")}
+        onSelect={() => {
+          updateField("activityLevel", "intermediate");
+          updateField("currentWorkoutDays", 3);
+        }}
       />
       <ActivityLevelCard
         title="Advanced"
-        description="I've been exercising regularly for over a year"
+        description="I exercise 4+ times per week regularly"
         level="advanced"
         isSelected={formData.activityLevel === "advanced"}
-        onSelect={() => updateField("activityLevel", "advanced")}
+        onSelect={() => {
+          updateField("activityLevel", "advanced");
+          updateField("currentWorkoutDays", 5);
+        }}
       />
-
     </View>
   );
 };

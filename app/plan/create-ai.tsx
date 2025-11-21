@@ -18,7 +18,6 @@ import {
 import {
   StepActivityLevel,
   StepAvailableDays,
-  StepCurrentTrainingDays,
   StepMaxReps,
   StepPlanTarget,
   StepStartDate,
@@ -46,7 +45,7 @@ const CreatePlanAIContent: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGeneratePlan = async () => {
-    if (!validateStep(8)) {
+    if (!validateStep(7)) {
       Alert.alert("Error", "Please complete all fields before generating.");
       return;
     }
@@ -59,19 +58,37 @@ const CreatePlanAIContent: React.FC = () => {
     setIsGenerating(true);
 
     try {
+      // Derive currentWorkoutDays from activityLevel if not set
+      let currentWorkoutDays = formData.currentWorkoutDays;
+      if (currentWorkoutDays === null && formData.activityLevel) {
+        switch (formData.activityLevel) {
+          case "beginner":
+            currentWorkoutDays = 1;
+            break;
+          case "intermediate":
+            currentWorkoutDays = 3;
+            break;
+          case "advanced":
+            currentWorkoutDays = 5;
+            break;
+        }
+      }
+
       // Convert FormData to AIPlanFormData format
       const aiFormData: AIPlanFormData = {
         planTarget: formData.planTarget,
         specificExercise: formData.specificExercise,
         maxReps: formData.maxReps,
         birthDate: formData.birthDate,
-        age: formData.birthDate ? calculateAgeFromDate(formData.birthDate) : null,
+        age: formData.birthDate
+          ? calculateAgeFromDate(formData.birthDate)
+          : null,
         height: formData.height,
         heightUnit: formData.heightUnit,
         weight: formData.weight,
         weightUnit: formData.weightUnit,
         activityLevel: formData.activityLevel,
-        currentWorkoutDays: formData.currentWorkoutDays,
+        currentWorkoutDays: currentWorkoutDays,
         workoutsPerWeek: formData.workoutsPerWeek,
         availableDays: formData.availableDays,
         startDate: formData.startDate,
@@ -142,12 +159,10 @@ const CreatePlanAIContent: React.FC = () => {
       case 4:
         return <StepActivityLevel />;
       case 5:
-        return <StepCurrentTrainingDays />;
-      case 6:
         return <StepWorkoutsPerWeek />;
-      case 7:
+      case 6:
         return <StepAvailableDays />;
-      case 8:
+      case 7:
         return <StepStartDate />;
       default:
         return null;
@@ -181,12 +196,12 @@ const CreatePlanAIContent: React.FC = () => {
             <TouchableOpacity
               onPress={previousStep}
               disabled={isGenerating}
-              className="flex-1 bg-gray-200 rounded-lg px-6 py-4 items-center"
+              className="w-[40%] bg-gray-200 rounded-lg px-6 py-4 items-center"
             >
               <Text className="text-gray-700 font-semibold text-lg">Back</Text>
             </TouchableOpacity>
           )}
-          {currentStep < 8 ? (
+          {currentStep < 7 ? (
             <TouchableOpacity
               onPress={handleNext}
               disabled={isGenerating || !validateStep(currentStep)}

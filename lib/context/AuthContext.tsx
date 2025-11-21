@@ -251,9 +251,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Always update authUser with the refreshed session (contains new token)
         setAuthUser(session.user);
 
-        // Only fetch profile if user changed or on initial sign in
+        // Only fetch profile if this is not a token refresh event and user has changed
+        // Note: TOKEN_REFRESHED is not in Supabase's type definition but is emitted in practice
+        const isTokenRefresh = event === ("TOKEN_REFRESHED" as any);
         if (
-          event !== "TOKEN_REFRESHED" ||
+          !isTokenRefresh &&
           lastProcessedUserIdRef.current !== session.user.id
         ) {
           lastProcessedUserIdRef.current = session.user.id;

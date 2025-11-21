@@ -4,21 +4,13 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { format } from "date-fns";
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  Platform,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import PickerWheelNumber, {
-  type PickerOption,
-} from "../PickerWheelNumber";
-import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
+import { Modal, Platform, Text, TouchableOpacity, View } from "react-native";
 import {
   calculateAgeFromDate,
   shiftYearsFromToday,
 } from "../../../../lib/utils/date-helpers";
+import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
+import PickerWheelNumber, { type PickerOption } from "../PickerWheelNumber";
 
 const CM_HEIGHT_MIN = 140;
 const CM_HEIGHT_MAX = 210;
@@ -58,28 +50,26 @@ const createHeightOptions = (unit: "cm" | "ft"): PickerOption[] => {
 
 const createWeightOptions = (unit: "kg" | "lbs"): PickerOption[] => {
   if (unit === "kg") {
-    return Array.from(
-      { length: KG_WEIGHT_MAX - KG_WEIGHT_MIN + 1 },
-      (_, index) => {
-        const value = KG_WEIGHT_MIN + index;
-        return {
-          label: `${value} kg`,
-          value,
-        };
-      }
-    );
-  }
-
-  return Array.from(
-    { length: LBS_WEIGHT_MAX - LBS_WEIGHT_MIN + 1 },
-    (_, index) => {
-      const value = LBS_WEIGHT_MIN + index;
+    const min = KG_WEIGHT_MIN * 10;
+    const max = KG_WEIGHT_MAX * 10;
+    return Array.from({ length: max - min + 1 }, (_, index) => {
+      const value = parseFloat(((min + index) / 10).toFixed(1));
       return {
-        label: `${value} lbs`,
+        label: `${value.toFixed(1)} kg`,
         value,
       };
-    }
-  );
+    });
+  }
+
+  const min = LBS_WEIGHT_MIN * 10;
+  const max = LBS_WEIGHT_MAX * 10;
+  return Array.from({ length: max - min + 1 }, (_, index) => {
+    const value = parseFloat(((min + index) / 10).toFixed(1));
+    return {
+      label: `${value.toFixed(1)} lbs`,
+      value,
+    };
+  });
 };
 
 const snapValueToOptions = (value: number, options: PickerOption[]): number => {
@@ -130,10 +120,10 @@ const convertWeightValue = (
 ): number => {
   if (from === to) return value;
   if (from === "kg" && to === "lbs") {
-    return Math.round(value * 2.20462);
+    return parseFloat((value * 2.20462).toFixed(1));
   }
   if (from === "lbs" && to === "kg") {
-    return Math.round(value / 2.20462);
+    return parseFloat((value / 2.20462).toFixed(1));
   }
   return value;
 };
@@ -229,16 +219,28 @@ const StepUserData: React.FC = () => {
     setIsBirthDatePickerVisible(false);
   };
 
+  // Auto-set default height if not already set
   useEffect(() => {
-    setHeightDraft(
-      initializeDraftValue(formData.height, heightOptions)
-    );
+    if (formData.height === null && heightOptions.length > 0) {
+      const defaultHeight = initializeDraftValue(null, heightOptions);
+      updateField("height", defaultHeight);
+    }
+  }, [formData.height, heightOptions, updateField]);
+
+  // Auto-set default weight if not already set
+  useEffect(() => {
+    if (formData.weight === null && weightOptions.length > 0) {
+      const defaultWeight = initializeDraftValue(null, weightOptions);
+      updateField("weight", defaultWeight);
+    }
+  }, [formData.weight, weightOptions, updateField]);
+
+  useEffect(() => {
+    setHeightDraft(initializeDraftValue(formData.height, heightOptions));
   }, [formData.height, heightOptions]);
 
   useEffect(() => {
-    setWeightDraft(
-      initializeDraftValue(formData.weight, weightOptions)
-    );
+    setWeightDraft(initializeDraftValue(formData.weight, weightOptions));
   }, [formData.weight, weightOptions]);
 
   const heightLabel = useMemo(() => {
@@ -246,9 +248,7 @@ const StepUserData: React.FC = () => {
       return `Select your height (${formData.heightUnit})`;
     }
 
-    const option = heightOptions.find(
-      (item) => item.value === formData.height
-    );
+    const option = heightOptions.find((item) => item.value === formData.height);
 
     if (option) return option.label;
 
@@ -262,14 +262,12 @@ const StepUserData: React.FC = () => {
       return `Select your weight (${formData.weightUnit})`;
     }
 
-    const option = weightOptions.find(
-      (item) => item.value === formData.weight
-    );
+    const option = weightOptions.find((item) => item.value === formData.weight);
     if (option) return option.label;
 
     return formData.weightUnit === "kg"
-      ? `${Math.round(formData.weight)} kg`
-      : `${Math.round(formData.weight)} lbs`;
+      ? `${formData.weight.toFixed(1)} kg`
+      : `${formData.weight.toFixed(1)} lbs`;
   }, [formData.weight, formData.weightUnit, weightOptions]);
 
   const handleHeightUnitChange = (unit: "cm" | "ft") => {
@@ -287,8 +285,7 @@ const StepUserData: React.FC = () => {
       convertedHeight = snapValueToOptions(baseConverted, options);
     }
 
-    const nextValue =
-      convertedHeight ?? initializeDraftValue(null, options);
+    const nextValue = convertedHeight ?? initializeDraftValue(null, options);
 
     updateField("heightUnit", unit);
     updateField("height", nextValue);
@@ -310,8 +307,7 @@ const StepUserData: React.FC = () => {
       convertedWeight = snapValueToOptions(baseConverted, options);
     }
 
-    const nextValue =
-      convertedWeight ?? initializeDraftValue(null, options);
+    const nextValue = convertedWeight ?? initializeDraftValue(null, options);
 
     updateField("weightUnit", unit);
     updateField("weight", nextValue);
@@ -319,16 +315,12 @@ const StepUserData: React.FC = () => {
   };
 
   const openHeightPicker = () => {
-    setHeightDraft(
-      initializeDraftValue(formData.height, heightOptions)
-    );
+    setHeightDraft(initializeDraftValue(formData.height, heightOptions));
     setIsHeightPickerVisible(true);
   };
 
   const cancelHeightPicker = () => {
-    setHeightDraft(
-      initializeDraftValue(formData.height, heightOptions)
-    );
+    setHeightDraft(initializeDraftValue(formData.height, heightOptions));
     setIsHeightPickerVisible(false);
   };
 
@@ -338,16 +330,12 @@ const StepUserData: React.FC = () => {
   };
 
   const openWeightPicker = () => {
-    setWeightDraft(
-      initializeDraftValue(formData.weight, weightOptions)
-    );
+    setWeightDraft(initializeDraftValue(formData.weight, weightOptions));
     setIsWeightPickerVisible(true);
   };
 
   const cancelWeightPicker = () => {
-    setWeightDraft(
-      initializeDraftValue(formData.weight, weightOptions)
-    );
+    setWeightDraft(initializeDraftValue(formData.weight, weightOptions));
     setIsWeightPickerVisible(false);
   };
 
@@ -511,7 +499,9 @@ const StepUserData: React.FC = () => {
                   Select birth date
                 </Text>
                 <TouchableOpacity onPress={confirmIOSBirthDate}>
-                  <Text className="text-blue-600 font-semibold text-lg">Done</Text>
+                  <Text className="text-blue-600 font-semibold text-lg">
+                    Done
+                  </Text>
                 </TouchableOpacity>
               </View>
               <DateTimePicker

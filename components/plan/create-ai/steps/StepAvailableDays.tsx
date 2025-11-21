@@ -49,18 +49,13 @@ const StepAvailableDays: React.FC = () => {
                   : "border-gray-200 bg-white"
               }`}
             >
-              <View>
-                <Text
-                  className={`text-base font-semibold ${
-                    selected ? "text-blue-700" : "text-gray-800"
-                  }`}
-                >
-                  {dayName}
-                </Text>
-                <Text className="text-xs text-gray-500">
-                  {selected ? "Selected" : "Tap to add"}
-                </Text>
-              </View>
+              <Text
+                className={`text-base font-semibold ${
+                  selected ? "text-blue-700" : "text-gray-800"
+                }`}
+              >
+                {dayName}
+              </Text>
               <View
                 className={`w-3 h-3 rounded-full ${
                   selected ? "bg-blue-500" : "bg-gray-300"
