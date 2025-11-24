@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { useCreatePlanAIForm } from "../CreatePlanAIFormContext";
 
 const StepPlanTarget: React.FC = () => {
@@ -51,8 +51,8 @@ const StepPlanTarget: React.FC = () => {
           </View>
         </TouchableOpacity>
 
-        {/* Learn Specific Exercise Option */}
-        <TouchableOpacity
+        {/* Learn Specific Exercise Option - TEMPORARILY HIDDEN FOR FUTURE DEVELOPMENT */}
+        {/* <TouchableOpacity
           onPress={() => handleSelectTarget("specific_exercise")}
           className={`w-full bg-white rounded-xl px-4 py-4 border-2 ${
             formData.planTarget === "specific_exercise"
@@ -77,11 +77,11 @@ const StepPlanTarget: React.FC = () => {
               </Text>
             </View>
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
-      {/* Specific Exercise Input */}
-      {formData.planTarget === "specific_exercise" && (
+      {/* Specific Exercise Input - TEMPORARILY HIDDEN FOR FUTURE DEVELOPMENT */}
+      {/* {formData.planTarget === "specific_exercise" && (
         <View className="mt-6">
           <Text className="text-sm font-semibold text-gray-700 mb-2">
             Which exercise do you want to learn?
@@ -95,7 +95,7 @@ const StepPlanTarget: React.FC = () => {
             autoCapitalize="words"
           />
         </View>
-      )}
+      )} */}
     </View>
   );
 };
