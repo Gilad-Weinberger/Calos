@@ -12,6 +12,7 @@ const corsHeaders = {
 interface FormData {
   planTarget: "calisthenics" | "specific_exercise" | null;
   specificExercise: string;
+  trainingFocus: "upper" | "lower" | "all" | null;
   maxReps: {
     pushups: number;
     pullups: number;
@@ -175,6 +176,13 @@ USER INFORMATION:
         ? "Start calisthenics journey"
         : `Learn specific exercise: ${data.specificExercise}`
     }
+- Training Focus: ${
+      data.trainingFocus === "upper"
+        ? "Upper Body Only"
+        : data.trainingFocus === "lower"
+          ? "Lower Body Only"
+          : "Full Body (Upper + Lower)"
+    }
 - Current Max Reps:
   * Push-ups: ${data.maxReps.pushups}
   * Pull-ups: ${data.maxReps.pullups}
@@ -199,12 +207,20 @@ REQUIREMENTS:
 5. Schedule workouts only on available days: ${availableDaysNames}
 6. Use rest days for non-available days
 7. Exercises should be appropriate for the user's current max reps
-8. Respect the user's current training frequency (${data.currentWorkoutDays} day${
+8. TRAINING FOCUS:
+   ${
+     data.trainingFocus === "upper"
+       ? "- Create UPPER BODY workouts only (push-ups, pull-ups, dips, rows, planks, core exercises)\n   - Do NOT include lower body exercises (except core/planks which are acceptable)"
+       : data.trainingFocus === "lower"
+         ? "- Create LOWER BODY workouts only (squats, lunges, single-leg exercises, glutes, hamstrings, calves, wall sits)\n   - Do NOT include upper body exercises"
+         : "- Create BALANCED workouts mixing upper and lower body exercises\n   - Can alternate days (e.g., Workout A: Upper, Workout B: Lower) OR combine within workouts\n   - Ensure both upper and lower body get adequate training volume"
+   }
+9. Respect the user's current training frequency (${data.currentWorkoutDays} day${
       data.currentWorkoutDays === 1 ? "" : "s"
     }) when progressing
-9. Include progressive overload (gradually increase difficulty over weeks)
-10. For beginners, start easier and progress slowly
-11. For intermediate/advanced, include more challenging variations
+10. Include progressive overload (gradually increase difficulty over weeks)
+11. For beginners, start easier and progress slowly
+12. For intermediate/advanced, include more challenging variations
 
 OUTPUT FORMAT (JSON only, no additional text):
 {
@@ -253,12 +269,26 @@ CRITICAL RULES:
 14. Ensure proper rest between workout days
 
 EXERCISE SELECTION GUIDELINES:
+
+UPPER BODY PROGRESSIONS:
 - If user can do 0-5 push-ups: Start with knee push-ups or wall push-ups
 - If user can do 6-15 push-ups: Use regular push-ups, progress to diamond or decline
 - If user can do 16+ push-ups: Include advanced variations (archer, one-arm prep, etc.)
-- Similar progression for pull-ups, dips, and squats
-- Include core exercises (planks, leg raises, etc.)
+- Similar progression for pull-ups and dips
+- Include core exercises (planks, leg raises, hollow body holds, etc.)
+
+LOWER BODY PROGRESSIONS:
+- If user can do 0-10 squats: Start with wall sits (static), assisted squats, box squats, step-ups
+- If user can do 11-25 squats: Regular squats, Bulgarian split squats, reverse lunges, single-leg deadlifts
+- If user can do 26+ squats: Pistol squat progressions, jump squats, shrimp squats, advanced single-leg work
+- Include glute/hamstring exercises: glute bridges, single-leg bridges, Nordic curls (assisted), good mornings
+- Include calf work for comprehensive lower body: calf raises, single-leg calf raises
+- Progress by: increasing reps, adding tempo variations (slow eccentric), advancing to single-leg, adding isometric holds
+
+GENERAL GUIDELINES:
 - Include flexibility/mobility work if appropriate
+- Balance push and pull movements (for upper body)
+- Balance anterior and posterior chain (for lower body)
 
 Return ONLY the JSON object, no additional text or explanation.`;
 

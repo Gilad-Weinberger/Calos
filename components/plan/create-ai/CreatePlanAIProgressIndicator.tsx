@@ -8,7 +8,7 @@ interface CreatePlanAIProgressIndicatorProps {
 
 const CreatePlanAIProgressIndicator: React.FC<
   CreatePlanAIProgressIndicatorProps
-> = ({ currentStep, totalSteps = 7 }) => {
+> = ({ currentStep, totalSteps = 8 }) => {
   return (
     <View className="flex-row items-center justify-center px-6 py-4">
       {Array.from({ length: totalSteps }, (_, index) => {

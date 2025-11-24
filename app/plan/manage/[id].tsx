@@ -12,10 +12,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import FullPageTopBar from "../../../components/layout/FullPageTopBar";
 import {
+  PlanAIAssistantButton,
+  PlanAIAssistantModal,
   PlanDeleteButton,
   PlanMetadataEditor,
-  PlanScheduleEditor,
-  PlanWorkoutEditor,
+  PlanScheduleViewer,
   PlanWorkoutListEditor,
 } from "../../../components/plan/manage";
 import { useAuth } from "../../../lib/context/AuthContext";
@@ -25,7 +26,6 @@ import {
   updatePlanWithWorkoutRecreation,
   validatePlanData,
   type Plan,
-  type WorkoutDefinition,
 } from "../../../lib/functions/planFunctions";
 
 const ManagePlanPage = () => {
@@ -37,11 +37,8 @@ const ManagePlanPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [activeWorkoutEditor, setActiveWorkoutEditor] = useState<{
-    letter: string;
-    workout: WorkoutDefinition;
-  } | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isAIModalVisible, setIsAIModalVisible] = useState(false);
 
   const loadPlan = useCallback(async () => {
     if (!id || !user?.user_id) {
@@ -88,78 +85,28 @@ const ManagePlanPage = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handleWorkoutEdit = (
-    workoutLetter: string,
-    workout: WorkoutDefinition
-  ) => {
-    setActiveWorkoutEditor({ letter: workoutLetter, workout });
+  const handleAIAssistantPress = () => {
+    setIsAIModalVisible(true);
   };
 
-  const handleWorkoutSave = (
-    workoutLetter: string,
-    workout: WorkoutDefinition
-  ) => {
+  const handleAIChangesAccepted = (modifiedData: {
+    workouts: Plan["workouts"];
+    schedule: Plan["schedule"];
+    num_weeks: number;
+    start_date: string;
+  }) => {
     if (!editedPlan) return;
 
-    const newWorkouts = { ...editedPlan.workouts };
-    newWorkouts[workoutLetter] = workout;
-
-    setEditedPlan({ ...editedPlan, workouts: newWorkouts });
-    setActiveWorkoutEditor(null);
-    setHasUnsavedChanges(true);
-  };
-
-  const handleWorkoutDelete = (workoutLetter: string) => {
-    if (!editedPlan) return;
-
-    const newWorkouts = { ...editedPlan.workouts };
-    delete newWorkouts[workoutLetter];
-
-    // Remove from schedule
-    const newSchedule = editedPlan.schedule.map((week) =>
-      week.map((day) =>
-        day?.toUpperCase() === workoutLetter.toUpperCase() ? "Rest" : day
-      )
-    );
-
+    // Apply AI-suggested changes to the edited plan
     setEditedPlan({
       ...editedPlan,
-      workouts: newWorkouts,
-      schedule: newSchedule,
+      workouts: modifiedData.workouts,
+      schedule: modifiedData.schedule,
+      num_weeks: modifiedData.num_weeks,
+      start_date: modifiedData.start_date,
     });
     setHasUnsavedChanges(true);
-  };
-
-  const handleWorkoutAdd = () => {
-    if (!editedPlan) return;
-
-    // Find next available letter
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let nextLetter = "";
-    for (const letter of letters) {
-      if (!editedPlan.workouts[letter]) {
-        nextLetter = letter;
-        break;
-      }
-    }
-
-    if (!nextLetter) {
-      Alert.alert("Error", "Maximum number of workouts reached (26)");
-      return;
-    }
-
-    const newWorkout: WorkoutDefinition = {
-      name: `Workout ${nextLetter}`,
-      exercises: [],
-    };
-
-    setActiveWorkoutEditor({ letter: nextLetter, workout: newWorkout });
-  };
-
-  const handleScheduleChange = (schedule: string[][]) => {
-    if (!editedPlan) return;
-    setEditedPlan({ ...editedPlan, schedule });
-    setHasUnsavedChanges(true);
+    setIsAIModalVisible(false);
   };
 
   const handleSave = async () => {
@@ -177,13 +124,14 @@ const ManagePlanPage = () => {
     try {
       setIsSaving(true);
 
-      // Prepare updates (exclude fields that shouldn't be updated)
+      // Prepare updates (include all fields that may have changed)
       const updates: Partial<Plan> = {
         name: editedPlan.name,
         description: editedPlan.description,
         workouts: editedPlan.workouts,
         schedule: editedPlan.schedule,
         num_weeks: editedPlan.num_weeks,
+        start_date: editedPlan.start_date,
       };
 
       await updatePlanWithWorkoutRecreation(id, user.user_id, updates);
@@ -295,17 +243,9 @@ const ManagePlanPage = () => {
             onDescriptionChange={handleDescriptionChange}
           />
 
-          <PlanWorkoutListEditor
-            plan={editedPlan}
-            onWorkoutEdit={handleWorkoutEdit}
-            onWorkoutDelete={handleWorkoutDelete}
-            onWorkoutAdd={handleWorkoutAdd}
-          />
+          <PlanScheduleViewer plan={editedPlan} />
 
-          <PlanScheduleEditor
-            plan={editedPlan}
-            onScheduleChange={handleScheduleChange}
-          />
+          <PlanWorkoutListEditor plan={editedPlan} />
 
           <PlanDeleteButton onDelete={handleDelete} disabled={isDeleting} />
 
@@ -343,16 +283,18 @@ const ManagePlanPage = () => {
         </ScrollView>
       </SafeAreaView>
 
-      {/* Workout Editor Modal */}
-      {activeWorkoutEditor && (
-        <PlanWorkoutEditor
-          visible={!!activeWorkoutEditor}
-          workoutLetter={activeWorkoutEditor.letter}
-          workout={activeWorkoutEditor.workout}
-          onClose={() => setActiveWorkoutEditor(null)}
-          onSave={handleWorkoutSave}
+      {/* AI Assistant Modal */}
+      {editedPlan && (
+        <PlanAIAssistantModal
+          visible={isAIModalVisible}
+          currentPlan={editedPlan}
+          onClose={() => setIsAIModalVisible(false)}
+          onAcceptChanges={handleAIChangesAccepted}
         />
       )}
+
+      {/* AI Assistant Floating Button */}
+      {editedPlan && <PlanAIAssistantButton onPress={handleAIAssistantPress} />}
     </SafeAreaView>
   );
 };

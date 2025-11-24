@@ -9,6 +9,42 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+interface Plan {
+  plan_id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  plan_type: "repeat" | "once";
+  num_weeks: number;
+  workouts: WorkoutDefinitions;
+  schedule: string[][];
+  start_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface WorkoutDefinitions {
+  [key: string]: WorkoutDefinition;
+}
+
+interface WorkoutDefinition {
+  name: string;
+  exercises: ExerciseDefinition[];
+}
+
+interface ExerciseDefinition {
+  exercise_id: string;
+  exercise_name: string;
+  sets: number;
+  reps?: number;
+  duration?: number;
+  rest_seconds: number;
+  superset_group?: string;
+  unilateral_type?: string;
+  alternating?: boolean;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -39,147 +75,122 @@ serve(async (req) => {
     });
 
     // Parse request body
-    const { pdfUrl, aiNotes, userId } = await req.json();
+    const { currentPlan, userPrompt, userId } = await req.json();
 
-    if (!pdfUrl) {
-      return new Response(JSON.stringify({ error: "pdfUrl is required" }), {
+    if (!currentPlan) {
+      return new Response(
+        JSON.stringify({ error: "currentPlan is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!userPrompt || typeof userPrompt !== "string") {
+      return new Response(JSON.stringify({ error: "userPrompt is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Download PDF from storage
+    const plan = currentPlan as Plan;
+
+    // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Extract file path from URL
-    const urlParts = pdfUrl.split("/workout-plans/");
-    if (urlParts.length !== 2) {
-      throw new Error("Invalid PDF URL format");
+    // Build modification prompt
+    const dayNames = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    const prompt = `You are an expert workout plan modifier. A user has requested changes to their existing workout plan. Analyze the current plan and apply the requested modifications.
+
+CURRENT PLAN:
+- Plan Name: ${plan.name}
+- Plan Type: ${plan.plan_type} ${
+      plan.plan_type === "repeat"
+        ? "(recurring plan - repeats every cycle)"
+        : "(one-time plan - runs once and ends)"
     }
-    const filePath = urlParts[1];
+- Number of Weeks: ${plan.num_weeks}
+- Start Date: ${plan.start_date}
 
-    // Download PDF
-    const { data: pdfData, error: downloadError } = await supabase.storage
-      .from("workout-plans")
-      .download(filePath);
+CURRENT WORKOUTS:
+${JSON.stringify(plan.workouts, null, 2)}
 
-    if (downloadError) {
-      throw new Error(`Failed to download PDF: ${downloadError.message}`);
+CURRENT SCHEDULE:
+${plan.schedule
+  .map(
+    (week, idx) =>
+      `Week ${idx + 1}: ${week
+        .map((day, dayIdx) => `${dayNames[dayIdx]}=${day}`)
+        .join(", ")}`
+  )
+  .join("\n")}
+
+USER'S MODIFICATION REQUEST:
+"${userPrompt}"
+
+MODIFICATION RULES:
+1. Apply ONLY the changes requested by the user
+2. Preserve all unchanged aspects of the plan
+3. DO NOT change plan_type (must remain "${plan.plan_type}")
+4. ${
+      plan.plan_type === "repeat"
+        ? "DO NOT change num_weeks, even if requested (recurring plans have fixed cycle length)"
+        : "You CAN change num_weeks, only if requested (one-time plans are flexible)"
     }
+5. If adding/modifying exercises, ensure they are appropriate for the plan
+6. If changing schedule, maintain 7 days per week (Sunday to Saturday)
+7. Use "rest" for rest days (lowercase)
+8. Use uppercase letters for workout references (A, B, C, etc.)
+9. For static exercises (planks, holds): include ONLY "duration" in seconds
+10. For dynamic exercises (push-ups, pull-ups): include ONLY "reps"
+11. If the request is unclear or impossible, make reasonable assumptions
 
-    // Convert PDF to base64 (process in chunks to avoid stack overflow)
-    const arrayBuffer = await pdfData.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-
-    // Process in chunks to avoid "Maximum call stack size exceeded"
-    let binaryString = "";
-    const chunkSize = 8192; // Process 8KB at a time
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.subarray(
-        i,
-        Math.min(i + chunkSize, uint8Array.length)
-      );
-      binaryString += String.fromCharCode(...chunk);
-    }
-    const base64Data = btoa(binaryString);
-
-    // Prepare prompt for Gemini
-    let prompt = `You are an expert fitness trainer analyzing a workout plan PDF. Extract the following information and return it as a JSON object:
-
+OUTPUT FORMAT (JSON only, no additional text):
 {
-  "name": "Name of the workout plan",
-  "description": "Brief description of the plan",
-  "num_weeks": number of weeks in the plan (default to 2 if not specified),
   "workouts": {
-    "A": {
-      "name": "Workout A name (e.g., 'Push Day', 'Upper Body')",
-      "exercises": [
-        {
-          "exercise_name": "Exercise name (e.g., 'Push-ups', 'Pull-ups')",
-          "sets": number of sets,
-          "reps": target reps per set (ONLY for dynamic exercises - omit this field if static),
-          "duration": duration in seconds per set (ONLY for static exercises - omit this field if dynamic),
-          "rest_seconds": rest time in seconds between sets (default to 60 if not specified),
-          "superset_group": "optional identifier for superset grouping (e.g., '1', '2', etc.)",
-          "unilateral_type": "optional type for unilateral exercises ('single_arm', 'single_leg', etc.)",
-          "alternating": "optional boolean: true if alternating per set, false if grouped by side"
-        }
-      ]
-    },
-    "B": { similar structure for workout B },
-    "C": { similar structure for workout C if exists }
+    // Include ALL workouts (modified and unmodified)
+    // Same structure as current plan
   },
   "schedule": [
-    ["A", "rest", "B", "rest", "A", "rest", "rest"],  // Week 1
-    ["B", "rest", "A", "rest", "B", "rest", "rest"]   // Week 2
-  ]
+    // Include ALL weeks
+    // Each week has exactly 7 days
+  ],
+  "num_weeks": ${plan.num_weeks}, // ${
+    plan.plan_type === "once" ? "Can be changed if requested" : "DO NOT CHANGE"
+  }
+  "start_date": "${plan.start_date}" // Can be changed if requested
 }
 
-IMPORTANT RULES:
-1. Workout letters should be uppercase (A, B, C, etc.)
-2. Rest days must be lowercase "rest"
-3. Each week in schedule array should have exactly 7 days
-4. If exercise names don't match exactly, use the closest common exercise name:
-   - Upper body: "pushup" → "Push-ups", "pullup" → "Pull-ups", "chinup" → "Chin-ups"
-   - Lower body: "bodyweight squat" → "Squats", "bulgarian split squat" → "Bulgarian Split Squats",
-     "single leg deadlift" → "Single Leg Deadlifts", "pistol squat" → "Pistol Squats",
-     "calf raise" → "Calf Raises", "glute bridge" → "Glute Bridges", "reverse lunge" → "Reverse Lunges"
-5. If sets, reps, or rest times are ranges (e.g., "3-4 sets"), use the higher number
-6. If rest time is in minutes, convert to seconds (e.g., "2 min" -> 120)
-7. Schedule should start from Sunday (index 0) to Saturday (index 6)
-8. If the PDF doesn't specify a clear schedule, create a reasonable one based on the workouts provided
-
-EXERCISE TYPE DETECTION:
-9. STATIC vs DYNAMIC: Determine if each exercise is static (timed/isometric) or dynamic (rep-based)
-   - Static exercises: planks, wall sits, wall holds, isometric holds, single leg holds, L-sits, hollow body holds, time-based exercises
-   - Dynamic exercises: push-ups, pull-ups, squats, lunges, pistol squats, Bulgarian split squats, calf raises, glute bridges, any rep-based movement
-   - For static exercises: include ONLY "duration" field (in seconds), DO NOT include "reps" field
-   - For dynamic exercises: include ONLY "reps" field, DO NOT include "duration" field
-   - CRITICAL: Each exercise must have exactly ONE of these fields - never both, never neither
-
-UNILATERAL EXERCISE DETECTION:
-10. UNILATERAL EXERCISES: Detect single-side movements (one arm, one leg, etc.)
-    - Look for keywords: "archer", "one arm", "one-arm", "single arm", "single leg", "pistol", "bulgarian",
-      "lateral", "side", "shrimp", "single-leg", "unilateral", "skater", "split squat", "step-up"
-    - Look for per-side notation: "3 reps each side", "10 reps per hand", "5 reps each leg", "8 reps per side"
-    - Set unilateral_type: "single_arm", "single_leg", "single_side", etc.
-    - ALTERNATING PATTERN: Determine if exercises alternate per set or group all sets per side
-      - If alternating per set: "alternating": true (e.g., "3 sets of 5 reps each arm")
-      - If grouped by side: "alternating": false (e.g., "3 sets right arm, 3 sets left arm")
-      - Default to "alternating": true if unilateral but pattern unclear
-
-SUPERSET DETECTION:
-11. Look for exercises grouped as "supersets", "superseries", "SS", or similar terms in ANY language
-12. Exercises in a superset should be assigned the same superset_group identifier (use "1", "2", "3", etc.)
-13. Supersets typically have 2 exercises but can have more (default to 2, but detect more if specified)
-14. Exercises in the same superset MUST have the same number of sets, but CAN have different rep amounts
-15. Example: Superset with 3 sets of 8 pull-ups + 3 sets of 10 push-ups is valid
-16. Only assign superset_group if exercises are explicitly marked as supersets in the PDF
-17. Regular exercises (not in supersets) should NOT have a superset_group field`;
-
-    // Add user-provided AI notes if present
-    if (aiNotes && aiNotes.trim()) {
-      prompt += `\n\nADDITIONAL USER INSTRUCTIONS:\n${aiNotes.trim()}\n\nFollow these additional instructions carefully when analyzing the PDF.`;
+EXAMPLES OF MODIFICATIONS:
+- "Add more leg exercises" → Add exercises like squats, lunges to relevant workouts
+- "Change to Mon/Wed/Fri schedule" → Rearrange schedule to workout on those days
+- "Make it 6 weeks instead" → ${
+      plan.plan_type === "once"
+        ? "Extend schedule to 6 weeks"
+        : "NOT ALLOWED for repeat plans"
     }
+- "Remove pull-ups" → Remove pull-up exercises from all workouts
+- "Start next Monday" → Update start_date to next Monday's date
 
-    prompt += `\n\nReturn ONLY the JSON object, no additional text or explanation.`;
+Return ONLY the JSON object with the modified plan data, no additional text or explanation.`;
 
     // Track start time for latency measurement
     const startTime = Date.now();
 
     // Call Gemini API
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: "application/pdf",
-          data: base64Data,
-        },
-      },
-      { text: prompt },
-    ]);
-
+    const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
@@ -192,7 +203,6 @@ SUPERSET DETECTION:
     const outputTokens = usageMetadata.candidatesTokenCount || 0;
 
     // Calculate cost based on Gemini 2.5 Flash pricing
-    // Input: $0.075 per 1M tokens, Output: $0.30 per 1M tokens
     const inputCost = (inputTokens / 1000000) * 0.075;
     const outputCost = (outputTokens / 1000000) * 0.3;
     const totalCost = inputCost + outputCost;
@@ -207,6 +217,17 @@ SUPERSET DETECTION:
     } catch (parseError) {
       console.error("Failed to parse Gemini response:", text);
       throw new Error("Failed to parse AI response as JSON");
+    }
+
+    // Validate that plan_type wasn't changed
+    if (
+      plan.plan_type === "repeat" &&
+      parsedData.num_weeks !== plan.num_weeks
+    ) {
+      console.warn(
+        "AI attempted to change num_weeks for repeat plan, reverting to original"
+      );
+      parsedData.num_weeks = plan.num_weeks;
     }
 
     // Validate and transform the response
@@ -228,16 +249,16 @@ SUPERSET DETECTION:
             $ai_input_tokens: inputTokens,
             $ai_output_tokens: outputTokens,
             $ai_total_cost_usd: totalCost,
-            analysis_type: "pdf_workout_plan",
-            has_ai_notes: !!(aiNotes && aiNotes.trim()),
+            generation_type: "ai_plan_modification",
+            plan_type: plan.plan_type,
             num_workouts: Object.keys(validatedData.workouts || {}).length,
             num_weeks: validatedData.num_weeks,
+            user_prompt_length: userPrompt.length,
           },
         });
         await posthog.shutdown();
       } catch (phError) {
         console.error("PostHog error:", phError);
-        // Don't fail the request if PostHog fails
       }
     }
 
@@ -245,7 +266,7 @@ SUPERSET DETECTION:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in analyze-workout-plan:", error);
+    console.error("Error in modify-workout-plan:", error);
 
     // Ensure PostHog is shut down even on error
     if (posthog) {
@@ -258,7 +279,7 @@ SUPERSET DETECTION:
 
     return new Response(
       JSON.stringify({
-        error: error.message || "An error occurred during PDF analysis",
+        error: error.message || "An error occurred during plan modification",
       }),
       {
         status: 500,
@@ -362,16 +383,16 @@ async function validateAndTransformPlanData(
   supabase: any,
   genAI: any
 ): Promise<any> {
-  if (!data.name || typeof data.name !== "string") {
-    throw new Error("Plan name is required");
-  }
-
   if (!data.workouts || typeof data.workouts !== "object") {
     throw new Error("Workouts object is required");
   }
 
   if (!data.schedule || !Array.isArray(data.schedule)) {
     throw new Error("Schedule array is required");
+  }
+
+  if (!data.num_weeks || typeof data.num_weeks !== "number") {
+    throw new Error("num_weeks is required");
   }
 
   // Validate schedule format
@@ -382,6 +403,13 @@ async function validateAndTransformPlanData(
     if (data.schedule[i].length !== 7) {
       throw new Error(`Schedule week ${i + 1} must have exactly 7 days`);
     }
+  }
+
+  // Validate schedule has correct number of weeks
+  if (data.schedule.length !== data.num_weeks) {
+    throw new Error(
+      `Schedule must have ${data.num_weeks} weeks, but has ${data.schedule.length}`
+    );
   }
 
   // Validate workouts
@@ -429,11 +457,11 @@ async function validateAndTransformPlanData(
         if (exerciseMatch.type === "static") {
           // Static exercise: use duration, not reps
           exercise.duration = Number(ex.duration) || 30; // Default 30 seconds
-          exercise.reps = null;
+          exercise.reps = undefined;
         } else {
           // Dynamic exercise: use reps, not duration
           exercise.reps = Number(ex.reps) || 10;
-          exercise.duration = null;
+          exercise.duration = undefined;
         }
 
         // Include superset_group if present
@@ -460,10 +488,9 @@ async function validateAndTransformPlanData(
   }
 
   return {
-    name: data.name,
-    description: data.description || "",
-    num_weeks: Number(data.num_weeks) || 2,
     workouts: validatedWorkouts,
     schedule: data.schedule,
+    num_weeks: Number(data.num_weeks),
+    start_date: data.start_date,
   };
 }

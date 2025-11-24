@@ -265,6 +265,7 @@ export const createPlanFromAnalysis = async (
 export interface AIPlanFormData {
   planTarget: "calisthenics" | "specific_exercise" | null;
   specificExercise: string;
+  trainingFocus: "upper" | "lower" | "all" | null;
   maxReps: {
     pushups: number;
     pullups: number;
@@ -1535,7 +1536,10 @@ export const getWeekWorkoutsWithDetails = async (
 
       const workout = plan.workouts[workoutLetter];
       if (!workout) {
-        return;
+        // Log warning but still show the workout with placeholder info
+        console.warn(
+          `Workout definition missing for letter "${workoutLetter}" in plan ${plan.plan_id}`
+        );
       }
 
       const scheduledDate = new Date(weekStartDate);
@@ -1549,12 +1553,13 @@ export const getWeekWorkoutsWithDetails = async (
 
       workouts.push({
         workoutLetter,
-        workoutName: workout.name,
+        workoutName:
+          workout?.name || `Workout ${workoutLetter} (Missing Definition)`,
         scheduledDate,
         dayName: dayNames[dayIndex],
         dayIndex,
         isCompleted,
-        exerciseCount: workout.exercises.length,
+        exerciseCount: workout?.exercises?.length || 0,
         workoutId,
       });
     });
@@ -1562,6 +1567,88 @@ export const getWeekWorkoutsWithDetails = async (
     return workouts;
   } catch (error) {
     console.error("Error in getWeekWorkoutsWithDetails:", error);
+    throw error;
+  }
+};
+
+/**
+ * Modify a plan using AI based on a natural language prompt
+ * @param planId - Plan ID
+ * @param userId - User ID
+ * @param currentPlan - Current plan data
+ * @param userPrompt - Natural language description of desired changes
+ * @returns Modified plan data
+ */
+export const modifyPlanWithAI = async (
+  planId: string,
+  userId: string,
+  currentPlan: Plan,
+  userPrompt: string
+): Promise<{
+  workouts: WorkoutDefinitions;
+  schedule: string[][];
+  num_weeks: number;
+  start_date: string;
+}> => {
+  try {
+    console.log("🔄 Calling modify-workout-plan edge function...");
+    console.log("Plan ID:", planId);
+    console.log("User Prompt:", userPrompt);
+
+    const { data, error } = await supabase.functions.invoke(
+      "modify-workout-plan",
+      {
+        body: {
+          currentPlan,
+          userPrompt,
+          userId,
+        },
+      }
+    );
+
+    console.log("Edge function response:", { data, error });
+
+    if (error) {
+      console.error("❌ Error from edge function:", error);
+
+      // Extract detailed error message
+      let errorMessage = "Failed to modify plan. Please try again.";
+
+      // Check if error has context property (FunctionsHttpError)
+      if (error.context) {
+        console.error("Error context:", error.context);
+        errorMessage = JSON.stringify(error.context);
+      }
+
+      // Check if data contains error details
+      if (data && data.error) {
+        errorMessage = data.error;
+      }
+
+      // Provide user-friendly error messages
+      if (error.message?.includes("GEMINI_API_KEY")) {
+        errorMessage =
+          "AI plan modification service is not configured. Please contact support.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    if (!data) {
+      throw new Error("No data returned from AI plan modification");
+    }
+
+    console.log("✅ Plan modified successfully");
+    return data as {
+      workouts: WorkoutDefinitions;
+      schedule: string[][];
+      num_weeks: number;
+      start_date: string;
+    };
+  } catch (error) {
+    console.error("Error in modifyPlanWithAI:", error);
     throw error;
   }
 };

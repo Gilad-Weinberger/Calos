@@ -4,6 +4,7 @@ import { calculateAgeFromDate } from "../../../lib/utils/date-helpers";
 export interface FormData {
   planTarget: "calisthenics" | "specific_exercise" | null;
   specificExercise: string;
+  trainingFocus: "upper" | "lower" | "all" | null;
   maxReps: {
     pushups: number;
     pullups: number;
@@ -42,6 +43,7 @@ const getInitialFormData = (): FormData => {
   return {
     planTarget: null,
     specificExercise: "",
+    trainingFocus: null,
     maxReps: {
       pushups: 0,
       pullups: 0,
@@ -106,6 +108,10 @@ export const CreatePlanAIFormProvider: React.FC<
           return true;
 
         case 2:
+          // Training focus required
+          return formData.trainingFocus !== null;
+
+        case 3:
           // All max reps required, min 0, max 1000
           const { pushups, pullups, dips, squats } = formData.maxReps;
           return (
@@ -119,7 +125,7 @@ export const CreatePlanAIFormProvider: React.FC<
             squats <= 1000
           );
 
-        case 3:
+        case 4:
           // Age required (18-100), height required (>0), weight required (>0)
           if (!formData.birthDate) {
             return false;
@@ -136,11 +142,11 @@ export const CreatePlanAIFormProvider: React.FC<
             formData.weight > 0
           );
 
-        case 4:
+        case 5:
           // Activity level required
           return formData.activityLevel !== null;
 
-        case 5:
+        case 6:
           // Workouts per week required (1-7)
           return (
             formData.workoutsPerWeek !== null &&
@@ -148,7 +154,7 @@ export const CreatePlanAIFormProvider: React.FC<
             formData.workoutsPerWeek <= 7
           );
 
-        case 6:
+        case 7:
           // Must select at least workoutsPerWeek number of days
           if (!formData.workoutsPerWeek) return false;
           return (
@@ -156,7 +162,7 @@ export const CreatePlanAIFormProvider: React.FC<
             formData.availableDays.length > 0
           );
 
-        case 7:
+        case 8:
           // Start date required, must be today or future
           if (!formData.startDate) return false;
           const today = new Date();
@@ -173,13 +179,13 @@ export const CreatePlanAIFormProvider: React.FC<
   );
 
   const goToStep = useCallback((step: number) => {
-    if (step >= 1 && step <= 7) {
+    if (step >= 1 && step <= 8) {
       setCurrentStep(step);
     }
   }, []);
 
   const nextStep = useCallback(() => {
-    if (validateStep(currentStep) && currentStep < 7) {
+    if (validateStep(currentStep) && currentStep < 8) {
       setCurrentStep((prev) => prev + 1);
     }
   }, [currentStep, validateStep]);
@@ -198,6 +204,7 @@ export const CreatePlanAIFormProvider: React.FC<
     return (
       formData.planTarget !== null ||
       formData.specificExercise !== "" ||
+      formData.trainingFocus !== null ||
       formData.maxReps.pushups > 0 ||
       formData.maxReps.pullups > 0 ||
       formData.maxReps.dips > 0 ||

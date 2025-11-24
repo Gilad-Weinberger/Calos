@@ -21,6 +21,7 @@ import {
   StepMaxReps,
   StepPlanTarget,
   StepStartDate,
+  StepTrainingFocus,
   StepUserData,
   StepWorkoutsPerWeek,
 } from "../../components/plan/create-ai/steps";
@@ -45,7 +46,7 @@ const CreatePlanAIContent: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGeneratePlan = async () => {
-    if (!validateStep(7)) {
+    if (!validateStep(8)) {
       Alert.alert("Error", "Please complete all fields before generating.");
       return;
     }
@@ -78,6 +79,7 @@ const CreatePlanAIContent: React.FC = () => {
       const aiFormData: AIPlanFormData = {
         planTarget: formData.planTarget,
         specificExercise: formData.specificExercise,
+        trainingFocus: formData.trainingFocus,
         maxReps: formData.maxReps,
         birthDate: formData.birthDate,
         age: formData.birthDate
@@ -153,16 +155,18 @@ const CreatePlanAIContent: React.FC = () => {
       case 1:
         return <StepPlanTarget />;
       case 2:
-        return <StepMaxReps />;
+        return <StepTrainingFocus />;
       case 3:
-        return <StepUserData />;
+        return <StepMaxReps />;
       case 4:
-        return <StepActivityLevel />;
+        return <StepUserData />;
       case 5:
-        return <StepWorkoutsPerWeek />;
+        return <StepActivityLevel />;
       case 6:
-        return <StepAvailableDays />;
+        return <StepWorkoutsPerWeek />;
       case 7:
+        return <StepAvailableDays />;
+      case 8:
         return <StepStartDate />;
       default:
         return null;
@@ -201,7 +205,7 @@ const CreatePlanAIContent: React.FC = () => {
               <Text className="text-gray-700 font-semibold text-lg">Back</Text>
             </TouchableOpacity>
           )}
-          {currentStep < 7 ? (
+          {currentStep < 8 ? (
             <TouchableOpacity
               onPress={handleNext}
               disabled={isGenerating || !validateStep(currentStep)}
