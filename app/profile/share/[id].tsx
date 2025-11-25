@@ -46,19 +46,25 @@ const QRCodeSharePage = () => {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white">
+      <SafeAreaView
+        className="flex-1 bg-white"
+        edges={["bottom", "left", "right"]}
+      >
         <FullPageTopBar title="Share profile" />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#0066FF" />
           <Text className="text-gray-600 mt-2">Loading...</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View className="flex-1 bg-white">
+      <SafeAreaView
+        className="flex-1 bg-white"
+        edges={["bottom", "left", "right"]}
+      >
         <FullPageTopBar title="Share profile" />
         <View className="flex-1 items-center justify-center p-4">
           <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
@@ -69,7 +75,7 @@ const QRCodeSharePage = () => {
             Please try again later
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 

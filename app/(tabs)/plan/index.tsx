@@ -91,16 +91,16 @@ const Plan = () => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-white">
+      <SafeAreaView
+        className="flex-1 bg-white"
+        edges={["bottom", "left", "right"]}
+      >
         <AppTopBar title="Your Plan" icons={[]} />
-        <SafeAreaView
-          className="flex-1 items-center justify-center bg-gray-50"
-          edges={["bottom", "left", "right"]}
-        >
+        <View className="flex-1 items-center justify-center bg-gray-50">
           <ActivityIndicator size="large" color="#2563eb" />
           <Text className="text-gray-600 mt-4">Loading plan...</Text>
-        </SafeAreaView>
-      </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
