@@ -165,7 +165,10 @@ const Plan = () => {
             </TouchableOpacity>
           </View>
         ) : (
-          <ScrollView className="flex-1 p-4">
+          <ScrollView
+            className="flex-1 p-4"
+            contentContainerStyle={{ paddingBottom: 24 }}
+          >
             {planProgress && (
               <PlanProgressHeader
                 plan={activePlan}
