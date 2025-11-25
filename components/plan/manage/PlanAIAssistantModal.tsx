@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -8,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import type { Plan } from "../../../lib/functions/planFunctions";
 
 type ModalState = "input" | "loading" | "preview";
@@ -119,7 +120,7 @@ const PlanAIAssistantModal = ({
     <View className="flex-1">
       <Text className="text-2xl font-bold mb-2">AI Plan Assistant</Text>
       <Text className="text-gray-600 mb-4">
-        Describe the changes you'd like to make to your workout plan
+        Describe the changes you&apos;d like to make to your workout plan
       </Text>
 
       <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -264,7 +265,8 @@ const PlanAIAssistantModal = ({
               <View className="flex-row items-center mb-2">
                 <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
                 <Text className="ml-2 text-gray-700">
-                  Duration changed: {currentPlan.num_weeks} → {modifiedPlan.num_weeks} weeks
+                  Duration changed: {currentPlan.num_weeks} →{" "}
+                  {modifiedPlan.num_weeks} weeks
                 </Text>
               </View>
             )}
@@ -278,7 +280,9 @@ const PlanAIAssistantModal = ({
               !hasScheduleChanged &&
               !hasNumWeeksChanged &&
               !hasStartDateChanged && (
-                <Text className="text-gray-500 italic">No changes detected</Text>
+                <Text className="text-gray-500 italic">
+                  No changes detected
+                </Text>
               )}
           </View>
 
@@ -344,7 +348,9 @@ const PlanAIAssistantModal = ({
 
                 return (
                   <View key={weekIndex} className="mb-2">
-                    <Text className="font-medium mb-1">Week {weekIndex + 1}</Text>
+                    <Text className="font-medium mb-1">
+                      Week {weekIndex + 1}
+                    </Text>
                     <Text className="text-sm text-gray-600">
                       {week.join(" → ")}
                     </Text>
@@ -384,11 +390,11 @@ const PlanAIAssistantModal = ({
       transparent={false}
       onRequestClose={handleClose}
     >
-      <View className="flex-1 bg-gray-50">
-        <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-4">
+      <SafeAreaView className="flex-1 bg-gray-50" edges={["top", "bottom"]}>
+        <View className="bg-white border-b border-gray-200 px-4 py-4">
           <TouchableOpacity
             onPress={handleClose}
-            className="absolute top-12 right-4"
+            className="absolute top-4 right-4"
           >
             <Ionicons name="close" size={28} color="#374151" />
           </TouchableOpacity>
@@ -399,10 +405,9 @@ const PlanAIAssistantModal = ({
           {modalState === "loading" && renderLoadingState()}
           {modalState === "preview" && renderPreviewState()}
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
 
 export default PlanAIAssistantModal;
-

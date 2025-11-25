@@ -1,6 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 interface PlanAIAssistantButtonProps {
   onPress: () => void;
@@ -10,7 +10,7 @@ const PlanAIAssistantButton = ({ onPress }: PlanAIAssistantButtonProps) => {
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="absolute bottom-6 right-6 bg-blue-600 rounded-full w-14 h-14 items-center justify-center"
+      className="absolute bottom-20 right-6 bg-blue-600 rounded-full w-14 h-14 items-center justify-center"
       style={{
         shadowColor: "#000",
         shadowOffset: {
@@ -31,4 +31,3 @@ const PlanAIAssistantButton = ({ onPress }: PlanAIAssistantButtonProps) => {
 };
 
 export default PlanAIAssistantButton;
-

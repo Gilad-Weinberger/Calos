@@ -46,7 +46,7 @@ const QRCodeSharePage = () => {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-white" edges={["bottom", "left", "right"]}>
         <FullPageTopBar title="Share profile" />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#0066FF" />

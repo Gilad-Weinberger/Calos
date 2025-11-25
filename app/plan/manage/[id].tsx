@@ -1,21 +1,14 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FullPageTopBar from "../../../components/layout/FullPageTopBar";
 import {
   PlanAIAssistantButton,
   PlanAIAssistantModal,
-  PlanDeleteButton,
   PlanMetadataEditor,
+  PlanSaveDeleteButtons,
   PlanScheduleViewer,
   PlanWorkoutListEditor,
 } from "../../../components/plan/manage";
@@ -247,39 +240,14 @@ const ManagePlanPage = () => {
 
           <PlanWorkoutListEditor plan={editedPlan} />
 
-          <PlanDeleteButton onDelete={handleDelete} disabled={isDeleting} />
-
-          {/* Save Button */}
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={isSaving || !hasUnsavedChanges}
-            className={`w-full py-4 rounded-lg mb-4 ${
-              isSaving || !hasUnsavedChanges ? "bg-gray-300" : "bg-blue-600"
-            }`}
-            style={{
-              shadowColor: "#000",
-              shadowOffset: {
-                width: 0,
-                height: 2,
-              },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-            }}
-          >
-            {isSaving ? (
-              <View className="flex-row items-center justify-center">
-                <ActivityIndicator size="small" color="white" />
-                <Text className="text-white font-semibold text-lg ml-2">
-                  Saving...
-                </Text>
-              </View>
-            ) : (
-              <Text className="text-white font-semibold text-lg text-center">
-                Save Changes
-              </Text>
-            )}
-          </TouchableOpacity>
+          {/* Save and Delete Buttons */}
+          <PlanSaveDeleteButtons
+            onSave={handleSave}
+            onDelete={handleDelete}
+            isSaving={isSaving}
+            isDeleting={isDeleting}
+            hasUnsavedChanges={hasUnsavedChanges}
+          />
         </ScrollView>
       </SafeAreaView>
 
