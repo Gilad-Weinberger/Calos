@@ -166,7 +166,7 @@ const Plan = () => {
           </View>
         ) : (
           <ScrollView
-            className="flex-1 p-4"
+            className="flex-1 p-4 pt-4"
             contentContainerStyle={{ paddingBottom: 24 }}
           >
             {planProgress && (
