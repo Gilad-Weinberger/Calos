@@ -419,25 +419,66 @@ export const useWorkoutSession = () => {
       setIsSaving(true);
       const endTime = new Date().toISOString();
 
-      // Get all exercises with their IDs
+      // Placeholder UUID that Edge Functions return on error
+      const PLACEHOLDER_UUID = "00000000-0000-0000-0000-000000000000";
+
+      // Get all exercises for fallback lookup
       const allExercises = await getAllExercises();
 
       // Build workout exercises array
       const workoutExercises: WorkoutExercise[] = exercises.map((ex, index) => {
-        const exerciseData = allExercises.find(
-          (e) => e.name.toLowerCase() === ex.exercise_name.toLowerCase()
-        );
+        let exerciseId = ex.exercise_id;
+        let exerciseType: "static" | "dynamic" = ex.duration
+          ? "static"
+          : "dynamic";
+
+        // Defensive fallback: if exercise_id is missing or is the placeholder UUID,
+        // look it up by name for backward compatibility
+        if (!exerciseId || exerciseId === PLACEHOLDER_UUID) {
+          console.warn(
+            `Exercise ID missing or invalid for "${ex.exercise_name}". Falling back to name lookup.`
+          );
+
+          const exerciseData = allExercises.find(
+            (e) => e.name.toLowerCase() === ex.exercise_name.toLowerCase()
+          );
+
+          if (exerciseData) {
+            exerciseId = exerciseData.exercise_id;
+            exerciseType = exerciseData.type;
+          } else {
+            console.error(
+              `Could not find exercise "${ex.exercise_name}" in database`
+            );
+            // Use the placeholder as last resort to avoid complete failure
+            exerciseId = PLACEHOLDER_UUID;
+          }
+        }
 
         return {
-          exercise_id: exerciseData?.exercise_id || "",
+          exercise_id: exerciseId,
           exercise_name: ex.exercise_name,
-          exercise_type: exerciseData?.type || "dynamic",
+          exercise_type: exerciseType,
           sets: ex.sets,
           reps: completedReps[index],
           order_index: index + 1,
           superset_group: ex.superset_group,
         };
       });
+
+      // Validate that all exercises have valid IDs
+      const invalidExercises = workoutExercises.filter(
+        (ex) => !ex.exercise_id || ex.exercise_id === PLACEHOLDER_UUID
+      );
+
+      if (invalidExercises.length > 0) {
+        const exerciseNames = invalidExercises
+          .map((ex) => ex.exercise_name)
+          .join(", ");
+        throw new Error(
+          `Unable to save workout: The following exercises could not be found in the database: ${exerciseNames}. Please contact support or try recreating the workout plan.`
+        );
+      }
 
       // Calculate scheduled date (today at midnight)
       const today = new Date();
@@ -636,5 +677,3 @@ export const useWorkoutSession = () => {
     handleExit,
   };
 };
-
-

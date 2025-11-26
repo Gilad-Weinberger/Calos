@@ -164,7 +164,7 @@ BEGIN
       alex_user_id,
       'alexchen@demo.com',
       'Alex Chen',
-      'https://images.unsplash.com/photo-1567401893912-09b700c7f4bd?w=400&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=400&fit=crop',
       'Push specialist | Handstand push-up enthusiast | Training for planche'
     );
     RAISE NOTICE '   ✓ Created user: Alex Chen';
