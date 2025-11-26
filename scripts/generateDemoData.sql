@@ -198,6 +198,17 @@ BEGIN
   ELSE
     RAISE NOTICE '   ✓ User already exists: Jordan Smith';
   END IF;
+
+  -- ============================================================================
+  -- STEP 2.5: Clean Up Existing Demo Workouts
+  -- ============================================================================
+  RAISE NOTICE '';
+  RAISE NOTICE '🧹 Cleaning up existing demo workouts...';
+  
+  -- Delete existing workouts for demo users (cascades to workout_exercises)
+  DELETE FROM workouts WHERE user_id IN (alex_user_id, maria_user_id, jordan_user_id) AND done = true;
+  
+  RAISE NOTICE '   ✓ Deleted existing completed workouts for demo users';
   
   -- ============================================================================
   -- STEP 3: Create Completed Workouts
@@ -211,7 +222,7 @@ BEGIN
   jordan_workout_time := now_time - INTERVAL '24 hours';
   
   -- ----------------------------------------------------------------------------
-  -- Alex Chen - Push Day A (2 hours ago)
+  -- Alex Chen - Push Day A (2 hours ago) - Male
   -- ----------------------------------------------------------------------------
   INSERT INTO workouts (
     user_id,
@@ -219,6 +230,7 @@ BEGIN
     start_time,
     end_time,
     title,
+    description,
     done,
     plan_id,
     plan_workout_letter,
@@ -228,16 +240,17 @@ BEGIN
   VALUES (
     alex_user_id,
     alex_workout_time,
-    alex_workout_time - INTERVAL '45 minutes',
+    alex_workout_time - INTERVAL '1 hour 17 minutes',
     alex_workout_time,
     'Push Day A',
+    'Solid push session today! 💪 Hit 7 reps on handstand push-ups. Shoulder and tricep pump was insane!',
     true,
     NULL,
     NULL,
     NULL,
     ARRAY[
-      'https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&h=1000&fit=crop',
-      'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=800&h=1000&fit=crop'
+      'https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=800&h=1000&fit=crop',
+      'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&h=1000&fit=crop'
     ]
   )
   RETURNING workout_id INTO alex_workout_id;
@@ -257,7 +270,7 @@ BEGIN
   RAISE NOTICE '   ✓ Created workout: Push Day A (Alex Chen)';
   
   -- ----------------------------------------------------------------------------
-  -- Maria Rodriguez - Pull Day A (5 hours ago)
+  -- Maria Rodriguez - Pull Day A (5 hours ago) - Female
   -- ----------------------------------------------------------------------------
   INSERT INTO workouts (
     user_id,
@@ -265,6 +278,7 @@ BEGIN
     start_time,
     end_time,
     title,
+    description,
     done,
     plan_id,
     plan_workout_letter,
@@ -274,16 +288,17 @@ BEGIN
   VALUES (
     maria_user_id,
     maria_workout_time,
-    maria_workout_time - INTERVAL '45 minutes',
+    maria_workout_time - INTERVAL '49 minutes',
     maria_workout_time,
     'Pull Day A',
+    'Pull day complete! 👑 10 reps on pull-ups felt great. Muscle-ups are getting so much cleaner now!',
     true,
     NULL,
     NULL,
     NULL,
     ARRAY[
-      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&h=1000&fit=crop',
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=1000&fit=crop'
+      'https://images.unsplash.com/photo-1548690312-e3b507d8c110?w=800&h=1000&fit=crop',
+      'https://images.unsplash.com/photo-1550345332-09e3ac987658?w=800&h=1000&fit=crop'
     ]
   )
   RETURNING workout_id INTO maria_workout_id;
@@ -303,7 +318,7 @@ BEGIN
   RAISE NOTICE '   ✓ Created workout: Pull Day A (Maria Rodriguez)';
   
   -- ----------------------------------------------------------------------------
-  -- Jordan Smith - Skill & Core (yesterday)
+  -- Jordan Smith - Skill & Core (yesterday) - Male
   -- ----------------------------------------------------------------------------
   INSERT INTO workouts (
     user_id,
@@ -311,6 +326,7 @@ BEGIN
     start_time,
     end_time,
     title,
+    description,
     done,
     plan_id,
     plan_workout_letter,
@@ -320,16 +336,17 @@ BEGIN
   VALUES (
     jordan_user_id,
     jordan_workout_time,
-    jordan_workout_time - INTERVAL '45 minutes',
+    jordan_workout_time - INTERVAL '58 minutes',
     jordan_workout_time,
     'Skill & Core',
+    'Skills and core today! 🔥 50 second handstand - new PR. Front lever hold feeling solid 🧘',
     true,
     NULL,
     NULL,
     NULL,
     ARRAY[
-      'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&h=1000&fit=crop',
-      'https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=800&h=1000&fit=crop'
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=1000&fit=crop',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=1000&fit=crop'
     ]
   )
   RETURNING workout_id INTO jordan_workout_id;

@@ -45,3 +45,8 @@ app-example
 /designs
 
 /todo
+
+/videmo
+
+/scripts/generateDemoData.sql
+/scripts/deleteDemoData.sql
