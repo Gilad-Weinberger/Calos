@@ -219,6 +219,9 @@ Return ONLY the JSON object with the modified plan data, no additional text or e
       throw new Error("Failed to parse AI response as JSON");
     }
 
+    // Log the parsed data for debugging
+    console.log("Parsed AI response:", JSON.stringify(parsedData, null, 2));
+
     // Validate that plan_type wasn't changed
     if (
       plan.plan_type === "repeat" &&
@@ -228,6 +231,44 @@ Return ONLY the JSON object with the modified plan data, no additional text or e
         "AI attempted to change num_weeks for repeat plan, reverting to original"
       );
       parsedData.num_weeks = plan.num_weeks;
+    }
+
+    // Ensure schedule exists and has proper structure
+    if (!parsedData.schedule) {
+      console.warn(
+        "AI response missing schedule, using original plan schedule"
+      );
+      parsedData.schedule = plan.schedule;
+    }
+
+    // Ensure all schedule weeks are arrays
+    if (Array.isArray(parsedData.schedule)) {
+      parsedData.schedule = parsedData.schedule.map(
+        (week: any, idx: number) => {
+          if (!Array.isArray(week)) {
+            console.warn(
+              `Schedule week ${idx + 1} is not an array, attempting to fix`
+            );
+            // Try to convert to array if it's an object or string
+            if (typeof week === "object" && week !== null) {
+              // If it's an object, try to extract values
+              const weekArray = Object.values(week);
+              if (weekArray.length === 7) {
+                return weekArray;
+              }
+            }
+            // Fallback to original plan's week if available
+            if (plan.schedule && plan.schedule[idx]) {
+              console.warn(`Using original plan's week ${idx + 1}`);
+              return plan.schedule[idx];
+            }
+            // Ultimate fallback: rest week
+            console.warn(`Creating default rest week for week ${idx + 1}`);
+            return ["rest", "rest", "rest", "rest", "rest", "rest", "rest"];
+          }
+          return week;
+        }
+      );
     }
 
     // Validate and transform the response
@@ -384,29 +425,50 @@ async function validateAndTransformPlanData(
   genAI: any
 ): Promise<any> {
   if (!data.workouts || typeof data.workouts !== "object") {
+    console.error("Validation error: workouts object missing or invalid", data);
     throw new Error("Workouts object is required");
   }
 
   if (!data.schedule || !Array.isArray(data.schedule)) {
+    console.error("Validation error: schedule missing or not an array", data);
     throw new Error("Schedule array is required");
   }
 
   if (!data.num_weeks || typeof data.num_weeks !== "number") {
+    console.error("Validation error: num_weeks missing or invalid", data);
     throw new Error("num_weeks is required");
   }
 
   // Validate schedule format
   for (let i = 0; i < data.schedule.length; i++) {
     if (!Array.isArray(data.schedule[i])) {
+      console.error(
+        `Validation error: Schedule week ${i + 1} is not an array`,
+        {
+          weekData: data.schedule[i],
+          weekType: typeof data.schedule[i],
+        }
+      );
       throw new Error(`Schedule week ${i + 1} must be an array`);
     }
     if (data.schedule[i].length !== 7) {
+      console.error(
+        `Validation error: Schedule week ${i + 1} doesn't have 7 days`,
+        {
+          actualLength: data.schedule[i].length,
+          weekData: data.schedule[i],
+        }
+      );
       throw new Error(`Schedule week ${i + 1} must have exactly 7 days`);
     }
   }
 
   // Validate schedule has correct number of weeks
   if (data.schedule.length !== data.num_weeks) {
+    console.error("Validation error: schedule length mismatch", {
+      expected: data.num_weeks,
+      actual: data.schedule.length,
+    });
     throw new Error(
       `Schedule must have ${data.num_weeks} weeks, but has ${data.schedule.length}`
     );
