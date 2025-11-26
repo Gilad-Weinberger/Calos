@@ -142,6 +142,15 @@ BEGIN
     RAISE NOTICE '   ✓ Added media_urls column to workouts table';
   END IF;
   
+  -- Add description column to workouts if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'workouts' AND column_name = 'description'
+  ) THEN
+    ALTER TABLE workouts ADD COLUMN description TEXT;
+    RAISE NOTICE '   ✓ Added description column to workouts table';
+  END IF;
+  
   -- Check if users already exist, if not create them
   SELECT user_id INTO alex_user_id FROM users WHERE email = 'alexchen@demo.com';
   IF alex_user_id IS NULL THEN
