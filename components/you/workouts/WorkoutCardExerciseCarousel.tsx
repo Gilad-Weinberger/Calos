@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView } from "react-native";
 import { WorkoutExercise } from "../../../lib/functions/workoutFunctions";
 import { groupExercisesBySuperset } from "../../../lib/utils/superset";
 import WorkoutCardExerciseItem from "./WorkoutCardExerciseItem";
@@ -9,9 +9,9 @@ interface WorkoutCardExerciseCarouselProps {
   exercises: WorkoutExercise[];
 }
 
-const WorkoutCardExerciseCarousel: React.FC<WorkoutCardExerciseCarouselProps> = ({
-  exercises,
-}) => {
+const WorkoutCardExerciseCarousel: React.FC<
+  WorkoutCardExerciseCarouselProps
+> = ({ exercises }) => {
   const groupedExercises = groupExercisesBySuperset(exercises);
 
   return (
@@ -31,7 +31,8 @@ const WorkoutCardExerciseCarousel: React.FC<WorkoutCardExerciseCarouselProps> = 
             />
           );
         } else {
-          const workoutEx: WorkoutExercise = group.exercises[0] as WorkoutExercise;
+          const workoutEx: WorkoutExercise = group
+            .exercises[0] as WorkoutExercise;
           return (
             <WorkoutCardExerciseItem
               key={`${workoutEx.exercise_id}-${groupIndex}`}
@@ -45,5 +46,3 @@ const WorkoutCardExerciseCarousel: React.FC<WorkoutCardExerciseCarouselProps> = 
 };
 
 export default WorkoutCardExerciseCarousel;
-
-

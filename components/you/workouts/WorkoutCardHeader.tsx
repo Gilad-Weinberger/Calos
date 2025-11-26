@@ -9,6 +9,7 @@ interface WorkoutCardHeaderProps {
   userId?: string;
   onUserPress: () => void;
   onMenuPress: () => void;
+  showMenu?: boolean; // Only show menu if user owns the workout
 }
 
 const WorkoutCardHeader: React.FC<WorkoutCardHeaderProps> = ({
@@ -18,6 +19,7 @@ const WorkoutCardHeader: React.FC<WorkoutCardHeaderProps> = ({
   userId,
   onUserPress,
   onMenuPress,
+  showMenu = true,
 }) => {
   return (
     <View className="flex-row items-center mb-3">
@@ -49,14 +51,16 @@ const WorkoutCardHeader: React.FC<WorkoutCardHeaderProps> = ({
         </View>
       </TouchableOpacity>
 
-      {/* Menu Button */}
-      <TouchableOpacity
-        onPress={onMenuPress}
-        className="p-2"
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
-      </TouchableOpacity>
+      {/* Menu Button - Only show for own workouts */}
+      {showMenu && (
+        <TouchableOpacity
+          onPress={onMenuPress}
+          className="p-2"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

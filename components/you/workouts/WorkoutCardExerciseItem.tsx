@@ -13,7 +13,7 @@ const WorkoutCardExerciseItem: React.FC<WorkoutCardExerciseItemProps> = ({
   return (
     <View
       className="bg-gray-50 rounded-xl p-4 mr-2"
-      style={{ width: 140, minHeight: 180 }}
+      style={{ width: 150, height: 160 }}
     >
       {/* Exercise Type Icon */}
       <View
@@ -62,5 +62,3 @@ const WorkoutCardExerciseItem: React.FC<WorkoutCardExerciseItemProps> = ({
 };
 
 export default WorkoutCardExerciseItem;
-
-

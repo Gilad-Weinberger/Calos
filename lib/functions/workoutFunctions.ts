@@ -213,7 +213,7 @@ export const saveCompleteWorkout = async (
   workoutData: WorkoutData
 ): Promise<{ workout_id: string }> => {
   try {
-    let workoutId: string;
+    let workoutId: string | undefined;
     let isUpdate = false;
 
     // Check if there's a scheduled workout for today that we should update
@@ -283,6 +283,11 @@ export const saveCompleteWorkout = async (
       workoutId = workout.workout_id;
     }
 
+    // Ensure workoutId is defined
+    if (!workoutId) {
+      throw new Error("Failed to create or find workout");
+    }
+
     // Create all workout exercises
     const workoutExercises = workoutData.exercises.map((exercise, index) => ({
       workout_id: workoutId,
@@ -303,10 +308,7 @@ export const saveCompleteWorkout = async (
       console.error("Error creating workout exercises:", exercisesError);
       // If exercises fail, we should clean up the workout record
       if (!isUpdate) {
-        await supabase
-          .from("workouts")
-          .delete()
-          .eq("workout_id", workoutId);
+        await supabase.from("workouts").delete().eq("workout_id", workoutId);
       }
       throw exercisesError;
     }
@@ -820,23 +822,25 @@ export const getFollowedUsersWorkouts = async (
   offset: number = 0
 ): Promise<{ data: FollowedUserWorkout[] | null; error: any }> => {
   try {
-    // First get the list of users that the current user follows
-    const { data: followedUsers, error: followedError } = await supabase
+    // First get the current user's following list
+    const { data: currentUserData, error: userError } = await supabase
       .from("users")
-      .select("user_id")
-      .contains("followers", [userId]);
+      .select("following")
+      .eq("user_id", userId)
+      .single();
 
-    if (followedError) {
-      console.error("Error fetching followed users:", followedError);
-      return { data: null, error: followedError };
+    if (userError) {
+      console.error("Error fetching current user:", userError);
+      return { data: null, error: userError };
     }
 
-    if (!followedUsers || followedUsers.length === 0) {
+    const followedUserIds = currentUserData?.following || [];
+
+    if (followedUserIds.length === 0) {
       return { data: [], error: null };
     }
 
-    const followedUserIds = followedUsers.map((u) => u.user_id);
-
+    // Now fetch workouts from the followed users
     const { data, error } = await supabase
       .from("workouts")
       .select(
@@ -851,6 +855,7 @@ export const getFollowedUsersWorkouts = async (
         scheduled_date,
         title,
         description,
+        media_urls,
         plans (
           name
         ),

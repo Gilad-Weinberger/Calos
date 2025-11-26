@@ -3,6 +3,7 @@ import React, { memo, useMemo, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
+  calculateTotalReps,
   calculateTotalSets,
   calculateWorkoutDuration,
   deleteWorkout,
@@ -11,13 +12,18 @@ import {
   WorkoutExercise,
 } from "../../../lib/functions/workoutFunctions";
 import { formatDuration } from "../../../lib/utils/timer";
+import ImageViewerModal from "../../ui/ImageViewerModal";
 import VideoPlayerModal from "../../ui/VideoPlayerModal";
 import WorkoutCardAchievement from "./WorkoutCardAchievement";
 import WorkoutCardExerciseCarousel from "./WorkoutCardExerciseCarousel";
 import WorkoutCardHeader from "./WorkoutCardHeader";
+import WorkoutCardMediaCarousel from "./WorkoutCardMediaCarousel";
 import WorkoutCardMenu from "./WorkoutCardMenu";
 import WorkoutCardStats from "./WorkoutCardStats";
-import WorkoutCardVideoCarousel from "./WorkoutCardVideoCarousel";
+
+type MediaItem = 
+  | { type: 'video'; url: string; exerciseName: string; exerciseType: "static" | "dynamic"; sets: number; reps: number[] }
+  | { type: 'image'; url: string };
 
 interface WorkoutCardProps {
   workout: {
@@ -29,6 +35,7 @@ interface WorkoutCardProps {
     plan_workout_letter?: string;
     title?: string;
     description?: string;
+    media_urls?: string[];
     workout_exercises: {
       exercise_id: string;
       sets: number;
@@ -65,15 +72,9 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
   }) => {
     const { user } = useAuth();
     const [menuVisible, setMenuVisible] = useState(false);
-    const [videoModalVisible, setVideoModalVisible] = useState(false);
+    const [mediaModalVisible, setMediaModalVisible] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [selectedVideo, setSelectedVideo] = useState<{
-      url: string;
-      exerciseName: string;
-      exerciseType: "static" | "dynamic";
-      sets: number;
-      reps: number[];
-    } | null>(null);
+    const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
     // Memoize expensive calculations
     const exercises: WorkoutExercise[] = useMemo(
       () =>
@@ -194,16 +195,13 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
       );
     };
 
-    // Memoize video-related calculations
-    const { hasVideos, videosWithContext } = useMemo(() => {
-      const hasVideos = workout.workout_exercises.some(
-        (ex) => ex.video_urls && ex.video_urls.length > 0
-      );
-
-      // Flatten all videos with their exercise context
-      const videosWithContext = workout.workout_exercises.flatMap((ex) => {
+    // Memoize media-related calculations
+    const { mediaItems, hasAnyMedia } = useMemo(() => {
+      // Collect all videos with context
+      const videos: MediaItem[] = workout.workout_exercises.flatMap((ex) => {
         if (!ex.video_urls || ex.video_urls.length === 0) return [];
         return ex.video_urls.map((url) => ({
+          type: 'video' as const,
           url,
           exerciseName: ex.exercises.name,
           exerciseType: ex.exercises.type,
@@ -212,12 +210,22 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
         }));
       });
 
-      return { hasVideos, videosWithContext };
-    }, [workout.workout_exercises]);
+      // Collect workout images
+      const images: MediaItem[] = (workout.media_urls || []).map((url) => ({
+        type: 'image' as const,
+        url,
+      }));
 
-    const handleVideoPress = (video: (typeof videosWithContext)[0]) => {
-      setSelectedVideo(video);
-      setVideoModalVisible(true);
+      // Combine in order: videos → images
+      const mediaItems = [...videos, ...images];
+      const hasAnyMedia = mediaItems.length > 0;
+
+      return { mediaItems, hasAnyMedia };
+    }, [workout.workout_exercises, workout.media_urls]);
+
+    const handleMediaPress = (media: MediaItem) => {
+      setSelectedMedia(media);
+      setMediaModalVisible(true);
     };
 
     const handleUserPress = () => {
@@ -229,6 +237,9 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
       }
     };
 
+    // Check if current user owns this workout
+    const isOwnWorkout = user?.user_id === userId;
+
     return (
       <View className="bg-white rounded-2xl p-4 mb-3 shadow-sm">
         <WorkoutCardHeader
@@ -238,6 +249,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
           userId={userId}
           onUserPress={handleUserPress}
           onMenuPress={() => setMenuVisible(true)}
+          showMenu={isOwnWorkout}
         />
 
         <WorkoutCardMenu
@@ -274,29 +286,41 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
           />
         )}
 
-        {/* Video Carousel or Exercise Carousel Section */}
-        {hasVideos ? (
-          <WorkoutCardVideoCarousel
-            videos={videosWithContext}
-            onVideoPress={handleVideoPress}
+        {/* Unified Media Carousel: Videos → Images → Exercises */}
+        {hasAnyMedia ? (
+          <WorkoutCardMediaCarousel
+            mediaItems={mediaItems}
+            exercises={exercises}
+            onMediaPress={handleMediaPress}
           />
         ) : (
           <WorkoutCardExerciseCarousel exercises={exercises} />
         )}
-        {/* Video Player Modal */}
-        {selectedVideo && (
-          <VideoPlayerModal
-            visible={videoModalVisible}
-            onClose={() => {
-              setVideoModalVisible(false);
-              setSelectedVideo(null);
-            }}
-            videoUrl={selectedVideo.url}
-            exerciseName={selectedVideo.exerciseName}
-            exerciseType={selectedVideo.exerciseType}
-            sets={selectedVideo.sets}
-            reps={selectedVideo.reps}
-          />
+        {/* Media Viewer Modal */}
+        {selectedMedia && (
+          selectedMedia.type === 'video' ? (
+            <VideoPlayerModal
+              visible={mediaModalVisible}
+              onClose={() => {
+                setMediaModalVisible(false);
+                setSelectedMedia(null);
+              }}
+              videoUrl={selectedMedia.url}
+              exerciseName={selectedMedia.exerciseName}
+              exerciseType={selectedMedia.exerciseType}
+              sets={selectedMedia.sets}
+              reps={selectedMedia.reps}
+            />
+          ) : (
+            <ImageViewerModal
+              visible={mediaModalVisible}
+              onClose={() => {
+                setMediaModalVisible(false);
+                setSelectedMedia(null);
+              }}
+              imageUrl={selectedMedia.url}
+            />
+          )
         )}
       </View>
     );
