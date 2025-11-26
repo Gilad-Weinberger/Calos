@@ -428,10 +428,10 @@ export const useWorkoutSession = () => {
       // Build workout exercises array
       const workoutExercises: WorkoutExercise[] = exercises.map((ex, index) => {
         let exerciseId = ex.exercise_id;
-        let exerciseType: "static" | "dynamic" = ex.duration
-          ? "static"
-          : "dynamic";
+        let exerciseType: "static" | "dynamic" =
+          ex.duration !== undefined ? "static" : "dynamic";
 
+        // Look up exercise type from database when exercise_id is valid
         // Defensive fallback: if exercise_id is missing or is the placeholder UUID,
         // look it up by name for backward compatibility
         if (!exerciseId || exerciseId === PLACEHOLDER_UUID) {
@@ -453,6 +453,15 @@ export const useWorkoutSession = () => {
             // Use the placeholder as last resort to avoid complete failure
             exerciseId = PLACEHOLDER_UUID;
           }
+        } else {
+          // exerciseId is valid, look up the actual type from database
+          const exerciseData = allExercises.find(
+            (e) => e.exercise_id === exerciseId
+          );
+          if (exerciseData) {
+            exerciseType = exerciseData.type;
+          }
+          // If not found in database, keep the inferred type as fallback
         }
 
         return {
