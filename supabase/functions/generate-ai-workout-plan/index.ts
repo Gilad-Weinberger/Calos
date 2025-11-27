@@ -202,7 +202,7 @@ USER INFORMATION:
 REQUIREMENTS:
 1. Create a progressive workout plan suitable for the user's activity level
 2. Plan should be ${data.planTarget === "calisthenics" ? "a comprehensive calisthenics program" : `focused on learning ${data.specificExercise}`}
-3. Number of weeks: ${data.planTarget === "calisthenics" ? "2 weeks (recurring program)" : "4-6 weeks (choose based on user's goals and level)"}
+3. Number of weeks: ${data.planTarget === "calisthenics" ? "2 weeks (recurring program)" : "4 or 8 or 12 weeks (choose based on user's goals and level)"}
 4. Create ${data.workoutsPerWeek} different workouts (labeled A, B, C, etc.)
 5. Schedule workouts only on available days: ${availableDaysNames}
 6. Use rest days for non-available days
@@ -226,7 +226,7 @@ OUTPUT FORMAT (JSON only, no additional text):
 {
   "name": "Plan name (e.g., '2-Week Calisthenics Beginner Program' or 'Handstand Mastery Plan')",
   "description": "Brief description of the plan and its goals",
-  "num_weeks": ${data.planTarget === "calisthenics" ? "2" : "number of weeks (4-6)"},
+  "num_weeks": ${data.planTarget === "calisthenics" ? "2" : "number of weeks (4/8/12)"},
   "workouts": {
     "A": {
       "name": "Workout A name (e.g., 'Upper Body Strength', 'Push Focus')",
