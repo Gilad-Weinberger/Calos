@@ -292,11 +292,35 @@ export const useWorkoutSession = () => {
 
     const reps = parseInt(currentRepInput) || 0;
 
-    if (reps < 1) {
-      Alert.alert("Invalid Reps", "Please enter at least 1 rep");
+    if (reps < 0) {
+      Alert.alert("Invalid Reps", "Please enter a valid number of reps");
       return;
     }
 
+    // Show confirmation alert if reps === 0
+    if (reps === 0) {
+      Alert.alert(
+        "Skip This Set?",
+        "If you continue, this set won't count in the final workout.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Continue",
+            onPress: () => proceedWithSetCompletion(reps),
+          },
+        ]
+      );
+      return;
+    }
+
+    // Proceed normally for reps > 0
+    proceedWithSetCompletion(reps);
+  };
+
+  const proceedWithSetCompletion = (reps: number) => {
     // Save completed reps
     const newCompletedReps = [...completedReps];
     newCompletedReps[currentExerciseIndex][currentSetIndex] = reps;
@@ -464,12 +488,15 @@ export const useWorkoutSession = () => {
           // If not found in database, keep the inferred type as fallback
         }
 
+        // Filter out sets with 0 reps (skipped sets)
+        const filteredReps = completedReps[index].filter((rep) => rep > 0);
+
         return {
           exercise_id: exerciseId,
           exercise_name: ex.exercise_name,
           exercise_type: exerciseType,
-          sets: ex.sets,
-          reps: completedReps[index],
+          sets: filteredReps.length, // Use actual count of completed sets
+          reps: filteredReps,
           order_index: index + 1,
           superset_group: ex.superset_group,
         };

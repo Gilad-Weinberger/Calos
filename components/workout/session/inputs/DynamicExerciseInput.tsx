@@ -24,7 +24,6 @@ const DynamicExerciseInput: React.FC<DynamicExerciseInputProps> = ({
           value={currentRepInput}
           onChangeText={onRepInputChange}
           keyboardType="numeric"
-          placeholder={currentExercise.reps?.toString() || "0"}
           className="text-6xl font-bold text-center text-gray-900"
           maxLength={3}
         />
@@ -37,5 +36,3 @@ const DynamicExerciseInput: React.FC<DynamicExerciseInputProps> = ({
 };
 
 export default DynamicExerciseInput;
-
-
