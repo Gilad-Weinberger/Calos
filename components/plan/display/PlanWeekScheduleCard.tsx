@@ -136,52 +136,6 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
   // Day names
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // Determine if workout is running/walking (green) or strength (blue)
-  const isRunningWorkout = (workoutName: string): boolean => {
-    const name = workoutName.toLowerCase();
-    return (
-      name.includes("run") ||
-      name.includes("walk") ||
-      name.includes("km") ||
-      name.includes("distance") ||
-      name.includes("cardio") ||
-      name.includes("jog")
-    );
-  };
-
-  // Extract distance from workout name
-  const extractDistance = (workoutName: string): number | null => {
-    const distanceMatch = workoutName.match(/(\d+\.?\d*)\s*km/i);
-    if (distanceMatch) {
-      return parseFloat(distanceMatch[1]);
-    }
-    return null;
-  };
-
-  // Calculate total distance for the week
-  const calculateWeekDistance = (): number => {
-    let totalDistance = 0;
-    weekSchedule.forEach((day) => {
-      const workoutLetters = Array.isArray(day) ? day : [day];
-      workoutLetters.forEach((workoutLetter) => {
-        if (
-          workoutLetter &&
-          typeof workoutLetter === "string" &&
-          workoutLetter.toLowerCase() !== "rest"
-        ) {
-          const workout = plan.workouts[workoutLetter];
-          if (workout && isRunningWorkout(workout.name)) {
-            const distance = extractDistance(workout.name);
-            if (distance) {
-              totalDistance += distance;
-            }
-          }
-        }
-      });
-    });
-    return totalDistance;
-  };
-
   // Get exercise count for strength workouts
   const getExerciseCount = (workoutLetter: string): number | null => {
     const workout = plan.workouts[workoutLetter];
@@ -204,8 +158,6 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
 
     return { name };
   };
-
-  const weekDistance = calculateWeekDistance();
 
   // Check if current week
   const today = new Date();
@@ -258,14 +210,6 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
           Total Workouts:{" "}
           <Text className="font-semibold text-gray-900">{totalWorkouts}</Text>
         </Text>
-        {weekDistance > 0 && (
-          <Text className="text-gray-600 text-sm">
-            Distance:{" "}
-            <Text className="font-semibold text-gray-900">
-              {weekDistance.toFixed(2)}km
-            </Text>
-          </Text>
-        )}
       </View>
 
       {/* Daily Schedule */}
