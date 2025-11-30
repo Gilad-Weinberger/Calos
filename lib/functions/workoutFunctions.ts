@@ -928,27 +928,66 @@ export const uploadWorkoutMedia = async (
   mediaType: "image" | "video"
 ): Promise<string> => {
   try {
+    console.log(
+      `[uploadWorkoutMedia] Starting upload for ${mediaType}:`,
+      mediaUri
+    );
+
+    // Validate input parameters
+    if (!userId || !workoutId || !mediaUri) {
+      throw new Error("Missing required parameters for media upload");
+    }
+
     // Create a unique filename with timestamp
     const fileExt =
       mediaUri.split(".").pop()?.toLowerCase() ||
       (mediaType === "image" ? "jpg" : "mp4");
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const fileName = `${userId}/${workoutId}/${mediaType}-${timestamp}.${fileExt}`;
+    console.log(`[uploadWorkoutMedia] Generated filename:`, fileName);
 
     // Read file as base64 using expo-file-system
-    const base64 = await FileSystem.readAsStringAsync(mediaUri, {
-      encoding: "base64",
-    });
+    let base64: string;
+    try {
+      base64 = await FileSystem.readAsStringAsync(mediaUri, {
+        encoding: "base64",
+      });
+      console.log(
+        `[uploadWorkoutMedia] File read successfully, size: ${base64.length} bytes`
+      );
+    } catch (readError) {
+      console.error("[uploadWorkoutMedia] Error reading file:", readError);
+      throw new Error(
+        `Failed to read file from ${mediaUri}: ${readError instanceof Error ? readError.message : String(readError)}`
+      );
+    }
 
     // Convert base64 to ArrayBuffer for upload
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    let byteArray: Uint8Array;
+    try {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      byteArray = new Uint8Array(byteNumbers);
+      console.log(
+        `[uploadWorkoutMedia] Converted to byte array, size: ${byteArray.length} bytes`
+      );
+    } catch (conversionError) {
+      console.error(
+        "[uploadWorkoutMedia] Error converting base64 to byte array:",
+        conversionError
+      );
+      throw new Error(
+        `Failed to convert file data: ${conversionError instanceof Error ? conversionError.message : String(conversionError)}`
+      );
     }
-    const byteArray = new Uint8Array(byteNumbers);
 
     // Upload to Supabase storage
+    console.log(
+      `[uploadWorkoutMedia] Uploading to Supabase storage bucket: workout-media`
+    );
     const { error } = await supabase.storage
       .from("workout-media")
       .upload(fileName, byteArray, {
@@ -958,19 +997,35 @@ export const uploadWorkoutMedia = async (
       });
 
     if (error) {
-      console.error("Error uploading workout media:", error);
-      throw new Error(`Failed to upload media: ${error.message}`);
+      console.error(
+        "[uploadWorkoutMedia] Supabase storage upload error:",
+        error
+      );
+      throw new Error(`Failed to upload media to storage: ${error.message}`);
     }
 
+    console.log(`[uploadWorkoutMedia] Upload successful, getting public URL`);
     // Get the public URL
     const { data: urlData } = supabase.storage
       .from("workout-media")
       .getPublicUrl(fileName);
 
+    if (!urlData || !urlData.publicUrl) {
+      console.error("[uploadWorkoutMedia] Failed to get public URL");
+      throw new Error("Failed to get public URL for uploaded media");
+    }
+
+    console.log(
+      `[uploadWorkoutMedia] Upload complete, URL:`,
+      urlData.publicUrl
+    );
     return urlData.publicUrl;
   } catch (error) {
-    console.error("Error in uploadWorkoutMedia:", error);
-    throw error;
+    console.error("[uploadWorkoutMedia] Unhandled error:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(`Unknown error during media upload: ${String(error)}`);
   }
 };
 
@@ -987,14 +1042,36 @@ export const uploadWorkoutMediaFiles = async (
   mediaItems: { uri: string; type: "image" | "video" }[]
 ): Promise<string[]> => {
   try {
-    const uploadPromises = mediaItems.map((item) =>
-      uploadWorkoutMedia(userId, workoutId, item.uri, item.type)
+    console.log(
+      `[uploadWorkoutMediaFiles] Starting upload of ${mediaItems.length} files`
     );
 
+    if (!mediaItems || mediaItems.length === 0) {
+      console.log("[uploadWorkoutMediaFiles] No media items to upload");
+      return [];
+    }
+
+    const uploadPromises = mediaItems.map((item, index) => {
+      console.log(
+        `[uploadWorkoutMediaFiles] Queueing upload ${index + 1}/${mediaItems.length}:`,
+        item.uri
+      );
+      return uploadWorkoutMedia(userId, workoutId, item.uri, item.type);
+    });
+
     const urls = await Promise.all(uploadPromises);
+    console.log(
+      `[uploadWorkoutMediaFiles] Successfully uploaded ${urls.length} files`
+    );
     return urls;
   } catch (error) {
-    console.error("Error in uploadWorkoutMediaFiles:", error);
+    console.error(
+      "[uploadWorkoutMediaFiles] Error uploading media files:",
+      error
+    );
+    if (error instanceof Error) {
+      throw new Error(`Failed to upload workout media: ${error.message}`);
+    }
     throw error;
   }
 };

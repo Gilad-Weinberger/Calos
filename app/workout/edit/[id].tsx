@@ -12,12 +12,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FullPageTopBar from "../../../components/layout/FullPageTopBar";
-import WorkoutMediaUploadInput from "../../../components/workout/edit/WorkoutMediaUploadInput";
-import WorkoutVisibilitySelector from "../../../components/workout/edit/WorkoutVisibilitySelector";
 import WorkoutEditActionButtons from "../../../components/workout/edit/WorkoutEditActionButtons";
 import WorkoutEditExerciseList from "../../../components/workout/edit/WorkoutEditExerciseList";
+import WorkoutMediaUploadInput from "../../../components/workout/edit/WorkoutMediaUploadInput";
 import WorkoutMetadataForm from "../../../components/workout/edit/WorkoutMetadataForm";
 import WorkoutStatsSummary from "../../../components/workout/edit/WorkoutStatsSummary";
+import WorkoutVisibilitySelector from "../../../components/workout/edit/WorkoutVisibilitySelector";
 import { useAuth } from "../../../lib/context/AuthContext";
 import {
   calculateTotalReps,
@@ -128,47 +128,109 @@ const WorkoutEditScreen: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!user || !id) return;
+    if (!user || !id) {
+      console.log("[handleSave] Missing user or workout ID");
+      return;
+    }
 
     try {
       setIsSaving(true);
+      console.log("[handleSave] Starting save process for workout:", id);
+      console.log("[handleSave] Total media items:", mediaItems.length);
 
       // Upload new media files
       const newMediaItems = mediaItems.filter(
         (item) => !item.id.startsWith("existing-")
       );
+      console.log(
+        "[handleSave] New media items to upload:",
+        newMediaItems.length
+      );
+      console.log(
+        "[handleSave] New media items:",
+        newMediaItems.map((item) => ({
+          id: item.id,
+          uri: item.uri,
+          type: item.type,
+        }))
+      );
+
       let mediaUrls: string[] = [];
 
       if (newMediaItems.length > 0) {
+        console.log("[handleSave] Starting media upload...");
         const mediaToUpload = newMediaItems.map((item) => ({
           uri: item.uri,
           type: item.type,
         }));
-        mediaUrls = await uploadWorkoutMediaFiles(
-          user.user_id,
-          id,
-          mediaToUpload
-        );
+
+        try {
+          mediaUrls = await uploadWorkoutMediaFiles(
+            user.user_id,
+            id,
+            mediaToUpload
+          );
+          console.log(
+            "[handleSave] Media upload successful. Uploaded URLs:",
+            mediaUrls
+          );
+        } catch (uploadError) {
+          console.error("[handleSave] Media upload failed:", uploadError);
+          throw new Error(
+            `Failed to upload media: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`
+          );
+        }
+      } else {
+        console.log("[handleSave] No new media to upload");
       }
 
       // Include existing media URLs
       const existingMediaUrls = mediaItems
         .filter((item) => item.id.startsWith("existing-"))
         .map((item) => item.uri);
+      console.log(
+        "[handleSave] Existing media URLs count:",
+        existingMediaUrls.length
+      );
+      console.log("[handleSave] Existing media URLs:", existingMediaUrls);
 
       const allMediaUrls = [...existingMediaUrls, ...mediaUrls];
+      console.log(
+        "[handleSave] Total media URLs to save:",
+        allMediaUrls.length
+      );
+      console.log("[handleSave] All media URLs:", allMediaUrls);
 
       // Update workout metadata
-      await updateWorkoutMetadata(id, user.user_id, {
-        title: title.trim() || undefined,
-        description: description.trim() || undefined,
-        media_urls: allMediaUrls,
-        visibility,
-      });
+      console.log("[handleSave] Updating workout metadata...");
+      try {
+        await updateWorkoutMetadata(id, user.user_id, {
+          title: title.trim() || undefined,
+          description: description.trim() || undefined,
+          media_urls: allMediaUrls,
+          visibility,
+        });
+        console.log("[handleSave] Workout metadata updated successfully");
+      } catch (metadataError) {
+        console.error("[handleSave] Metadata update failed:", metadataError);
+        throw new Error(
+          `Failed to update workout metadata: ${metadataError instanceof Error ? metadataError.message : String(metadataError)}`
+        );
+      }
 
       // Update workout exercises
-      await updateWorkoutExercises(id, user.user_id, exercises);
+      console.log("[handleSave] Updating workout exercises...");
+      try {
+        await updateWorkoutExercises(id, user.user_id, exercises);
+        console.log("[handleSave] Workout exercises updated successfully");
+      } catch (exercisesError) {
+        console.error("[handleSave] Exercises update failed:", exercisesError);
+        throw new Error(
+          `Failed to update workout exercises: ${exercisesError instanceof Error ? exercisesError.message : String(exercisesError)}`
+        );
+      }
 
+      console.log("[handleSave] Save process completed successfully");
       Alert.alert(
         "Workout Saved!",
         "Your workout has been updated successfully.",
@@ -180,8 +242,12 @@ const WorkoutEditScreen: React.FC = () => {
         ]
       );
     } catch (error) {
-      console.error("Error saving workout:", error);
-      Alert.alert("Error", "Failed to save workout. Please try again.");
+      console.error("[handleSave] Error saving workout:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to save workout. Please try again.";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsSaving(false);
     }

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -31,6 +31,11 @@ const WorkoutMediaUploadInput: React.FC<WorkoutMediaUploadInputProps> = ({
 }) => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>(initialMedia);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Sync internal state with initialMedia prop changes
+  useEffect(() => {
+    setMediaItems(initialMedia);
+  }, [initialMedia]);
 
   const pickMedia = async () => {
     try {
@@ -311,5 +316,3 @@ const styles = StyleSheet.create({
 });
 
 export default WorkoutMediaUploadInput;
-
-

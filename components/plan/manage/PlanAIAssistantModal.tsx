@@ -7,9 +7,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import type { Plan } from "../../../lib/functions/planFunctions";
 
 type ModalState = "input" | "loading" | "preview";
@@ -40,15 +40,6 @@ const PlanAIAssistantModal = ({
     null
   );
   const [error, setError] = useState<string | null>(null);
-
-  const examplePrompts = [
-    "Add more leg exercises",
-    "Change workouts to Mon/Wed/Fri",
-    "Remove all pull-up exercises",
-    currentPlan.plan_type === "once" ? "Make it 6 weeks instead" : null,
-    "Increase rest time to 90 seconds",
-    "Add core exercises to every workout",
-  ].filter(Boolean) as string[];
 
   const handleSubmit = async () => {
     if (!userPrompt.trim()) {
@@ -112,13 +103,14 @@ const PlanAIAssistantModal = ({
     onClose();
   };
 
-  const handleExamplePress = (example: string) => {
-    setUserPrompt(example);
-  };
-
   const renderInputState = () => (
-    <View className="flex-1">
-      <Text className="text-2xl font-bold mb-2">AI Plan Assistant</Text>
+    <>
+      <View className="flex-row items-center justify-between mb-4">
+        <Text className="text-2xl font-bold">AI Plan Assistant</Text>
+        <TouchableOpacity onPress={handleClose}>
+          <Ionicons name="close" size={28} color="#374151" />
+        </TouchableOpacity>
+      </View>
       <Text className="text-gray-600 mb-4">
         Describe the changes you&apos;d like to make to your workout plan
       </Text>
@@ -158,22 +150,7 @@ const PlanAIAssistantModal = ({
         </View>
       )}
 
-      <Text className="text-sm font-semibold text-gray-700 mb-2">
-        Example Prompts
-      </Text>
-      <ScrollView className="flex-1 mb-4">
-        {examplePrompts.map((example, index) => (
-          <TouchableOpacity
-            key={index}
-            onPress={() => handleExamplePress(example)}
-            className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2"
-          >
-            <Text className="text-gray-700">{example}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View className="flex-row gap-3">
+      <View className="flex-row gap-3 mt-4">
         <TouchableOpacity
           onPress={handleClose}
           className="flex-1 bg-gray-200 rounded-lg py-3"
@@ -194,20 +171,28 @@ const PlanAIAssistantModal = ({
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </>
   );
 
   const renderLoadingState = () => (
-    <View className="flex-1 items-center justify-center">
-      <ActivityIndicator size="large" color="#2563eb" />
-      <Text className="text-gray-600 mt-4 text-lg">
-        AI is analyzing your request...
-      </Text>
-      <Text className="text-gray-500 mt-2 text-center px-8">
-        This may take a few moments while we generate the perfect modifications
-        for your plan
-      </Text>
-    </View>
+    <>
+      <View className="flex-row items-center justify-between mb-4">
+        <Text className="text-2xl font-bold">AI Plan Assistant</Text>
+        <TouchableOpacity onPress={handleClose}>
+          <Ionicons name="close" size={28} color="#374151" />
+        </TouchableOpacity>
+      </View>
+      <View className="items-center justify-center py-16">
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="text-gray-600 mt-4 text-lg">
+          AI is analyzing your request...
+        </Text>
+        <Text className="text-gray-500 mt-2 text-center px-8">
+          This may take a few moments while we generate the perfect
+          modifications for your plan
+        </Text>
+      </View>
+    </>
   );
 
   const renderPreviewState = () => {
@@ -224,8 +209,13 @@ const PlanAIAssistantModal = ({
       currentPlan.start_date !== modifiedPlan.start_date;
 
     return (
-      <View className="flex-1">
-        <Text className="text-2xl font-bold mb-2">Preview Changes</Text>
+      <>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-2xl font-bold">Preview Changes</Text>
+          <TouchableOpacity onPress={handleClose}>
+            <Ionicons name="close" size={28} color="#374151" />
+          </TouchableOpacity>
+        </View>
         <Text className="text-gray-600 mb-4">
           Review the AI-suggested modifications before applying
         </Text>
@@ -245,7 +235,12 @@ const PlanAIAssistantModal = ({
           </View>
         </View>
 
-        <ScrollView className="flex-1 mb-4">
+        <ScrollView
+          className="mb-4"
+          style={{ flexGrow: 0, flexShrink: 1 }}
+          showsVerticalScrollIndicator={true}
+          nestedScrollEnabled={true}
+        >
           {/* Summary of Changes */}
           <View className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
             <Text className="text-lg font-semibold mb-3">Summary</Text>
@@ -361,7 +356,7 @@ const PlanAIAssistantModal = ({
           )}
         </ScrollView>
 
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-3 mt-4">
           <TouchableOpacity
             onPress={handleEditPrompt}
             className="flex-1 bg-gray-200 rounded-lg py-3"
@@ -379,33 +374,40 @@ const PlanAIAssistantModal = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </>
     );
   };
 
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      transparent={false}
+      animationType="fade"
+      transparent={true}
       onRequestClose={handleClose}
     >
-      <SafeAreaView className="flex-1 bg-gray-50" edges={["top", "bottom"]}>
-        <View className="bg-white border-b border-gray-200 px-4 py-4">
-          <TouchableOpacity
-            onPress={handleClose}
-            className="absolute top-4 right-4"
-          >
-            <Ionicons name="close" size={28} color="#374151" />
-          </TouchableOpacity>
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View
+          className="flex-1 items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+        >
+          <TouchableWithoutFeedback>
+            <View
+              className="bg-white rounded-2xl w-[85%] max-h-[80%] p-5"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
+              }}
+            >
+              {modalState === "input" && renderInputState()}
+              {modalState === "loading" && renderLoadingState()}
+              {modalState === "preview" && renderPreviewState()}
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-
-        <View className="flex-1 p-4">
-          {modalState === "input" && renderInputState()}
-          {modalState === "loading" && renderLoadingState()}
-          {modalState === "preview" && renderPreviewState()}
-        </View>
-      </SafeAreaView>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
