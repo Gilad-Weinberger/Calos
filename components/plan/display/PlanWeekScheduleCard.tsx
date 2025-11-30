@@ -81,9 +81,27 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
   const weekSchedule = plan.schedule[weekIndex] || [];
 
   // Calculate total workouts (non-rest days)
-  const totalWorkouts = weekSchedule.filter(
-    (day) => day && day.toLowerCase() !== "rest" && day.trim() !== ""
-  ).length;
+  const totalWorkouts = weekSchedule.reduce((count, day) => {
+    if (Array.isArray(day)) {
+      // For array of workouts, count non-rest workouts
+      return (
+        count +
+        day.filter(
+          (w) =>
+            typeof w === "string" &&
+            w.toLowerCase() !== "rest" &&
+            w.trim() !== ""
+        ).length
+      );
+    } else if (
+      typeof day === "string" &&
+      day.toLowerCase() !== "rest" &&
+      day.trim() !== ""
+    ) {
+      return count + 1;
+    }
+    return count;
+  }, 0);
 
   // State for workout progress
   const [workoutProgress, setWorkoutProgress] = useState<{
@@ -143,16 +161,23 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
   // Calculate total distance for the week
   const calculateWeekDistance = (): number => {
     let totalDistance = 0;
-    weekSchedule.forEach((workoutLetter) => {
-      if (workoutLetter && workoutLetter.toLowerCase() !== "rest") {
-        const workout = plan.workouts[workoutLetter];
-        if (workout && isRunningWorkout(workout.name)) {
-          const distance = extractDistance(workout.name);
-          if (distance) {
-            totalDistance += distance;
+    weekSchedule.forEach((day) => {
+      const workoutLetters = Array.isArray(day) ? day : [day];
+      workoutLetters.forEach((workoutLetter) => {
+        if (
+          workoutLetter &&
+          typeof workoutLetter === "string" &&
+          workoutLetter.toLowerCase() !== "rest"
+        ) {
+          const workout = plan.workouts[workoutLetter];
+          if (workout && isRunningWorkout(workout.name)) {
+            const distance = extractDistance(workout.name);
+            if (distance) {
+              totalDistance += distance;
+            }
           }
         }
-      }
+      });
     });
     return totalDistance;
   };
@@ -246,38 +271,56 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
       {/* Daily Schedule */}
       <View>
         {dayNames.map((dayName, dayIndex) => {
-          const workoutLetter = weekSchedule[dayIndex];
-          const isRest =
-            !workoutLetter ||
-            workoutLetter.toLowerCase() === "rest" ||
-            workoutLetter.trim() === "";
+          const daySchedule = weekSchedule[dayIndex];
 
-          if (isRest) {
+          // Normalize to array format
+          const workoutLetters = Array.isArray(daySchedule)
+            ? daySchedule
+            : [daySchedule];
+
+          // Filter out rest days and empty entries
+          const activeWorkouts = workoutLetters.filter(
+            (letter) =>
+              letter &&
+              typeof letter === "string" &&
+              letter.toLowerCase() !== "rest" &&
+              letter.trim() !== ""
+          );
+
+          if (activeWorkouts.length === 0) {
             return null; // Don't show rest days
           }
 
-          const workout = plan.workouts[workoutLetter];
-          const workoutInfo = workout
-            ? formatWorkoutName(workoutLetter)
-            : { name: workoutLetter };
-          const isRunning = workout && isRunningWorkout(workout.name);
-
           return (
-            <View key={dayIndex} className="flex-row items-center mb-2">
-              {/* Color indicator */}
-              <LinearGradient
-                colors={["#3b82f6", "#60a5fa", "#93c5fd"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="w-4 h-4 rounded mr-3"
-              />
-              {/* Day and workout */}
-              <View className="flex-1">
-                <Text className="text-gray-900 text-sm">
-                  <Text className="font-semibold">{dayName}:</Text>{" "}
-                  {workoutInfo.name}
-                </Text>
-              </View>
+            <View key={dayIndex} className="mb-2">
+              {activeWorkouts.map((workoutLetter, workoutIdx) => {
+                const workout = plan.workouts[workoutLetter];
+                const workoutInfo = workout
+                  ? formatWorkoutName(workoutLetter)
+                  : { name: workoutLetter };
+
+                return (
+                  <View
+                    key={`${dayIndex}-${workoutIdx}`}
+                    className="flex-row items-center mb-1"
+                  >
+                    {/* Color indicator */}
+                    <LinearGradient
+                      colors={["#3b82f6", "#60a5fa", "#93c5fd"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      className="w-4 h-4 rounded mr-3"
+                    />
+                    {/* Day and workout */}
+                    <View className="flex-1">
+                      <Text className="text-gray-900 text-sm">
+                        <Text className="font-semibold">{dayName}:</Text>{" "}
+                        {workoutInfo.name}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           );
         })}
@@ -287,4 +330,3 @@ const PlanWeekScheduleCard: React.FC<PlanWeekScheduleCardProps> = ({
 };
 
 export default PlanWeekScheduleCard;
-

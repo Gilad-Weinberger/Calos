@@ -62,21 +62,21 @@ export const getDayInWeek = (daysElapsed: number): number => {
 };
 
 /**
- * Get the scheduled workout letter for a specific date
+ * Get the scheduled workout letters for a specific date
  * @param startDate - When the plan was activated
- * @param schedule - Array of weekly schedules, e.g., [["A", "rest", "B", ...], ["B", "rest", "A", ...]]
+ * @param schedule - Array of weekly schedules, e.g., [["A", "rest", ["A", "B"], ...], ["B", "rest", "A", ...]]
  * @param numWeeks - Total number of weeks in the plan
  * @param planType - 'repeat' or 'once'
  * @param targetDate - The date to get the workout for (defaults to today)
- * @returns Workout letter (e.g., "A", "B", "C"), "rest", or null if plan is completed
+ * @returns Array of workout letters (e.g., ["A"], ["A", "B"]), empty array for rest, or null if plan is completed
  */
 export const getScheduledWorkoutForDate = (
   startDate: Date,
-  schedule: string[][],
+  schedule: (string | string[])[][],
   numWeeks: number,
   planType: "repeat" | "once",
   targetDate: Date = new Date()
-): string | null => {
+): string[] | null => {
   const daysElapsed = getDaysElapsed(startDate, targetDate);
 
   // If target date is before plan start, return null
@@ -93,9 +93,17 @@ export const getScheduledWorkoutForDate = (
 
   const dayInWeek = getDayInWeek(daysElapsed);
 
-  // Get the workout for this week and day
+  // Get the workout(s) for this week and day
   if (weekNumber < schedule.length && dayInWeek < schedule[weekNumber].length) {
-    return schedule[weekNumber][dayInWeek];
+    const daySchedule = schedule[weekNumber][dayInWeek];
+
+    // If it's a string, convert to array
+    if (typeof daySchedule === "string") {
+      return [daySchedule];
+    }
+
+    // If it's already an array, return it
+    return daySchedule;
   }
 
   return null;
@@ -130,24 +138,24 @@ export const calculateDaysSinceScheduled = (
  * @param numWeeks - Total number of weeks in the plan
  * @param planType - 'repeat' or 'once'
  * @param daysAhead - Number of days to look ahead (default 7)
- * @returns Array of {date, workoutLetter, weekNumber, dayInWeek}
+ * @returns Array of {date, workoutLetters, weekNumber, dayInWeek}
  */
 export const getUpcomingSchedule = (
   startDate: Date,
-  schedule: string[][],
+  schedule: (string | string[])[][],
   numWeeks: number,
   planType: "repeat" | "once",
   daysAhead: number = 7
 ): {
   date: Date;
-  workoutLetter: string;
+  workoutLetters: string[];
   weekNumber: number | null;
   dayInWeek: number;
   isRestDay: boolean;
 }[] => {
   const upcomingWorkouts: {
     date: Date;
-    workoutLetter: string;
+    workoutLetters: string[];
     weekNumber: number | null;
     dayInWeek: number;
     isRestDay: boolean;
@@ -160,7 +168,7 @@ export const getUpcomingSchedule = (
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + i);
 
-    const workoutLetter = getScheduledWorkoutForDate(
+    const workoutLetters = getScheduledWorkoutForDate(
       startDate,
       schedule,
       numWeeks,
@@ -168,17 +176,21 @@ export const getUpcomingSchedule = (
       targetDate
     );
 
-    if (workoutLetter !== null) {
+    if (workoutLetters !== null && workoutLetters.length > 0) {
       const daysElapsed = getDaysElapsed(startDate, targetDate);
       const weekNumber = getWeekNumber(daysElapsed, numWeeks, planType);
       const dayInWeek = getDayInWeek(daysElapsed);
 
+      const hasOnlyRest = workoutLetters.every(
+        (letter) => letter.toLowerCase() === "rest"
+      );
+
       upcomingWorkouts.push({
         date: targetDate,
-        workoutLetter,
+        workoutLetters,
         weekNumber,
         dayInWeek,
-        isRestDay: workoutLetter.toLowerCase() === "rest",
+        isRestDay: hasOnlyRest,
       });
     }
   }
@@ -229,12 +241,12 @@ export const getTodayScheduledDate = (startDate: Date): Date => {
  */
 export const getNextScheduledWorkout = (
   startDate: Date,
-  schedule: string[][],
+  schedule: (string | string[])[][],
   numWeeks: number,
   planType: "repeat" | "once",
   currentDate: Date = new Date()
 ): {
-  workoutLetter: string;
+  workoutLetters: string[];
   scheduledDate: Date;
   weekNumber: number | null;
   dayInWeek: number;
@@ -248,7 +260,7 @@ export const getNextScheduledWorkout = (
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + daysAhead);
 
-    const workoutLetter = getScheduledWorkoutForDate(
+    const workoutLetters = getScheduledWorkoutForDate(
       startDate,
       schedule,
       numWeeks,
@@ -256,19 +268,25 @@ export const getNextScheduledWorkout = (
       targetDate
     );
 
-    // If we found a workout and it's not a rest day
-    if (workoutLetter && workoutLetter.toLowerCase() !== "rest") {
-      const daysElapsed = getDaysElapsed(startDate, targetDate);
-      const weekNumber = getWeekNumber(daysElapsed, numWeeks, planType);
-      const dayInWeek = getDayInWeek(daysElapsed);
+    // If we found workout(s) and at least one is not a rest day
+    if (workoutLetters && workoutLetters.length > 0) {
+      const hasNonRestWorkout = workoutLetters.some(
+        (letter) => letter.toLowerCase() !== "rest"
+      );
 
-      return {
-        workoutLetter,
-        scheduledDate: targetDate,
-        weekNumber,
-        dayInWeek,
-        daysUntil: daysAhead,
-      };
+      if (hasNonRestWorkout) {
+        const daysElapsed = getDaysElapsed(startDate, targetDate);
+        const weekNumber = getWeekNumber(daysElapsed, numWeeks, planType);
+        const dayInWeek = getDayInWeek(daysElapsed);
+
+        return {
+          workoutLetters,
+          scheduledDate: targetDate,
+          weekNumber,
+          dayInWeek,
+          daysUntil: daysAhead,
+        };
+      }
     }
   }
 

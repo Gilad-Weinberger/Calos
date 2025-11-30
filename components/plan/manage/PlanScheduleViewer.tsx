@@ -56,27 +56,46 @@ const PlanScheduleViewer: React.FC<PlanScheduleViewerProps> = ({ plan }) => {
   };
 
   // Calculate total distance for a week
-  const calculateWeekDistance = (weekSchedule: string[]): number => {
+  const calculateWeekDistance = (
+    weekSchedule: (string | string[])[]
+  ): number => {
     let totalDistance = 0;
-    weekSchedule.forEach((workoutLetter) => {
-      if (workoutLetter && workoutLetter.toLowerCase() !== "rest") {
-        const workout = plan.workouts[workoutLetter];
-        if (workout && isRunningWorkout(workout.name)) {
-          const distance = extractDistance(workout.name);
-          if (distance) {
-            totalDistance += distance;
+    weekSchedule.forEach((day) => {
+      const workoutLetters = Array.isArray(day) ? day : [day];
+      workoutLetters.forEach((workoutLetter) => {
+        if (
+          workoutLetter &&
+          typeof workoutLetter === "string" &&
+          workoutLetter.toLowerCase() !== "rest"
+        ) {
+          const workout = plan.workouts[workoutLetter];
+          if (workout && isRunningWorkout(workout.name)) {
+            const distance = extractDistance(workout.name);
+            if (distance) {
+              totalDistance += distance;
+            }
           }
         }
-      }
+      });
     });
     return totalDistance;
   };
 
   // Calculate total workouts for a week (non-rest days)
-  const calculateTotalWorkouts = (weekSchedule: string[]): number => {
-    return weekSchedule.filter(
-      (day) => day && day.toLowerCase() !== "rest" && day.trim() !== ""
-    ).length;
+  const calculateTotalWorkouts = (
+    weekSchedule: (string | string[])[]
+  ): number => {
+    return weekSchedule.filter((day) => {
+      if (!day) return false;
+      const workoutLetters = Array.isArray(day) ? day : [day];
+      return workoutLetters.some(
+        (letter) =>
+          letter &&
+          typeof letter === "string" &&
+          letter.toLowerCase() !== "rest" &&
+          letter.trim() !== ""
+      );
+    }).length;
   };
 
   return (
@@ -120,21 +139,34 @@ const PlanScheduleViewer: React.FC<PlanScheduleViewerProps> = ({ plan }) => {
             {/* Daily Schedule */}
             <View>
               {dayNames.map((dayName, dayIndex) => {
-                const workoutLetter = weekSchedule[dayIndex];
-                const isRest =
-                  !workoutLetter ||
-                  workoutLetter.toLowerCase() === "rest" ||
-                  workoutLetter.trim() === "";
+                const day = weekSchedule[dayIndex];
+                const workoutLetters = Array.isArray(day) ? day : [day];
+                
+                // Check if it's a rest day
+                const isRest = !day || workoutLetters.every(
+                  (letter) => !letter || (typeof letter === 'string' && (letter.toLowerCase() === "rest" || letter.trim() === ""))
+                );
 
                 if (isRest) {
                   return null; // Don't show rest days
                 }
 
-                const workout = plan.workouts[workoutLetter];
-                const workoutName = workout
-                  ? formatWorkoutName(workoutLetter)
-                  : workoutLetter;
-                const isRunning = workout && isRunningWorkout(workout.name);
+                // Handle multiple workouts per day
+                const workoutNames = workoutLetters
+                  .filter((letter) => letter && typeof letter === 'string' && letter.toLowerCase() !== "rest" && letter.trim() !== "")
+                  .map((letter) => {
+                    const workout = plan.workouts[letter];
+                    return workout ? formatWorkoutName(letter) : letter;
+                  });
+
+                if (workoutNames.length === 0) {
+                  return null;
+                }
+
+                // Determine color based on first workout
+                const firstLetter = workoutLetters[0];
+                const firstWorkout = typeof firstLetter === 'string' ? plan.workouts[firstLetter] : null;
+                const isRunning = firstWorkout && isRunningWorkout(firstWorkout.name);
 
                 return (
                   <View key={dayIndex} className="flex-row items-center mb-2">
@@ -153,7 +185,7 @@ const PlanScheduleViewer: React.FC<PlanScheduleViewerProps> = ({ plan }) => {
                     <View className="flex-1">
                       <Text className="text-gray-900 text-xs">
                         <Text className="font-semibold">{dayName}:</Text>{" "}
-                        {workoutName}
+                        {workoutNames.join(" + ")}
                       </Text>
                     </View>
                   </View>
@@ -168,4 +200,3 @@ const PlanScheduleViewer: React.FC<PlanScheduleViewerProps> = ({ plan }) => {
 };
 
 export default PlanScheduleViewer;
-

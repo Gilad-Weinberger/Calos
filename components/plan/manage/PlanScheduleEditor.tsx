@@ -1,17 +1,10 @@
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useState } from "react";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import type { Plan } from "../../../lib/functions/planFunctions";
 
 interface PlanScheduleEditorProps {
   plan: Plan;
-  onScheduleChange: (schedule: string[][]) => void;
+  onScheduleChange: (schedule: (string | string[])[][]) => void;
 }
 
 const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
@@ -22,7 +15,10 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
     weekIndex: number;
     dayIndex: number;
   } | null>(null);
-  const [schedule, setSchedule] = useState<string[][]>(plan.schedule);
+  const [schedule, setSchedule] = useState<(string | string[])[][]>(
+    plan.schedule
+  );
+  const [selectedWorkouts, setSelectedWorkouts] = useState<string[]>([]);
 
   // Update schedule when plan changes
   React.useEffect(() => {
@@ -33,18 +29,54 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
 
   const handleCellPress = (weekIndex: number, dayIndex: number) => {
     setSelectedCell({ weekIndex, dayIndex });
+
+    // Load currently selected workouts for this cell
+    const cellValue = schedule[weekIndex]?.[dayIndex];
+    if (cellValue) {
+      let currentWorkouts = Array.isArray(cellValue) ? cellValue : [cellValue];
+
+      // Handle comma-separated strings
+      currentWorkouts = currentWorkouts.flatMap((w) => {
+        if (typeof w === "string" && w.includes(",")) {
+          return w.split(",").map((l) => l.trim());
+        }
+        return w;
+      });
+
+      const nonRestWorkouts = currentWorkouts.filter(
+        (w) => w && w.toLowerCase() !== "rest"
+      );
+      setSelectedWorkouts(nonRestWorkouts);
+    } else {
+      setSelectedWorkouts([]);
+    }
   };
 
-  const handleWorkoutSelect = (workoutLetter: string) => {
+  const handleWorkoutToggle = (workoutLetter: string) => {
+    // Toggle workout selection
+    setSelectedWorkouts((prev) => {
+      if (prev.includes(workoutLetter)) {
+        return prev.filter((w) => w !== workoutLetter);
+      } else {
+        return [...prev, workoutLetter];
+      }
+    });
+  };
+
+  const handleApplySelection = () => {
     if (!selectedCell) return;
 
     const newSchedule = schedule.map((week, wIdx) =>
       week.map((day, dIdx) => {
-        if (
-          wIdx === selectedCell.weekIndex &&
-          dIdx === selectedCell.dayIndex
-        ) {
-          return workoutLetter;
+        if (wIdx === selectedCell.weekIndex && dIdx === selectedCell.dayIndex) {
+          // If multiple workouts selected, store as array; if one, store as string
+          if (selectedWorkouts.length === 0) {
+            return "Rest";
+          } else if (selectedWorkouts.length === 1) {
+            return selectedWorkouts[0];
+          } else {
+            return selectedWorkouts;
+          }
         }
         return day;
       })
@@ -53,6 +85,7 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
     setSchedule(newSchedule);
     onScheduleChange(newSchedule);
     setSelectedCell(null);
+    setSelectedWorkouts([]);
   };
 
   const handleRestSelect = () => {
@@ -60,10 +93,7 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
 
     const newSchedule = schedule.map((week, wIdx) =>
       week.map((day, dIdx) => {
-        if (
-          wIdx === selectedCell.weekIndex &&
-          dIdx === selectedCell.dayIndex
-        ) {
+        if (wIdx === selectedCell.weekIndex && dIdx === selectedCell.dayIndex) {
           return "Rest";
         }
         return day;
@@ -73,6 +103,7 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
     setSchedule(newSchedule);
     onScheduleChange(newSchedule);
     setSelectedCell(null);
+    setSelectedWorkouts([]);
   };
 
   const getWorkoutLetters = (): string[] => {
@@ -80,20 +111,43 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
   };
 
   const getCellContent = (weekIndex: number, dayIndex: number): string => {
-    const workoutLetter = schedule[weekIndex]?.[dayIndex];
-    if (!workoutLetter || workoutLetter.toLowerCase() === "rest") {
+    const cellValue = schedule[weekIndex]?.[dayIndex];
+    if (!cellValue) return "Rest";
+
+    // Handle array of workouts
+    if (Array.isArray(cellValue)) {
+      const nonRest = cellValue.filter((w) => w && w.toLowerCase() !== "rest");
+      return nonRest.length > 0 ? nonRest.join(", ") : "Rest";
+    }
+
+    // Handle single workout
+    if (cellValue.toLowerCase() === "rest") {
       return "Rest";
     }
-    return String(workoutLetter || "");
+    return String(cellValue || "");
   };
 
   const isRestDay = (weekIndex: number, dayIndex: number): boolean => {
-    const workoutLetter = schedule[weekIndex]?.[dayIndex];
-    return (
-      !workoutLetter ||
-      workoutLetter.toLowerCase() === "rest" ||
-      workoutLetter.trim() === ""
-    );
+    const cellValue = schedule[weekIndex]?.[dayIndex];
+    if (!cellValue) return true;
+
+    // Handle array of workouts
+    if (Array.isArray(cellValue)) {
+      return cellValue.every((w) => !w || w.toLowerCase() === "rest");
+    }
+
+    // Handle string (including comma-separated)
+    if (typeof cellValue === "string") {
+      // Split by comma if needed and check if all are rest
+      const letters = cellValue.includes(",")
+        ? cellValue.split(",").map((l) => l.trim())
+        : [cellValue];
+      return letters.every(
+        (l) => l.toLowerCase() === "rest" || l.trim() === ""
+      );
+    }
+
+    return true;
   };
 
   const getWorkoutName = (workoutLetter: string): string => {
@@ -115,9 +169,7 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
         elevation: 2,
       }}
     >
-      <Text className="text-lg font-semibold text-gray-900 mb-4">
-        Schedule
-      </Text>
+      <Text className="text-lg font-semibold text-gray-900 mb-4">Schedule</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
@@ -125,10 +177,7 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
           <View className="flex-row mb-2">
             <View className="w-20" /> {/* Week label column */}
             {dayNames.map((day) => (
-              <View
-                key={day}
-                className="w-16 items-center justify-center px-1"
-              >
+              <View key={day} className="w-16 items-center justify-center px-1">
                 <Text className="text-xs font-semibold text-gray-700">
                   {day}
                 </Text>
@@ -213,8 +262,11 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
               elevation: 8,
             }}
           >
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
-              Select Workout
+            <Text className="text-lg font-semibold text-gray-900 mb-2">
+              Select Workout(s)
+            </Text>
+            <Text className="text-sm text-gray-600 mb-4">
+              Tap to select multiple workouts for this day
             </Text>
 
             <ScrollView className="max-h-64">
@@ -228,36 +280,74 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
                 </Text>
               </TouchableOpacity>
 
-              {/* Workout Options */}
+              {/* Workout Options with checkboxes */}
               {getWorkoutLetters().map((letter) => {
                 const workout = plan.workouts[letter];
+                const isSelected = selectedWorkouts.includes(letter);
                 return (
                   <TouchableOpacity
                     key={letter}
-                    onPress={() => handleWorkoutSelect(letter)}
-                    className="bg-blue-50 rounded-lg px-4 py-3 mb-2 border border-blue-200"
+                    onPress={() => handleWorkoutToggle(letter)}
+                    className={`rounded-lg px-4 py-3 mb-2 border ${
+                      isSelected
+                        ? "bg-blue-100 border-blue-400"
+                        : "bg-blue-50 border-blue-200"
+                    }`}
                   >
-                    <Text className="text-base font-bold text-blue-800">
-                      {letter}
-                    </Text>
-                    {workout?.name ? (
-                      <Text className="text-sm text-blue-600 mt-1">
-                        {workout.name}
-                      </Text>
-                    ) : null}
+                    <View className="flex-row items-center">
+                      <View
+                        className={`w-5 h-5 rounded border-2 mr-3 items-center justify-center ${
+                          isSelected
+                            ? "bg-blue-600 border-blue-600"
+                            : "border-gray-400"
+                        }`}
+                      >
+                        {isSelected && (
+                          <Text className="text-white text-xs font-bold">
+                            ✓
+                          </Text>
+                        )}
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-base font-bold text-blue-800">
+                          {letter}
+                        </Text>
+                        {workout?.name ? (
+                          <Text className="text-sm text-blue-600 mt-1">
+                            {workout.name}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
 
-            <TouchableOpacity
-              onPress={() => setSelectedCell(null)}
-              className="mt-4 pt-4 border-t border-gray-200"
-            >
-              <Text className="text-center text-gray-600 font-medium">
-                Cancel
-              </Text>
-            </TouchableOpacity>
+            {/* Action Buttons */}
+            <View className="mt-4 pt-4 border-t border-gray-200 flex-row gap-2">
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedCell(null);
+                  setSelectedWorkouts([]);
+                }}
+                className="flex-1 py-3 rounded-lg bg-gray-100"
+              >
+                <Text className="text-center text-gray-700 font-medium">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleApplySelection}
+                className="flex-1 py-3 rounded-lg bg-blue-600"
+              >
+                <Text className="text-center text-white font-medium">
+                  Apply{" "}
+                  {selectedWorkouts.length > 0 &&
+                    `(${selectedWorkouts.length})`}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -266,4 +356,3 @@ const PlanScheduleEditor: React.FC<PlanScheduleEditorProps> = ({
 };
 
 export default PlanScheduleEditor;
-

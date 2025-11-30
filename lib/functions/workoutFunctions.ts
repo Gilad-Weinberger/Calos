@@ -168,25 +168,36 @@ export const getAllExercises = async (): Promise<Exercise[]> => {
 
 /**
  * Find a scheduled workout for today that hasn't been done yet
+ * @param userId - User ID
+ * @param planId - Plan ID
+ * @param scheduledDate - The scheduled date
+ * @param workoutLetter - Optional workout letter to filter by (for multiple workouts per day)
  */
 export const findScheduledWorkoutForToday = async (
   userId: string,
   planId: string,
-  scheduledDate: Date
+  scheduledDate: Date,
+  workoutLetter?: string
 ): Promise<{ workout_id: string } | null> => {
   try {
     const today = new Date(scheduledDate);
     today.setHours(0, 0, 0, 0);
     const scheduledDateStr = today.toISOString();
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("workouts")
       .select("workout_id")
       .eq("user_id", userId)
       .eq("plan_id", planId)
       .eq("scheduled_date", scheduledDateStr)
-      .eq("done", false)
-      .single();
+      .eq("done", false);
+
+    // If workout letter is provided, filter by it
+    if (workoutLetter) {
+      query = query.eq("plan_workout_letter", workoutLetter);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) {
       if (error.code === "PGRST116") {
@@ -222,7 +233,8 @@ export const saveCompleteWorkout = async (
       const existingWorkout = await findScheduledWorkoutForToday(
         userId,
         workoutData.plan_id,
-        scheduledDate
+        scheduledDate,
+        workoutData.plan_workout_letter // Pass workout letter to find the specific workout
       );
 
       if (existingWorkout) {

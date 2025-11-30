@@ -70,15 +70,35 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
     return weekIndex;
   }, [plan.plan_type, plan.num_weeks, weekIndex]);
 
-  // Get selected day workout
-  const selectedDayWorkout = weekWorkouts.find(
+  // Get all selected day workouts (can be multiple per day)
+  const selectedDayWorkouts = weekWorkouts.filter(
     (w) => w.dayIndex === selectedDayIndex
   );
 
-  const isRestDay =
-    !selectedDayWorkout ||
-    !plan.schedule[weekScheduleIndex]?.[selectedDayIndex] ||
-    plan.schedule[weekScheduleIndex][selectedDayIndex].toLowerCase() === "rest";
+  // Check if it's a rest day (no workouts or all workouts are rest)
+  const daySchedule = plan.schedule[weekScheduleIndex]?.[selectedDayIndex];
+  const isRestDay = (() => {
+    if (!daySchedule) return true;
+
+    // Handle both string and array formats
+    let workoutLetters = Array.isArray(daySchedule)
+      ? daySchedule
+      : [daySchedule];
+
+    // Handle comma-separated strings from AI
+    workoutLetters = workoutLetters.flatMap((letter) => {
+      if (typeof letter === "string" && letter.includes(",")) {
+        return letter.split(",").map((l) => l.trim());
+      }
+      return letter;
+    });
+
+    const allRest = workoutLetters.every(
+      (letter) => !letter || letter.toLowerCase() === "rest"
+    );
+
+    return selectedDayWorkouts.length === 0 || allRest;
+  })();
 
   // Load week workouts
   useEffect(() => {
@@ -117,28 +137,28 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
     loadWeekWorkouts();
   }, [user, plan, weekIndex, weekStartDate, weekScheduleIndex]);
 
-  // Check if selected day workout has been completed
+  // Check if any workout has been completed (for showing completion banner)
   useEffect(() => {
     const checkCompletedWorkout = async () => {
-      if (
-        !user ||
-        !selectedDayWorkout ||
-        isRestDay ||
-        !selectedDayWorkout.workoutLetter
-      ) {
+      if (!user || selectedDayWorkouts.length === 0 || isRestDay) {
         setCompletedWorkout(null);
         return;
       }
 
       try {
-        const workout = await getTodaysCompletedWorkout(
-          user.user_id,
-          plan.plan_id,
-          selectedDayWorkout.workoutLetter,
-          selectedDayWorkout.scheduledDate
-        );
+        // Check the first workout for completion status
+        // (We'll show completion banner if at least one is completed)
+        const firstWorkout = selectedDayWorkouts[0];
+        if (firstWorkout && firstWorkout.workoutLetter) {
+          const workout = await getTodaysCompletedWorkout(
+            user.user_id,
+            plan.plan_id,
+            firstWorkout.workoutLetter,
+            firstWorkout.scheduledDate
+          );
 
-        setCompletedWorkout(workout);
+          setCompletedWorkout(workout);
+        }
       } catch (error) {
         console.error("Error checking completed workout:", error);
         setCompletedWorkout(null);
@@ -146,28 +166,36 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
     };
 
     checkCompletedWorkout();
-  }, [user, plan.plan_id, selectedDayWorkout, isRestDay]);
+  }, [user, plan.plan_id, selectedDayWorkouts, isRestDay]);
 
-  const handleStartWorkout = () => {
-    if (!selectedDayWorkout) return;
+  const handleStartWorkout = (workoutLetter?: string) => {
+    // If workout letter is provided, start that specific workout
+    // Otherwise, start the first incomplete workout
+    const targetWorkout = workoutLetter
+      ? selectedDayWorkouts.find((w) => w.workoutLetter === workoutLetter)
+      : selectedDayWorkouts.find((w) => !w.isCompleted) ||
+        selectedDayWorkouts[0];
+
+    if (!targetWorkout) return;
 
     router.push({
       pathname: "/workout/workout-session",
       params: {
         planId: plan.plan_id,
-        workoutLetter: selectedDayWorkout.workoutLetter,
-        scheduledDate: selectedDayWorkout.scheduledDate.toISOString(),
+        workoutLetter: targetWorkout.workoutLetter,
+        scheduledDate: targetWorkout.scheduledDate.toISOString(),
       },
     });
   };
 
-  // Calculate if workout is late
-  const daysLate = selectedDayWorkout
-    ? calculateDaysSinceScheduled(selectedDayWorkout.scheduledDate)
-    : 0;
+  // Calculate if any workout is late
+  const daysLate =
+    selectedDayWorkouts.length > 0
+      ? calculateDaysSinceScheduled(selectedDayWorkouts[0].scheduledDate)
+      : 0;
   const lateMessage =
-    selectedDayWorkout && daysLate > 0
-      ? getLateworkoutMessage(selectedDayWorkout.scheduledDate)
+    selectedDayWorkouts.length > 0 && daysLate > 0
+      ? getLateworkoutMessage(selectedDayWorkouts[0].scheduledDate)
       : null;
 
   if (isLoading) {
@@ -178,8 +206,12 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
     );
   }
 
-  // If workout is completed, show the completed workout card
-  if (completedWorkout && !isRestDay && selectedDayWorkout) {
+  // If all workouts are completed, show the completed banner
+  const allWorkoutsCompleted =
+    selectedDayWorkouts.length > 0 &&
+    selectedDayWorkouts.every((w) => w.isCompleted);
+
+  if (completedWorkout && !isRestDay && allWorkoutsCompleted) {
     return (
       <View className="flex-1 bg-gray-100">
         <ScrollView
@@ -205,10 +237,16 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
                 </View>
                 <View className="flex-1">
                   <Text className="text-xl font-bold text-white mb-1">
-                    Workout Complete!
+                    {selectedDayWorkouts.length > 1
+                      ? "All Workouts Complete!"
+                      : "Workout Complete!"}
                   </Text>
                   <Text className="text-green-100 text-sm">
-                    Great job! You&apos;ve finished this workout.
+                    Great job! You&apos;ve finished{" "}
+                    {selectedDayWorkouts.length > 1
+                      ? "all workouts"
+                      : "this workout"}{" "}
+                    for today.
                   </Text>
                 </View>
               </View>
@@ -251,24 +289,32 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
                 </Text>
               </View>
             </View>
-          ) : selectedDayWorkout ? (
+          ) : selectedDayWorkouts.length > 0 ? (
             /* Workout Day Content */
             <>
               <Text className="text-gray-900 text-md font-bold mb-5 mt-1">
-                Workouts
+                {selectedDayWorkouts.length > 1 ? "Workouts" : "Workout"}
               </Text>
-              {/* Workout Card */}
-              <RecordWorkoutCard
-                workout={{
-                  workoutLetter: selectedDayWorkout.workoutLetter,
-                  workoutName: selectedDayWorkout.workoutName,
-                  scheduledDate: selectedDayWorkout.scheduledDate,
-                  dayName: selectedDayWorkout.dayName,
-                  dayIndex: selectedDayWorkout.dayIndex,
-                  exerciseCount: selectedDayWorkout.exerciseCount,
-                  workoutId: selectedDayWorkout.workoutId,
-                }}
-              />
+
+              {/* Multiple Workout Cards - stacked vertically */}
+              {selectedDayWorkouts.map((workout, index) => (
+                <View
+                  key={`${workout.workoutLetter}-${index}`}
+                  className="mb-4"
+                >
+                  <RecordWorkoutCard
+                    workout={{
+                      workoutLetter: workout.workoutLetter,
+                      workoutName: workout.workoutName,
+                      scheduledDate: workout.scheduledDate,
+                      dayName: workout.dayName,
+                      dayIndex: workout.dayIndex,
+                      exerciseCount: workout.exerciseCount,
+                      workoutId: workout.workoutId,
+                    }}
+                  />
+                </View>
+              ))}
 
               {/* Week Overview Card */}
               {weekWorkouts.length > 0 && (
@@ -293,14 +339,20 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
         </View>
       </ScrollView>
 
-      {/* Fixed Record Workout Button - Only show for workout days */}
-      {!isRestDay && selectedDayWorkout && (
-        <PlanWorkoutCTA
-          onStart={handleStartWorkout}
-          disabled={!!completedWorkout}
-          label="Start Workout"
-        />
-      )}
+      {/* Fixed Record Workout Button - Only show for workout days with incomplete workouts */}
+      {!isRestDay &&
+        selectedDayWorkouts.length > 0 &&
+        !allWorkoutsCompleted && (
+          <PlanWorkoutCTA
+            onStart={() => handleStartWorkout()}
+            disabled={false}
+            label={
+              selectedDayWorkouts.length > 1
+                ? "Start Next Workout"
+                : "Start Workout"
+            }
+          />
+        )}
     </View>
   );
 };

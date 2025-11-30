@@ -191,29 +191,44 @@ serve(async (req: Request) => {
             done: boolean;
           }[] = [];
 
-          weekSchedule.forEach((workoutLetter, dayIndex) => {
-            const dayLower = workoutLetter?.toLowerCase().trim();
-            if (!dayLower || dayLower === "rest" || dayLower === "") {
-              return; // Skip rest days
-            }
+          weekSchedule.forEach((dayWorkouts, dayIndex) => {
+            // Handle both string (single workout) and array (multiple workouts) formats
+            let workoutLetters = Array.isArray(dayWorkouts)
+              ? dayWorkouts
+              : [dayWorkouts];
 
-            const workout = plan.workouts[workoutLetter];
-            if (!workout) {
-              console.warn(`Workout ${workoutLetter} not found in plan`);
-              return;
-            }
+            // Handle comma-separated strings from AI (e.g., "C, A" -> ["C", "A"])
+            workoutLetters = workoutLetters.flatMap(letter => {
+              if (typeof letter === 'string' && letter.includes(',')) {
+                return letter.split(',').map(l => l.trim());
+              }
+              return letter;
+            });
 
-            const scheduledDate = new Date(weekStartDate);
-            scheduledDate.setDate(weekStartDate.getDate() + dayIndex);
-            scheduledDate.setHours(0, 0, 0, 0);
+            workoutLetters.forEach((workoutLetter) => {
+              const dayLower = workoutLetter?.toLowerCase().trim();
+              if (!dayLower || dayLower === "rest" || dayLower === "") {
+                return; // Skip rest days
+              }
 
-            workoutsToCreate.push({
-              user_id: plan.user_id,
-              workout_date: scheduledDate.toISOString(),
-              plan_id: plan.plan_id,
-              plan_workout_letter: workoutLetter,
-              scheduled_date: scheduledDate.toISOString(),
-              done: false,
+              const workout = plan.workouts[workoutLetter];
+              if (!workout) {
+                console.warn(`Workout ${workoutLetter} not found in plan`);
+                return;
+              }
+
+              const scheduledDate = new Date(weekStartDate);
+              scheduledDate.setDate(weekStartDate.getDate() + dayIndex);
+              scheduledDate.setHours(0, 0, 0, 0);
+
+              workoutsToCreate.push({
+                user_id: plan.user_id,
+                workout_date: scheduledDate.toISOString(),
+                plan_id: plan.plan_id,
+                plan_workout_letter: workoutLetter,
+                scheduled_date: scheduledDate.toISOString(),
+                done: false,
+              });
             });
           });
 

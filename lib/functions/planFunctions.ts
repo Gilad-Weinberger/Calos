@@ -18,7 +18,7 @@ export interface Plan {
   plan_type: "repeat" | "once";
   num_weeks: number;
   workouts: WorkoutDefinitions;
-  schedule: string[][];
+  schedule: (string | string[])[][]; // Array of weeks, each week has days, each day can be a string or array of strings
   start_date: string;
   created_at: string;
   updated_at: string;
@@ -62,7 +62,7 @@ export interface PDFAnalysisResult {
   description: string;
   num_weeks: number;
   workouts: WorkoutDefinitions;
-  schedule: string[][];
+  schedule: (string | string[])[][]; // Array of weeks, each week has days, each day can be a string or array of strings
 }
 
 /**
@@ -516,22 +516,24 @@ export const deactivateCurrentPlan = async (userId: string): Promise<void> => {
 };
 
 /**
- * Get today's workout from the active plan
+ * Get today's workouts from the active plan
  * @param plan - Active plan
- * @returns Today's workout info or null if rest day or plan completed
+ * @returns Array of today's workout info or null if rest day or plan completed
  */
 export const getTodaysWorkout = (
   plan: Plan
-): {
-  workoutLetter: string;
-  workout: WorkoutDefinition;
-  scheduledDate: Date;
-  weekNumber: number | null;
-  dayInWeek: number;
-  isRestDay: boolean;
-} | null => {
+):
+  | {
+      workoutLetter: string;
+      workout: WorkoutDefinition;
+      scheduledDate: Date;
+      weekNumber: number | null;
+      dayInWeek: number;
+      isRestDay: boolean;
+    }[]
+  | null => {
   const today = new Date();
-  const workoutLetter = getScheduledWorkoutForDate(
+  const workoutLetters = getScheduledWorkoutForDate(
     new Date(plan.start_date),
     plan.schedule,
     plan.num_weeks,
@@ -539,42 +541,63 @@ export const getTodaysWorkout = (
     today
   );
 
-  if (!workoutLetter) {
-    return null;
-  }
-
-  const isRestDay = workoutLetter.toLowerCase() === "rest";
-
-  if (isRestDay) {
-    return {
-      workoutLetter,
-      workout: { name: "Rest Day", exercises: [] },
-      scheduledDate: getTodayScheduledDate(new Date(plan.start_date)),
-      weekNumber: null,
-      dayInWeek: getDaysElapsed(new Date(plan.start_date), today) % 7,
-      isRestDay: true,
-    };
-  }
-
-  const workout = plan.workouts[workoutLetter];
-
-  if (!workout) {
-    console.error(`Workout ${workoutLetter} not found in plan`);
+  if (!workoutLetters || workoutLetters.length === 0) {
     return null;
   }
 
   const daysElapsed = getDaysElapsed(new Date(plan.start_date), today);
   const weekNumber = Math.floor(daysElapsed / 7) % plan.num_weeks;
   const dayInWeek = daysElapsed % 7;
+  const scheduledDate = getTodayScheduledDate(new Date(plan.start_date));
 
-  return {
-    workoutLetter,
-    workout,
-    scheduledDate: getTodayScheduledDate(new Date(plan.start_date)),
-    weekNumber,
-    dayInWeek,
-    isRestDay: false,
-  };
+  // Check if all workouts are rest days
+  const allRest = workoutLetters.every(
+    (letter) => letter.toLowerCase() === "rest"
+  );
+
+  if (allRest) {
+    return [
+      {
+        workoutLetter: "Rest",
+        workout: { name: "Rest Day", exercises: [] },
+        scheduledDate,
+        weekNumber: null,
+        dayInWeek,
+        isRestDay: true,
+      },
+    ];
+  }
+
+  // Map each workout letter to its workout definition
+  const workouts = workoutLetters
+    .filter((letter) => letter.toLowerCase() !== "rest") // Filter out rest
+    .map((letter) => {
+      const workout = plan.workouts[letter];
+
+      if (!workout) {
+        console.error(`Workout ${letter} not found in plan`);
+        return null;
+      }
+
+      return {
+        workoutLetter: letter,
+        workout,
+        scheduledDate,
+        weekNumber,
+        dayInWeek,
+        isRestDay: false,
+      };
+    })
+    .filter((w) => w !== null) as {
+    workoutLetter: string;
+    workout: WorkoutDefinition;
+    scheduledDate: Date;
+    weekNumber: number | null;
+    dayInWeek: number;
+    isRestDay: boolean;
+  }[];
+
+  return workouts.length > 0 ? workouts : null;
 };
 
 /**
@@ -663,6 +686,37 @@ export const updatePlan = async (
 };
 
 /**
+ * Normalize schedule to convert comma-separated strings to arrays
+ * @param schedule - Schedule that may contain comma-separated strings
+ * @returns Normalized schedule with proper arrays
+ */
+export const normalizeSchedule = (
+  schedule: (string | string[])[][]
+): (string | string[])[][] => {
+  return schedule.map((week) =>
+    week.map((day) => {
+      // If it's already an array, process each element
+      if (Array.isArray(day)) {
+        return day.flatMap((item) => {
+          if (typeof item === "string" && item.includes(",")) {
+            return item.split(",").map((l) => l.trim().toUpperCase());
+          }
+          return typeof item === "string" ? item.trim().toUpperCase() : item;
+        });
+      }
+
+      // If it's a string with commas, split it into an array
+      if (typeof day === "string" && day.includes(",")) {
+        return day.split(",").map((l) => l.trim().toUpperCase());
+      }
+
+      // Otherwise, return as-is (single string)
+      return typeof day === "string" ? day.trim() : day;
+    })
+  );
+};
+
+/**
  * Validate plan data structure
  * @param plan - Plan object to validate
  * @returns Validation result with errors if any
@@ -705,10 +759,23 @@ export const validatePlanData = (
 
     plan.schedule.forEach((week) => {
       week.forEach((day) => {
-        const dayLower = day?.toLowerCase().trim();
-        if (dayLower && dayLower !== "rest" && dayLower !== "") {
-          scheduleLetters.add(day.toUpperCase());
-        }
+        // Handle both string (single workout) and array (multiple workouts) formats
+        let letters = Array.isArray(day) ? day : [day];
+
+        // Handle comma-separated strings from AI (e.g., "C, A" -> ["C", "A"])
+        letters = letters.flatMap((letter) => {
+          if (typeof letter === "string" && letter.includes(",")) {
+            return letter.split(",").map((l) => l.trim());
+          }
+          return letter;
+        });
+
+        letters.forEach((letter) => {
+          const letterLower = letter?.toLowerCase().trim();
+          if (letterLower && letterLower !== "rest" && letterLower !== "") {
+            scheduleLetters.add(letter.toUpperCase());
+          }
+        });
       });
     });
 
@@ -726,10 +793,23 @@ export const validatePlanData = (
     const scheduleLetters = new Set<string>();
     plan.schedule.forEach((week) => {
       week.forEach((day) => {
-        const dayLower = day?.toLowerCase().trim();
-        if (dayLower && dayLower !== "rest" && dayLower !== "") {
-          scheduleLetters.add(day.toUpperCase());
-        }
+        // Handle both string (single workout) and array (multiple workouts) formats
+        let letters = Array.isArray(day) ? day : [day];
+
+        // Handle comma-separated strings from AI (e.g., "C, A" -> ["C", "A"])
+        letters = letters.flatMap((letter) => {
+          if (typeof letter === "string" && letter.includes(",")) {
+            return letter.split(",").map((l) => l.trim());
+          }
+          return letter;
+        });
+
+        letters.forEach((letter) => {
+          const letterLower = letter?.toLowerCase().trim();
+          if (letterLower && letterLower !== "rest" && letterLower !== "") {
+            scheduleLetters.add(letter.toUpperCase());
+          }
+        });
       });
     });
 
@@ -824,6 +904,11 @@ export const updatePlanWithWorkoutRecreation = async (
       throw new Error("Plan not found");
     }
 
+    // Normalize schedule if provided (convert comma-separated strings to arrays)
+    if (updates.schedule) {
+      updates.schedule = normalizeSchedule(updates.schedule);
+    }
+
     // Merge updates with current plan
     const updatedPlan: Plan = {
       ...currentPlan,
@@ -850,18 +935,33 @@ export const updatePlanWithWorkoutRecreation = async (
 };
 
 /**
- * Calculate total workouts from schedule (count non-rest days)
+ * Calculate total workouts from schedule (count non-rest days, including multiple workouts per day)
  * @param plan - Plan object
- * @returns Total number of workout days
+ * @returns Total number of workout sessions
  */
 export const getTotalWorkoutsFromSchedule = (plan: Plan): number => {
   let total = 0;
   plan.schedule.forEach((week) => {
     week.forEach((day) => {
-      const dayLower = day.toLowerCase().trim();
-      if (dayLower !== "rest" && dayLower !== "" && day !== null) {
-        total++;
-      }
+      // Handle both string (single workout) and array (multiple workouts) formats
+      let workoutLetters = Array.isArray(day) ? day : [day];
+
+      // Handle comma-separated strings from AI (e.g., "C, A" -> ["C", "A"])
+      workoutLetters = workoutLetters.flatMap((letter) => {
+        if (typeof letter === "string" && letter.includes(",")) {
+          return letter.split(",").map((l) => l.trim());
+        }
+        return letter;
+      });
+
+      workoutLetters.forEach((letter) => {
+        if (letter) {
+          const dayLower = letter.toLowerCase().trim();
+          if (dayLower !== "rest" && dayLower !== "") {
+            total++;
+          }
+        }
+      });
     });
   });
   return total;
@@ -975,14 +1075,26 @@ export const getPlanEndDate = (plan: Plan): Date | null => {
  * @param schedule - Array of weekly schedules
  * @returns Maximum workouts per week
  */
-export const calculateMaxWorkoutsPerWeek = (schedule: string[][]): number => {
+export const calculateMaxWorkoutsPerWeek = (
+  schedule: (string | string[])[][]
+): number => {
   let maxWorkouts = 0;
   schedule.forEach((week) => {
-    const weekWorkouts = week.filter(
-      (day) =>
-        day && day.toLowerCase() !== "rest" && day.trim() !== "" && day !== null
-    ).length;
-    maxWorkouts = Math.max(maxWorkouts, weekWorkouts);
+    let weekWorkoutCount = 0;
+    week.forEach((day) => {
+      // Handle both string (single workout) and array (multiple workouts) formats
+      const workoutLetters = Array.isArray(day) ? day : [day];
+
+      workoutLetters.forEach((letter) => {
+        if (letter) {
+          const dayLower = letter.toLowerCase().trim();
+          if (dayLower !== "rest" && dayLower !== "") {
+            weekWorkoutCount++;
+          }
+        }
+      });
+    });
+    maxWorkouts = Math.max(maxWorkouts, weekWorkoutCount);
   });
   return maxWorkouts;
 };
@@ -1016,29 +1128,36 @@ const createWorkoutsForWeek = async (
     done: boolean;
   }[] = [];
 
-  weekSchedule.forEach((workoutLetter, dayIndex) => {
-    const dayLower = workoutLetter?.toLowerCase().trim();
-    if (!dayLower || dayLower === "rest" || dayLower === "") {
-      return; // Skip rest days
-    }
+  weekSchedule.forEach((dayWorkouts, dayIndex) => {
+    // Handle both string (single workout) and array (multiple workouts) formats
+    const workoutLetters = Array.isArray(dayWorkouts)
+      ? dayWorkouts
+      : [dayWorkouts];
 
-    const workout = plan.workouts[workoutLetter];
-    if (!workout) {
-      console.warn(`Workout ${workoutLetter} not found in plan`);
-      return;
-    }
+    workoutLetters.forEach((workoutLetter) => {
+      const dayLower = workoutLetter?.toLowerCase().trim();
+      if (!dayLower || dayLower === "rest" || dayLower === "") {
+        return; // Skip rest days
+      }
 
-    const scheduledDate = new Date(weekStartDate);
-    scheduledDate.setDate(weekStartDate.getDate() + dayIndex);
-    scheduledDate.setHours(0, 0, 0, 0);
+      const workout = plan.workouts[workoutLetter];
+      if (!workout) {
+        console.warn(`Workout ${workoutLetter} not found in plan`);
+        return;
+      }
 
-    workoutsToCreate.push({
-      user_id: userId,
-      workout_date: scheduledDate.toISOString(),
-      plan_id: plan.plan_id,
-      plan_workout_letter: workoutLetter,
-      scheduled_date: scheduledDate.toISOString(),
-      done: false,
+      const scheduledDate = new Date(weekStartDate);
+      scheduledDate.setDate(weekStartDate.getDate() + dayIndex);
+      scheduledDate.setHours(0, 0, 0, 0);
+
+      workoutsToCreate.push({
+        user_id: userId,
+        workout_date: scheduledDate.toISOString(),
+        plan_id: plan.plan_id,
+        plan_workout_letter: workoutLetter,
+        scheduled_date: scheduledDate.toISOString(),
+        done: false,
+      });
     });
   });
 
@@ -1311,12 +1430,29 @@ export const getWeekWorkoutProgress = async (
   try {
     // Get total workouts scheduled for this week from schedule
     const weekSchedule = plan.schedule[weekIndex] || [];
-    // Filter out rest days, empty strings, null, and undefined
-    const totalWorkoutsThisWeek = weekSchedule.filter((workout) => {
-      if (!workout) return false;
-      const workoutStr = workout.toString().trim().toLowerCase();
-      return workoutStr !== "" && workoutStr !== "rest";
-    }).length;
+    // Count all workout sessions, including multiple per day
+    let totalWorkoutsThisWeek = 0;
+    weekSchedule.forEach((day) => {
+      // Handle both string (single workout) and array (multiple workouts) formats
+      let workoutLetters = Array.isArray(day) ? day : [day];
+
+      // Handle comma-separated strings from AI (e.g., "C, A" -> ["C", "A"])
+      workoutLetters = workoutLetters.flatMap((letter) => {
+        if (typeof letter === "string" && letter.includes(",")) {
+          return letter.split(",").map((l) => l.trim());
+        }
+        return letter;
+      });
+
+      workoutLetters.forEach((letter) => {
+        if (letter) {
+          const workoutStr = letter.toString().trim().toLowerCase();
+          if (workoutStr !== "" && workoutStr !== "rest") {
+            totalWorkoutsThisWeek++;
+          }
+        }
+      });
+    });
 
     // Get completed workouts for this week from database
     const { data: workouts, error } = await supabase
@@ -1525,42 +1661,57 @@ export const getWeekWorkoutsWithDetails = async (
       workoutId?: string | null;
     }[] = [];
 
-    weekSchedule.forEach((workoutLetter, dayIndex) => {
-      if (
-        !workoutLetter ||
-        workoutLetter.toLowerCase().trim() === "rest" ||
-        workoutLetter.trim() === ""
-      ) {
-        return; // Skip rest days
-      }
+    weekSchedule.forEach((dayWorkouts, dayIndex) => {
+      // Handle both string (single workout) and array (multiple workouts) formats
+      let workoutLetters = Array.isArray(dayWorkouts)
+        ? dayWorkouts
+        : [dayWorkouts];
 
-      const workout = plan.workouts[workoutLetter];
-      if (!workout) {
-        // Log warning but still show the workout with placeholder info
-        console.warn(
-          `Workout definition missing for letter "${workoutLetter}" in plan ${plan.plan_id}`
-        );
-      }
+      // Handle comma-separated strings from AI (e.g., "C, A" -> ["C", "A"])
+      workoutLetters = workoutLetters.flatMap((letter) => {
+        if (typeof letter === "string" && letter.includes(",")) {
+          return letter.split(",").map((l) => l.trim());
+        }
+        return letter;
+      });
 
-      const scheduledDate = new Date(weekStartDate);
-      scheduledDate.setDate(weekStartDate.getDate() + dayIndex);
-      scheduledDate.setHours(0, 0, 0, 0);
+      workoutLetters.forEach((workoutLetter) => {
+        if (
+          !workoutLetter ||
+          workoutLetter.toLowerCase().trim() === "rest" ||
+          workoutLetter.trim() === ""
+        ) {
+          return; // Skip rest days
+        }
 
-      const dateKey = scheduledDate.toISOString().split("T")[0];
-      const completionKey = `${dateKey}-${workoutLetter}`;
-      const isCompleted = completedMap.get(completionKey) || false;
-      const workoutId = workoutIdMap.get(completionKey) || null;
+        const workout = plan.workouts[workoutLetter];
+        if (!workout) {
+          // Log warning but still show the workout with placeholder info
+          console.warn(
+            `Workout definition missing for letter "${workoutLetter}" in plan ${plan.plan_id}`
+          );
+        }
 
-      workouts.push({
-        workoutLetter,
-        workoutName:
-          workout?.name || `Workout ${workoutLetter} (Missing Definition)`,
-        scheduledDate,
-        dayName: dayNames[dayIndex],
-        dayIndex,
-        isCompleted,
-        exerciseCount: workout?.exercises?.length || 0,
-        workoutId,
+        const scheduledDate = new Date(weekStartDate);
+        scheduledDate.setDate(weekStartDate.getDate() + dayIndex);
+        scheduledDate.setHours(0, 0, 0, 0);
+
+        const dateKey = scheduledDate.toISOString().split("T")[0];
+        const completionKey = `${dateKey}-${workoutLetter}`;
+        const isCompleted = completedMap.get(completionKey) || false;
+        const workoutId = workoutIdMap.get(completionKey) || null;
+
+        workouts.push({
+          workoutLetter,
+          workoutName:
+            workout?.name || `Workout ${workoutLetter} (Missing Definition)`,
+          scheduledDate,
+          dayName: dayNames[dayIndex],
+          dayIndex,
+          isCompleted,
+          exerciseCount: workout?.exercises?.length || 0,
+          workoutId,
+        });
       });
     });
 
