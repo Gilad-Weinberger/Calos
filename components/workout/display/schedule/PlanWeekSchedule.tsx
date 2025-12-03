@@ -97,11 +97,32 @@ const PlanWeekSchedule: React.FC<PlanWeekScheduleProps> = ({
         />
 
         {dayNames.map((dayName, dayIndex) => {
-          const workoutLetter = getDayWorkout(dayIndex);
+          const daySchedule = getDayWorkout(dayIndex);
+
+          // Handle both string and array formats
+          let workoutLetters = Array.isArray(daySchedule)
+            ? daySchedule
+            : [daySchedule];
+
+          // Handle comma-separated strings from AI
+          workoutLetters = workoutLetters.flatMap((letter) => {
+            if (typeof letter === "string" && letter.includes(",")) {
+              return letter.split(",").map((l) => l.trim());
+            }
+            return letter;
+          });
+
+          // Check if it's a rest day (no workouts or all workouts are rest)
           const isRest =
-            !workoutLetter ||
-            workoutLetter.toLowerCase() === "rest" ||
-            workoutLetter.trim() === "";
+            !daySchedule ||
+            workoutLetters.length === 0 ||
+            workoutLetters.every(
+              (letter) =>
+                !letter ||
+                (typeof letter === "string" &&
+                  (letter.toLowerCase() === "rest" || letter.trim() === ""))
+            );
+
           const isSelected = dayIndex === selectedDayIndex;
 
           return (
@@ -134,18 +155,30 @@ const PlanWeekSchedule: React.FC<PlanWeekScheduleProps> = ({
                 className="flex-row gap-1 justify-center"
                 style={{ minHeight: 10 }}
               >
-                {!isRest && workoutLetter && (
-                  <LinearGradient
-                    colors={["#2563eb", "#3b82f6", "#60a5fa"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 2,
-                    }}
-                  />
-                )}
+                {!isRest &&
+                  workoutLetters.map((letter, index) => {
+                    if (
+                      !letter ||
+                      (typeof letter === "string" &&
+                        (letter.toLowerCase() === "rest" ||
+                          letter.trim() === ""))
+                    ) {
+                      return null;
+                    }
+                    return (
+                      <LinearGradient
+                        key={`${dayIndex}-${index}`}
+                        colors={["#2563eb", "#3b82f6", "#60a5fa"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 2,
+                        }}
+                      />
+                    );
+                  })}
               </View>
             </TouchableOpacity>
           );
