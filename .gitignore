@@ -50,3 +50,5 @@ app-example
 
 /scripts/generateDemoData.sql
 /scripts/deleteDemoData.sql
+
+eas-commands.txt
