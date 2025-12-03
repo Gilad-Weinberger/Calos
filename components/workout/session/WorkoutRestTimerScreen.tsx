@@ -9,6 +9,9 @@ interface WorkoutRestTimerScreenProps {
   isRestTimerRunning: boolean;
   currentSetIndex: number;
   onSkipRest: () => void;
+  isLastSet: boolean;
+  isLastExercise: boolean;
+  nextExerciseName?: string;
 }
 
 const WorkoutRestTimerScreen: React.FC<WorkoutRestTimerScreenProps> = ({
@@ -17,6 +20,9 @@ const WorkoutRestTimerScreen: React.FC<WorkoutRestTimerScreenProps> = ({
   isRestTimerRunning,
   currentSetIndex,
   onSkipRest,
+  isLastSet,
+  isLastExercise,
+  nextExerciseName,
 }) => {
   const { playCountdownAudio, resetAudioFlag } = useCountdownAudio();
   const audioTriggeredRef = useRef(false);
@@ -64,7 +70,13 @@ const WorkoutRestTimerScreen: React.FC<WorkoutRestTimerScreenProps> = ({
       </Text>
 
       <Text className="text-base text-gray-600 mb-8">
-        Get ready for set {currentSetIndex + 1}
+        {isLastSet && isLastExercise
+          ? "Workout almost complete!"
+          : isLastSet
+            ? nextExerciseName
+              ? `Next: ${nextExerciseName}`
+              : "Get ready for next exercise"
+            : `Get ready for set ${currentSetIndex + 2}`}
       </Text>
 
       <TouchableOpacity
@@ -78,5 +90,3 @@ const WorkoutRestTimerScreen: React.FC<WorkoutRestTimerScreenProps> = ({
 };
 
 export default WorkoutRestTimerScreen;
-
-

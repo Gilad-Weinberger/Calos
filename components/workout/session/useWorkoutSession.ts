@@ -582,42 +582,31 @@ export const useWorkoutSession = () => {
       }, 1000);
     } else if (isLastSet) {
       // This is rest after the last set of a non-final exercise
-      setShowReadyPrompt(true);
-
-      // Auto-advance after 3 seconds and move to next exercise
-      setTimeout(() => {
-        setShowReadyPrompt(false);
-        setIsResting(false);
-        moveToNextExercise();
-      }, 3000);
+      // Move immediately to next exercise
+      setIsResting(false);
+      moveToNextExercise();
     } else {
       // Regular rest between sets - move to next set
-      setShowReadyPrompt(true);
+      setIsResting(false);
 
-      // Auto-advance after 3 seconds and move to next set
-      setTimeout(() => {
-        setShowReadyPrompt(false);
-        setIsResting(false);
-
-        // Move to next set
-        if (inSuperset) {
-          // Return to first exercise of superset for next set
-          const firstExerciseIndex = exercises.findIndex(
-            (ex) => ex.superset_group === currentExercise.superset_group
-          );
-          if (firstExerciseIndex !== -1) {
-            setCurrentExerciseIndex(firstExerciseIndex);
-            setCurrentSetIndex(currentSetIndex + 1);
-            setCurrentRepInput(
-              (exercises[firstExerciseIndex]?.reps || 0).toString()
-            );
-          }
-        } else {
-          // Regular exercise - move to next set
+      // Move to next set
+      if (inSuperset) {
+        // Return to first exercise of superset for next set
+        const firstExerciseIndex = exercises.findIndex(
+          (ex) => ex.superset_group === currentExercise.superset_group
+        );
+        if (firstExerciseIndex !== -1) {
+          setCurrentExerciseIndex(firstExerciseIndex);
           setCurrentSetIndex(currentSetIndex + 1);
-          setCurrentRepInput((currentExercise.reps || 0).toString());
+          setCurrentRepInput(
+            (exercises[firstExerciseIndex]?.reps || 0).toString()
+          );
         }
-      }, 3000);
+      } else {
+        // Regular exercise - move to next set
+        setCurrentSetIndex(currentSetIndex + 1);
+        setCurrentRepInput((currentExercise.reps || 0).toString());
+      }
     }
   }, [
     isLastSet,

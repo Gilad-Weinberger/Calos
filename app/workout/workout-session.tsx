@@ -8,13 +8,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useWorkoutSession } from "../../components/workout/session/useWorkoutSession";
 import WorkoutCountdownScreen from "../../components/workout/session/WorkoutCountdownScreen";
 import WorkoutExerciseSetScreen from "../../components/workout/session/WorkoutExerciseSetScreen";
 import WorkoutHoldTimerScreen from "../../components/workout/session/WorkoutHoldTimerScreen";
 import WorkoutManualDurationInputModal from "../../components/workout/session/WorkoutManualDurationInputModal";
 import WorkoutReadyPromptScreen from "../../components/workout/session/WorkoutReadyPromptScreen";
 import WorkoutRestTimerScreen from "../../components/workout/session/WorkoutRestTimerScreen";
-import { useWorkoutSession } from "../../components/workout/session/useWorkoutSession";
 import WorkoutSessionHeader from "../../components/workout/session/WorkoutSessionHeader";
 
 const WorkoutSession = () => {
@@ -48,6 +48,7 @@ const WorkoutSession = () => {
     supersetInfo,
     nextExerciseInSuperset,
     supersetExercises,
+    exercises,
 
     // Actions
     setCurrentRepInput,
@@ -58,6 +59,18 @@ const WorkoutSession = () => {
     skipRest,
     handleExit,
   } = useWorkoutSession();
+
+  // Calculate next exercise name for rest screen
+  const nextExerciseName = React.useMemo(() => {
+    if (
+      isLastSet &&
+      !isLastExercise &&
+      exercises.length > currentExerciseIndex + 1
+    ) {
+      return exercises[currentExerciseIndex + 1].exercise_name;
+    }
+    return undefined;
+  }, [isLastSet, isLastExercise, exercises, currentExerciseIndex]);
 
   if (isLoading) {
     return (
@@ -103,6 +116,9 @@ const WorkoutSession = () => {
                 isRestTimerRunning={isRestTimerRunning}
                 currentSetIndex={currentSetIndex}
                 onSkipRest={skipRest}
+                isLastSet={isLastSet}
+                isLastExercise={isLastExercise}
+                nextExerciseName={nextExerciseName}
               />
             ) : showReadyPrompt ? (
               <WorkoutReadyPromptScreen

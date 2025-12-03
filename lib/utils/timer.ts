@@ -127,31 +127,57 @@ export const useCountdown = (
 ) => {
   const [timeLeft, setTimeLeft] = useState(initialDuration);
   const [isRunning, setIsRunning] = useState(autoStart);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  const endTimeRef = useRef<number | null>(null);
+
+  // Update ref when callback changes
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  const timeLeftRef = useRef(timeLeft);
+
+  // Update ref when timeLeft changes, but only for initial setup purposes
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
 
   useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            setIsRunning(false);
-            onComplete?.();
-            return 0;
-          }
-          return prevTime - 1;
-        });
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+    if (isRunning) {
+      // If we're starting or resuming, calculate/recalculate the target end time
+      // based on the current remaining seconds
+      if (endTimeRef.current === null) {
+        endTimeRef.current = Date.now() + timeLeftRef.current * 1000;
       }
-    };
-  }, [isRunning, timeLeft, onComplete]);
+
+      const interval = setInterval(() => {
+        const now = Date.now();
+        // Calculate exact remaining seconds
+        const remaining = Math.max(
+          0,
+          Math.ceil((endTimeRef.current! - now) / 1000)
+        );
+
+        setTimeLeft(remaining);
+
+        if (remaining <= 0) {
+          // Timer finished
+          clearInterval(interval);
+          setIsRunning(false);
+          endTimeRef.current = null;
+          // Trigger callback immediately
+          if (onCompleteRef.current) {
+            onCompleteRef.current();
+          }
+        }
+      }, 100); // Check every 100ms for high precision and immediate finish
+
+      return () => clearInterval(interval);
+    } else {
+      // If paused or stopped, clear the end time target
+      endTimeRef.current = null;
+    }
+  }, [isRunning]); // Safe to omit timeLeft since we use ref for initial setup
 
   const start = () => {
     setIsRunning(true);
@@ -164,6 +190,7 @@ export const useCountdown = (
   const reset = (newDuration?: number) => {
     setIsRunning(false);
     setTimeLeft(newDuration ?? initialDuration);
+    endTimeRef.current = null;
   };
 
   return {
