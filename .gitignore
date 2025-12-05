@@ -52,3 +52,5 @@ app-example
 /scripts/deleteDemoData.sql
 
 eas-commands.txt
+
+/.cursor
