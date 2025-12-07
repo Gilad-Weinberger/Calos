@@ -8,6 +8,7 @@ interface WorkoutCardMenuProps {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onShare: () => void;
 }
 
 const WorkoutCardMenu: React.FC<WorkoutCardMenuProps> = ({
@@ -16,6 +17,7 @@ const WorkoutCardMenu: React.FC<WorkoutCardMenuProps> = ({
   onClose,
   onEdit,
   onDelete,
+  onShare,
 }) => {
   return (
     <Modal
@@ -27,6 +29,16 @@ const WorkoutCardMenu: React.FC<WorkoutCardMenuProps> = ({
       <Pressable className="flex-1 bg-black/50" onPress={onClose}>
         <View className="flex-1 justify-center items-center p-4">
           <View className="bg-white rounded-2xl w-64 overflow-hidden">
+            <TouchableOpacity
+              onPress={onShare}
+              className="flex-row items-center p-4 border-b border-gray-200"
+            >
+              <Ionicons name="share-social-outline" size={24} color="#8B5CF6" />
+              <Text className="text-base font-medium text-gray-900 ml-3">
+                Share Workout
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={onEdit}
               className="flex-row items-center p-4 border-b border-gray-200"
@@ -56,5 +68,3 @@ const WorkoutCardMenu: React.FC<WorkoutCardMenuProps> = ({
 };
 
 export default WorkoutCardMenu;
-
-

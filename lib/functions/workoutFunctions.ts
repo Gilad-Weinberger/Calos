@@ -476,6 +476,9 @@ export interface Achievement {
   icon: string;
   message: string;
   rank?: number; // 1 for gold/PR, 2 for silver, 3 for bronze
+  value?: number;
+  unit?: string;
+  exerciseName?: string;
 }
 
 /**
@@ -569,6 +572,9 @@ export const getWorkoutAchievements = async (
         const setsToCheck =
           compareMode === "best" ? [Math.max(...exercise.reps)] : exercise.reps;
 
+        // Keep track of best set achievements found for this exercise to avoid duplicates if multiple sets qualify
+        const foundBestSetAchievements: Achievement[] = [];
+
         // Check each set for achievements
         for (const rep of setsToCheck) {
           const ranking = rankings.find(
@@ -578,22 +584,43 @@ export const getWorkoutAchievements = async (
           if (ranking) {
             // Check if it's a PR (1st place)
             if (ranking.rank_position === 1) {
-              achievements.push({
+              foundBestSetAchievements.push({
                 icon: "trophy",
-                message: `Congrats for the new PR! ${rep} ${unit} in ${exerciseData?.name || "exercise"}!`,
+                message: `Congrats for the new PR!\n${rep} ${unit} in ${exerciseData?.name || "exercise"}!`,
                 rank: 1,
+                value: rep,
+                unit,
+                exerciseName: exerciseData?.name || "exercise",
               });
             }
             // Check if it's in top 3 rankings
             else if (ranking.rank_position <= 3) {
               const position = ranking.rank_position === 2 ? "2nd" : "3rd";
-              achievements.push({
+              foundBestSetAchievements.push({
                 icon: "medal",
                 message: `Congrats! That's the ${position} best performance: ${rep} ${unit} in ${exerciseData?.name || "exercise"}`,
                 rank: ranking.rank_position,
+                value: rep,
+                unit,
+                exerciseName: exerciseData?.name || "exercise",
               });
             }
           }
+        }
+
+        // If we found any best set achievements, sort by value (descending) and take the top one
+        if (foundBestSetAchievements.length > 0) {
+          // Sort by value descending (higher reps/seconds is better)
+          // If values are equal, prioritize better rank (lower rank number)
+          foundBestSetAchievements.sort((a, b) => {
+            if (a.value !== b.value) {
+              return (b.value || 0) - (a.value || 0);
+            }
+            return (a.rank || 999) - (b.rank || 999);
+          });
+
+          // Add only the best one
+          achievements.push(foundBestSetAchievements[0]);
         }
       }
 
@@ -629,6 +656,9 @@ export const getWorkoutAchievements = async (
               icon: "trophy",
               message: `New total reps record! ${totalReps} ${unit} total in ${exerciseData?.name || "exercise"}`,
               rank: 1,
+              value: totalReps,
+              unit,
+              exerciseName: exerciseData?.name || "exercise",
             });
           }
           // Check if it's in top 3 total reps rankings
@@ -638,6 +668,9 @@ export const getWorkoutAchievements = async (
               icon: "medal",
               message: `${position} best total! ${totalReps} ${unit} in ${exerciseData?.name || "exercise"}`,
               rank: totalRanking.rank_position,
+              value: totalReps,
+              unit,
+              exerciseName: exerciseData?.name || "exercise",
             });
           }
         }

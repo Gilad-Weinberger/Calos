@@ -14,6 +14,7 @@ import {
 import { formatDuration } from "../../../lib/utils/timer";
 import ImageViewerModal from "../../ui/ImageViewerModal";
 import VideoPlayerModal from "../../ui/VideoPlayerModal";
+import WorkoutSummaryModal from "../../workout/display/WorkoutSummaryModal";
 import WorkoutCardAchievement from "./WorkoutCardAchievement";
 import WorkoutCardExerciseCarousel from "./WorkoutCardExerciseCarousel";
 import WorkoutCardHeader from "./WorkoutCardHeader";
@@ -21,9 +22,16 @@ import WorkoutCardMediaCarousel from "./WorkoutCardMediaCarousel";
 import WorkoutCardMenu from "./WorkoutCardMenu";
 import WorkoutCardStats from "./WorkoutCardStats";
 
-type MediaItem = 
-  | { type: 'video'; url: string; exerciseName: string; exerciseType: "static" | "dynamic"; sets: number; reps: number[] }
-  | { type: 'image'; url: string };
+type MediaItem =
+  | {
+      type: "video";
+      url: string;
+      exerciseName: string;
+      exerciseType: "static" | "dynamic";
+      sets: number;
+      reps: number[];
+    }
+  | { type: "image"; url: string };
 
 interface WorkoutCardProps {
   workout: {
@@ -73,6 +81,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
     const { user } = useAuth();
     const [menuVisible, setMenuVisible] = useState(false);
     const [mediaModalVisible, setMediaModalVisible] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
     // Memoize expensive calculations
@@ -133,6 +142,11 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
         pathname: "/workout/achievements/[id]",
         params: { id: workout.workout_id },
       });
+    };
+
+    const handleSharePress = () => {
+      setMenuVisible(false);
+      setShowShareModal(true);
     };
 
     const handleEditPress = () => {
@@ -201,7 +215,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
       const videos: MediaItem[] = workout.workout_exercises.flatMap((ex) => {
         if (!ex.video_urls || ex.video_urls.length === 0) return [];
         return ex.video_urls.map((url) => ({
-          type: 'video' as const,
+          type: "video" as const,
           url,
           exerciseName: ex.exercises.name,
           exerciseType: ex.exercises.type,
@@ -212,7 +226,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
 
       // Collect workout images
       const images: MediaItem[] = (workout.media_urls || []).map((url) => ({
-        type: 'image' as const,
+        type: "image" as const,
         url,
       }));
 
@@ -258,6 +272,15 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
           onClose={() => setMenuVisible(false)}
           onEdit={handleEditPress}
           onDelete={handleDeletePress}
+          onShare={handleSharePress}
+        />
+
+        <WorkoutSummaryModal
+          visible={showShareModal}
+          workout={workout}
+          achievements={achievements}
+          onClose={() => setShowShareModal(false)}
+          userName={userName}
         />
 
         {/* Title Section */}
@@ -297,8 +320,8 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
           <WorkoutCardExerciseCarousel exercises={exercises} />
         )}
         {/* Media Viewer Modal */}
-        {selectedMedia && (
-          selectedMedia.type === 'video' ? (
+        {selectedMedia &&
+          (selectedMedia.type === "video" ? (
             <VideoPlayerModal
               visible={mediaModalVisible}
               onClose={() => {
@@ -320,8 +343,7 @@ const WorkoutCard: React.FC<WorkoutCardProps> = memo(
               }}
               imageUrl={selectedMedia.url}
             />
-          )
-        )}
+          ))}
       </View>
     );
   }
