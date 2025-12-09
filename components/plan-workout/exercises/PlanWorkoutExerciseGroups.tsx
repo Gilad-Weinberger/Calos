@@ -17,7 +17,8 @@ const ExerciseRow: React.FC<{
 }> = ({ exercise, isInSuperset = false, isLastInGroup = false }) => {
   const detail = useMemo(() => {
     if (exercise.type === "static") {
-      const seconds = exercise.reps[0] || 0;
+      // For static exercises, use duration field as the source of truth
+      const seconds = exercise.duration || 0;
       if (seconds >= 60) {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
@@ -31,7 +32,7 @@ const ExerciseRow: React.FC<{
       // Dynamic exercise - show reps
       return `${exercise.reps[0] || 0}`;
     }
-  }, [exercise.type, exercise.reps]);
+  }, [exercise.type, exercise.duration, exercise.reps]);
 
   // Reduce padding for exercises in supersets
   const paddingClass = isInSuperset

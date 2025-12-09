@@ -59,9 +59,25 @@ const PlanWorkoutRoute: React.FC = () => {
       const exercises = [...workout.workout_exercises]
         .sort((a, b) => a.order_index - b.order_index)
         .map((exercise) => {
-          const definitionMatch = workoutDefinition?.exercises.find(
+          // First try to match by exercise_id
+          let definitionMatch = workoutDefinition?.exercises.find(
             (def) => def.exercise_id === exercise.exercise_id
           );
+
+          // If no match by ID, try matching by exercise name (case-insensitive)
+          // This handles cases where exercise IDs might differ but names match
+          if (!definitionMatch) {
+            definitionMatch = workoutDefinition?.exercises.find(
+              (def) =>
+                def.exercise_name.toLowerCase() ===
+                exercise.exercises.name.toLowerCase()
+            );
+          }
+
+          const isStatic = exercise.exercises.type === "static";
+          const duration = isStatic
+            ? (definitionMatch?.duration ?? exercise.reps[0] ?? null)
+            : null;
 
           return {
             exerciseId: exercise.exercise_id,
@@ -69,7 +85,7 @@ const PlanWorkoutRoute: React.FC = () => {
             type: exercise.exercises.type,
             sets: definitionMatch?.sets ?? exercise.sets,
             reps: exercise.reps,
-            duration: definitionMatch?.duration ?? null,
+            duration,
             restSeconds: definitionMatch?.rest_seconds,
             supersetGroup:
               definitionMatch?.superset_group ??

@@ -87,7 +87,7 @@ const UserWorkoutsPage = () => {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-white">
+      <View className="flex-1 bg-gray-100">
         <AppTopBar
           title="Workouts"
           icons={[
@@ -107,7 +107,7 @@ const UserWorkoutsPage = () => {
 
   if (error) {
     return (
-      <View className="flex-1 bg-white">
+      <View className="flex-1 bg-gray-100">
         <AppTopBar
           title="Workouts"
           icons={[
@@ -131,8 +131,8 @@ const UserWorkoutsPage = () => {
   }
 
   return (
-    <View className="flex-1 bg-white">
-      <TopBar
+    <View className="flex-1 bg-gray-100">
+      <AppTopBar
         title="Workouts"
         icons={[
           {
@@ -149,7 +149,8 @@ const UserWorkoutsPage = () => {
               No workouts yet
             </Text>
             <Text className="text-gray-600 mt-2 text-center">
-              {profileUser?.name || "This user"} hasn&apos;t completed any workouts
+              {profileUser?.name || "This user"} hasn&apos;t completed any
+              workouts
             </Text>
           </View>
         ) : (
