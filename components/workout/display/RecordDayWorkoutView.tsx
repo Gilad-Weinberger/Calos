@@ -289,10 +289,7 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
 
               {/* Multiple Workout Cards - stacked vertically */}
               {selectedDayWorkouts.map((workout, index) => (
-                <View
-                  key={`${workout.workoutLetter}-${index}`}
-                  className="mb-4"
-                >
+                <View key={`${workout.workoutLetter}-${index}`}>
                   <RecordWorkoutCard
                     workout={{
                       workoutLetter: workout.workoutLetter,

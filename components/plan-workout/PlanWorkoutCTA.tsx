@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface PlanWorkoutCTAProps {
   onStart: () => void;
@@ -14,8 +13,6 @@ const PlanWorkoutCTA: React.FC<PlanWorkoutCTAProps> = ({
   disabled = false,
   label = "Start Workout",
 }) => {
-  const insets = useSafeAreaInsets();
-
   return (
     <TouchableOpacity
       onPress={onStart}
@@ -24,7 +21,7 @@ const PlanWorkoutCTA: React.FC<PlanWorkoutCTAProps> = ({
         disabled ? "bg-gray-300" : "bg-black"
       }`}
       style={{
-        bottom: insets.bottom + 16,
+        bottom: 16,
         shadowColor: "#000",
         shadowOffset: {
           width: 0,

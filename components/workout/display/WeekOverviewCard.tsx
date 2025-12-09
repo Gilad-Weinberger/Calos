@@ -68,7 +68,7 @@ const WeekOverviewCard: React.FC<WeekOverviewCardProps> = ({
   return (
     <TouchableOpacity
       onPress={handlePress}
-      className="bg-white rounded-2xl p-4 mb-4"
+      className="bg-white rounded-2xl p-4 mb-4 mt-4"
       style={{
         shadowColor: "#000",
         shadowOffset: {

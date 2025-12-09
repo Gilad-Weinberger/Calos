@@ -35,7 +35,7 @@ const You = () => {
         ]}
       />
       <YouTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-      <SafeAreaView className="flex-1" edges={["bottom", "left", "right"]}>
+      <SafeAreaView className="flex-1" edges={["left", "right"]}>
         {renderContent()}
       </SafeAreaView>
     </View>

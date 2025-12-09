@@ -154,7 +154,7 @@ const Record = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView className="flex-1 bg-gray-100" edges={["left", "right", "top"]}>
       {/* Header with Week Indicator */}
       {activePlan && (
         <View className="px-4 py-3 border-b border-gray-200 bg-white flex-row items-center justify-between">
