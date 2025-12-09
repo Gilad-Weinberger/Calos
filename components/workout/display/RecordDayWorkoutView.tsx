@@ -230,25 +230,16 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
 
           <View className="p-4">
             {/* Workout Complete Banner */}
-            <View className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 mb-6 shadow-lg">
-              <View className="flex-row items-center justify-center">
-                <View className="w-12 h-12 rounded-full bg-white/20 items-center justify-center mr-4">
-                  <Ionicons name="checkmark" size={24} color="white" />
+            <View className="bg-white rounded-2xl p-6 mb-6 shadow-lg">
+              <View className="items-center">
+                <View className="w-20 h-20 rounded-full bg-green-100 items-center justify-center mb-4">
+                  <Ionicons name="checkmark" size={40} color="#16a34a" />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-xl font-bold text-white mb-1">
-                    {selectedDayWorkouts.length > 1
-                      ? "All Workouts Complete!"
-                      : "Workout Complete!"}
-                  </Text>
-                  <Text className="text-green-100 text-sm">
-                    Great job! You&apos;ve finished{" "}
-                    {selectedDayWorkouts.length > 1
-                      ? "all workouts"
-                      : "this workout"}{" "}
-                    for today.
-                  </Text>
-                </View>
+                <Text className="text-base text-gray-600 text-center leading-6">
+                  {selectedDayWorkouts.length > 1
+                    ? "All workouts complete! Great job!"
+                    : "Workout complete! Great job!"}
+                </Text>
               </View>
             </View>
           </View>
