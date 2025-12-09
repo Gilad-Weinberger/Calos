@@ -219,16 +219,16 @@ const RecordDayWorkoutView: React.FC<RecordDayWorkoutViewProps> = ({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 20 }}
         >
-          <View className="p-4">
-            {/* Week Schedule */}
-            <PlanWeekSlider
-              plan={plan}
-              initialWeekIndex={weekIndex}
-              selectedDayIndex={selectedDayIndex}
-              onDaySelect={onDaySelect}
-              onWeekChange={onWeekChange}
-            />
+          {/* Week Schedule */}
+          <PlanWeekSlider
+            plan={plan}
+            initialWeekIndex={weekIndex}
+            selectedDayIndex={selectedDayIndex}
+            onDaySelect={onDaySelect}
+            onWeekChange={onWeekChange}
+          />
 
+          <View className="p-4">
             {/* Workout Complete Banner */}
             <View className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 mb-6 shadow-lg">
               <View className="flex-row items-center justify-center">
